@@ -179,18 +179,6 @@ const Index = () => {
                 onExport={handleExport}
               />
               
-              {availableModels.length > 1 && (
-                <ModelSelector
-                  models={availableModels.map(model => ({
-                    name: model.name,
-                    index: model.index,
-                    meshCount: model.meshCount
-                  }))}
-                  selectedModelIndex={selectedModelIndex}
-                  onModelSelect={setSelectedModelIndex}
-                />
-              )}
-              
               {!modelData && (
                 <div className="block xl:hidden">
                   <FileUpload onFileSelect={handleFileSelect} />

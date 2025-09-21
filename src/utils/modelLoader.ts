@@ -156,6 +156,12 @@ function extractGeometry(object: any): THREE.BufferGeometry | null {
 }
 
 function processGeometry(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
+  // Sprawdź czy geometria już była przetworzona
+  if ((geometry as any).__lovable_processed) {
+    console.log('Geometry already processed, skipping');
+    return geometry;
+  }
+
   // Make a copy to avoid modifying the original
   const processedGeometry = geometry.clone();
   
@@ -187,6 +193,10 @@ function processGeometry(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
     
     // Compute normals for proper lighting
     processedGeometry.computeVertexNormals();
+    
+    // Oznacz jako przetworzoną
+    (processedGeometry as any).__lovable_processed = true;
+    
   } catch (error) {
     console.warn('Error processing geometry:', error);
   }
