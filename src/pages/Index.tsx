@@ -4,6 +4,7 @@ import { ModelViewer } from "@/components/ModelViewer";
 import { ControlPanel } from "@/components/ControlPanel";
 import { toast } from "sonner";
 import { Box, Layers3 } from "lucide-react";
+import { exportCanvasAs, captureCanvasFromThreeJS } from "@/utils/exportUtils";
 
 const Index = () => {
   const [modelData, setModelData] = useState<ArrayBuffer | null>(null);
@@ -27,6 +28,27 @@ const Index = () => {
     setFileName(undefined);
     setModelColor("#FFFFFF");
     toast.info("Viewer reset");
+  };
+
+  const handleExport = async (format: 'png' | 'jpg' | 'pdf') => {
+    try {
+      // Find the Three.js canvas
+      const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+      if (!canvas) {
+        toast.error('No 3D model to export');
+        return;
+      }
+
+      // Capture the canvas content
+      const captureCanvas = captureCanvasFromThreeJS(canvas);
+      
+      // Export with filename based on the loaded model
+      const baseFileName = fileName ? fileName.replace(/\.[^/.]+$/, '') : 'model-export';
+      await exportCanvasAs(captureCanvas, format, baseFileName);
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Export failed. Please try again.');
+    }
   };
 
   return (
@@ -60,6 +82,7 @@ const Index = () => {
               onColorChange={setModelColor}
               fileName={fileName}
               onReset={handleReset}
+              onExport={handleExport}
             />
             
             {!modelData && (

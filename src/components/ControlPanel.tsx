@@ -1,14 +1,16 @@
-import { Palette, RotateCcw, ZoomIn, ZoomOut, Download, Info } from "lucide-react";
+import { Palette, RotateCcw, ZoomIn, ZoomOut, Download, Info, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface ControlPanelProps {
   modelColor: string;
   onColorChange: (color: string) => void;
   fileName?: string;
   onReset?: () => void;
+  onExport?: (format: 'png' | 'jpg' | 'pdf') => void;
 }
 
 const PRESET_COLORS = [
@@ -30,7 +32,8 @@ export const ControlPanel = ({
   modelColor, 
   onColorChange, 
   fileName,
-  onReset 
+  onReset,
+  onExport 
 }: ControlPanelProps) => {
   return (
     <Card className="bg-viewer-panel shadow-panel border-border/50 backdrop-blur-sm">
@@ -104,15 +107,31 @@ export const ControlPanel = ({
               <RotateCcw className="w-3 h-3 mr-1" />
               Reset
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-xs"
-              disabled
-            >
-              <Download className="w-3 h-3 mr-1" />
-              Export
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-xs"
+                  disabled={!fileName}
+                >
+                  <Download className="w-3 h-3 mr-1" />
+                  Export
+                  <ChevronDown className="w-3 h-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onExport?.('png')}>
+                  Export as PNG
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExport?.('jpg')}>
+                  Export as JPG
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExport?.('pdf')}>
+                  Export as PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
