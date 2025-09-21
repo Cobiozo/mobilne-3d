@@ -5,6 +5,7 @@ import { ControlPanel } from "@/components/ControlPanel";
 import { toast } from "sonner";
 import { Box, Layers3 } from "lucide-react";
 import { exportCanvasAs, captureCanvasFromThreeJS } from "@/utils/exportUtils";
+import { render2DView } from "@/utils/export2D";
 import { useApp } from "@/contexts/AppContext";
 import { useTranslation } from "@/lib/i18n";
 import { LanguageThemeSelector } from "@/components/LanguageThemeSelector";
@@ -35,44 +36,52 @@ const Index = () => {
     toast.info(t('resetMessage'));
   };
 
-  const handleExport = async (format: 'png' | 'jpg' | 'pdf') => {
+  const handleExport = async (format: 'png' | 'jpg' | 'pdf', view: '2d-front' | '2d-top' | '2d-side') => {
     try {
-      toast.info(t('exportPreparing', { format: format.toUpperCase() }));
-      
-      // Wait a moment for the scene to fully render
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Find the Three.js canvas
-      const canvasElements = document.querySelectorAll('canvas');
-      let canvas: HTMLCanvasElement | null = null;
-      
-      // Look for the Three.js canvas (should be the one with WebGL context)
-      for (const canvasEl of canvasElements) {
-        const gl = canvasEl.getContext('webgl') || canvasEl.getContext('webgl2');
-        if (gl) {
-          canvas = canvasEl;
-          break;
-        }
-      }
-      
-      if (!canvas) {
+      if (!modelData) {
         toast.error(t('exportNoModel'));
         return;
       }
 
-      // Ensure the canvas has preserveDrawingBuffer enabled for capture
-      const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
-      if (gl && !gl.getContextAttributes()?.preserveDrawingBuffer) {
-        toast.error(t('exportConfigError'));
-        return;
-      }
-
-      // Capture the canvas content
-      const captureCanvas = captureCanvasFromThreeJS(canvas);
+      toast.info(`Przygotowywanie eksportu 2D (${view})...`);
       
-      // Export with filename based on the loaded model
+      // Import STLLoader for geometry parsing
+      const { STLLoader } = await import('three/examples/jsm/loaders/STLLoader.js');
+      const THREE = await import('three');
+      
+      // Parse geometry from model data
+      const loader = new STLLoader();
+      const geometry = loader.parse(modelData);
+      
+      // Center and scale geometry
+      geometry.computeBoundingBox();
+      const center = new THREE.Vector3();
+      geometry.boundingBox?.getCenter(center);
+      geometry.translate(-center.x, -center.y, -center.z);
+      
+      const size = new THREE.Vector3();
+      geometry.boundingBox?.getSize(size);
+      const maxDimension = Math.max(size.x, size.y, size.z);
+      const scale = 3 / maxDimension;
+      geometry.scale(scale, scale, scale);
+      geometry.computeVertexNormals();
+      
+      // Create material
+      const material = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(modelColor),
+        metalness: 0.3,
+        roughness: 0.4,
+        side: THREE.DoubleSide,
+      });
+      
+      // Render 2D view
+      const canvas2D = render2DView(geometry, material, view, modelColor);
+      
+      // Export
+      const viewName = view === '2d-front' ? 'przod' : view === '2d-top' ? 'gora' : 'bok';
       const baseFileName = fileName ? fileName.replace(/\.[^/.]+$/, '') : 'model-export';
-      await exportCanvasAs(captureCanvas, format, baseFileName);
+      await exportCanvasAs(canvas2D, format, `${baseFileName}-${viewName}`);
+      
     } catch (error) {
       console.error('Export failed:', error);
       toast.error(t('exportError'));

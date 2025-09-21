@@ -12,7 +12,7 @@ interface ControlPanelProps {
   onColorChange: (color: string) => void;
   fileName?: string;
   onReset?: () => void;
-  onExport?: (format: 'png' | 'jpg' | 'pdf') => void;
+  onExport?: (format: 'png' | 'jpg' | 'pdf', view: '2d-front' | '2d-top' | '2d-side') => void;
 }
 
 const PRESET_COLORS = [
@@ -125,14 +125,43 @@ export const ControlPanel = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onExport?.('png')}>
-                  {t('exportPNG')}
+                <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                  Widok z przodu (2D)
+                </div>
+                <DropdownMenuItem onClick={() => onExport?.('png', '2d-front')}>
+                  Eksportuj PNG - Przód
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onExport?.('jpg')}>
-                  {t('exportJPG')}
+                <DropdownMenuItem onClick={() => onExport?.('jpg', '2d-front')}>
+                  Eksportuj JPG - Przód
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onExport?.('pdf')}>
-                  {t('exportPDF')}
+                <DropdownMenuItem onClick={() => onExport?.('pdf', '2d-front')}>
+                  Eksportuj PDF - Przód
+                </DropdownMenuItem>
+                
+                <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground border-t mt-1 pt-2">
+                  Widok z góry (2D)
+                </div>
+                <DropdownMenuItem onClick={() => onExport?.('png', '2d-top')}>
+                  Eksportuj PNG - Góra
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExport?.('jpg', '2d-top')}>
+                  Eksportuj JPG - Góra
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExport?.('pdf', '2d-top')}>
+                  Eksportuj PDF - Góra
+                </DropdownMenuItem>
+                
+                <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground border-t mt-1 pt-2">
+                  Widok z boku (2D)
+                </div>
+                <DropdownMenuItem onClick={() => onExport?.('png', '2d-side')}>
+                  Eksportuj PNG - Bok
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExport?.('jpg', '2d-side')}>
+                  Eksportuj JPG - Bok
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExport?.('pdf', '2d-side')}>
+                  Eksportuj PDF - Bok
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
