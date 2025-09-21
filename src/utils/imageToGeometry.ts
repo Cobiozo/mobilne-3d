@@ -66,7 +66,8 @@ const createProperlySilhouetteGeometry = (
   console.log('Creating VOXEL-BASED silhouette geometry from image:', imageData.width, 'x', imageData.height);
   
   const { extrudeDepth } = options;
-  const resolution = 100; // Resolution for final geometry
+  const resolution = 80; // Slightly lower resolution for smoother result
+  const smoothingPasses = 2; // Add smoothing
   
   // Create canvas for image processing
   const canvas = document.createElement('canvas');
@@ -96,47 +97,91 @@ const createProperlySilhouetteGeometry = (
   
   let vertexIndex = 0;
   
-  // More lenient threshold for black detection - the original image is black silhouette!
-  const threshold = 180; // Higher threshold to catch more dark pixels
+  // More lenient threshold for black detection
+  const threshold = 180;
   
   console.log('Processing pixels with threshold:', threshold);
   
-  // Debug: Check a few pixel values to understand the image
-  let darkPixelCount = 0;
+  // First pass: create pixel map for smoothing
+  const pixelMap: boolean[][] = [];
   let sampleValues: number[] = [];
   
+  // Initialize pixel map
   for (let y = 0; y < resolution; y++) {
+    pixelMap[y] = [];
     for (let x = 0; x < resolution; x++) {
       const index = (y * resolution + x) * 4;
       
-      // Get grayscale value
       const r = scaledImageData.data[index];
       const g = scaledImageData.data[index + 1];
       const b = scaledImageData.data[index + 2];
       const grayscale = (r * 0.299 + g * 0.587 + b * 0.114);
       
-      // Collect sample values for debugging
       if (sampleValues.length < 10 && (x % 10 === 0) && (y % 10 === 0)) {
         sampleValues.push(grayscale);
       }
       
-      // Only create geometry for dark pixels (silhouette)
-      if (grayscale < threshold) {
-        darkPixelCount++;
-        
-        // Calculate world position
-        const worldX = (x / resolution) * 4 - 2; // Center at origin
-        const worldZ = (y / resolution) * 4 - 2; // Center at origin
-        const worldY = extrudeDepth / 2; // Center vertically
-        
-        // Create a box for this voxel
-        addVoxel(vertices, indices, normals, worldX, worldY, worldZ, voxelSize, extrudeDepth, vertexIndex);
-        vertexIndex += 8; // 8 vertices per box
+      pixelMap[y][x] = grayscale < threshold;
+    }
+  }
+  
+  // Apply smoothing passes to reduce jaggedness
+  for (let pass = 0; pass < smoothingPasses; pass++) {
+    const smoothedMap: boolean[][] = [];
+    for (let y = 0; y < resolution; y++) {
+      smoothedMap[y] = [];
+      for (let x = 0; x < resolution; x++) {
+        if (y === 0 || y === resolution - 1 || x === 0 || x === resolution - 1) {
+          // Keep edges as is
+          smoothedMap[y][x] = pixelMap[y][x];
+        } else {
+          // Apply majority filter (if most neighbors are on, turn on)
+          let neighbors = 0;
+          let total = 0;
+          
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              if (pixelMap[y + dy][x + dx]) neighbors++;
+              total++;
+            }
+          }
+          
+          // Use majority rule for smoothing
+          smoothedMap[y][x] = neighbors > total / 2;
+        }
+      }
+    }
+    
+    // Copy back
+    for (let y = 0; y < resolution; y++) {
+      for (let x = 0; x < resolution; x++) {
+        pixelMap[y][x] = smoothedMap[y][x];
       }
     }
   }
   
   console.log('Sample pixel values:', sampleValues);
+  
+  // Second pass: create geometry from smoothed pixel map
+  let darkPixelCount = 0;
+  for (let y = 0; y < resolution; y++) {
+    for (let x = 0; x < resolution; x++) {
+      if (pixelMap[y][x]) {
+        darkPixelCount++;
+        
+        // Calculate world position
+        const worldX = (x / resolution) * 4 - 2;
+        const worldZ = (y / resolution) * 4 - 2;
+        const worldY = extrudeDepth / 2;
+        
+        // Create smaller, overlapping voxels for smoother appearance
+        const smallerVoxelSize = voxelSize * 1.1; // Slightly larger for overlap
+        addVoxel(vertices, indices, normals, worldX, worldY, worldZ, smallerVoxelSize, extrudeDepth, vertexIndex);
+        vertexIndex += 8;
+      }
+    }
+  }
+  
   console.log('Dark pixels found:', darkPixelCount, 'out of', resolution * resolution);
   console.log('Created voxels:', vertexIndex / 8, 'Total vertices:', vertices.length / 3);
   

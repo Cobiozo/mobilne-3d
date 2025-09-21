@@ -78,11 +78,11 @@ const Index = () => {
       // Load image data
       const imageData = await loadImageData(file);
       
-      // Convert to 3D geometry using simplified heightmap approach for silhouettes
+      // Convert to 3D geometry using voxel approach with reduced thickness
       const geometry = imageToGeometry(imageData, {
         mode: 'silhouette',
-        extrudeDepth: 1.5,  // More pronounced depth to see the silhouette clearly
-        bevelEnabled: false  // Disable beveling for cleaner edges
+        extrudeDepth: 0.5,  // Much thinner - 1/3 of previous thickness
+        bevelEnabled: false  // Keep disabled for performance
       });
       
       setImageGeometry(geometry);
