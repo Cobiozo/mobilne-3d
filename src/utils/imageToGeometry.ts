@@ -96,10 +96,14 @@ const createProperlySilhouetteGeometry = (
   
   let vertexIndex = 0;
   
-  // Very strict threshold for pure black/white detection
-  const threshold = 50; // Even stricter threshold for better black detection
+  // More lenient threshold for black detection - the original image is black silhouette!
+  const threshold = 180; // Higher threshold to catch more dark pixels
   
   console.log('Processing pixels with threshold:', threshold);
+  
+  // Debug: Check a few pixel values to understand the image
+  let darkPixelCount = 0;
+  let sampleValues: number[] = [];
   
   for (let y = 0; y < resolution; y++) {
     for (let x = 0; x < resolution; x++) {
@@ -111,8 +115,15 @@ const createProperlySilhouetteGeometry = (
       const b = scaledImageData.data[index + 2];
       const grayscale = (r * 0.299 + g * 0.587 + b * 0.114);
       
+      // Collect sample values for debugging
+      if (sampleValues.length < 10 && (x % 10 === 0) && (y % 10 === 0)) {
+        sampleValues.push(grayscale);
+      }
+      
       // Only create geometry for dark pixels (silhouette)
       if (grayscale < threshold) {
+        darkPixelCount++;
+        
         // Calculate world position
         const worldX = (x / resolution) * 4 - 2; // Center at origin
         const worldZ = (y / resolution) * 4 - 2; // Center at origin
@@ -125,6 +136,8 @@ const createProperlySilhouetteGeometry = (
     }
   }
   
+  console.log('Sample pixel values:', sampleValues);
+  console.log('Dark pixels found:', darkPixelCount, 'out of', resolution * resolution);
   console.log('Created voxels:', vertexIndex / 8, 'Total vertices:', vertices.length / 3);
   
   if (vertices.length === 0) {
