@@ -26,14 +26,18 @@ export const Model3D = ({ modelData, color, fileName }: Model3DProps) => {
       geometry.boundingBox?.getCenter(center);
       geometry.translate(-center.x, -center.y, -center.z);
       
-      // WYŁĄCZAM SKALOWANIE TUTAJ TAKŻE!
-      // const size = new THREE.Vector3();
-      // geometry.boundingBox?.getSize(size);
-      // const maxDimension = Math.max(size.x, size.y, size.z);
-      // const scale = 3 / maxDimension;
-      // geometry.scale(scale, scale, scale);
+      // Bezpieczne skalowanie dla STL
+      const size = new THREE.Vector3();
+      geometry.boundingBox?.getSize(size);
+      const maxDimension = Math.max(size.x, size.y, size.z);
       
-      console.log('Model3D: geometry processed WITHOUT scaling');
+      if (maxDimension > 0) {
+        const targetSize = 4; // Docelowy rozmiar 
+        const scaleFactor = targetSize / maxDimension;
+        const safeScale = Math.max(0.01, Math.min(100, scaleFactor));
+        geometry.scale(safeScale, safeScale, safeScale);
+        console.log(`STL geometry safely scaled: ${maxDimension} -> ${targetSize} (factor: ${safeScale})`);
+      }
       
       // Compute normals for proper lighting
       geometry.computeVertexNormals();

@@ -146,21 +146,29 @@ function processGeometry(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
   const processedGeometry = geometry.clone();
   
   try {
-    // Tylko centrowanie, BEZ SKALOWANIA
+    // Center the geometry
     processedGeometry.computeBoundingBox();
     if (processedGeometry.boundingBox) {
       const center = new THREE.Vector3();
       processedGeometry.boundingBox.getCenter(center);
       processedGeometry.translate(-center.x, -center.y, -center.z);
       
-      // WYŁĄCZAM SKALOWANIE TYMCZASOWO
-      console.log('Geometry processed - centering only, NO SCALING applied');
-      
-      // Tylko logi do debugowania
+      // Bezpieczne skalowanie - tylko raz!
       const size = new THREE.Vector3();
       processedGeometry.boundingBox.getSize(size);
       const maxDimension = Math.max(size.x, size.y, size.z);
-      console.log('Original geometry size:', maxDimension);
+      
+      if (maxDimension > 0) {
+        // Docelowy rozmiar: 4 jednostki (dopasowane do kamery na pozycji [5,5,5])
+        const targetSize = 4;
+        const scaleFactor = targetSize / maxDimension;
+        
+        // Bezpieczne ograniczenia skalowania
+        const safeScale = Math.max(0.01, Math.min(100, scaleFactor));
+        
+        processedGeometry.scale(safeScale, safeScale, safeScale);
+        console.log(`Geometry safely scaled: ${maxDimension} -> ${targetSize} (factor: ${safeScale})`);
+      }
     }
     
     // Compute normals for proper lighting
