@@ -63,88 +63,101 @@ const createProperlySilhouetteGeometry = (
     bevelSize: number;
   }
 ): THREE.BufferGeometry => {
-  const { extrudeDepth, bevelEnabled, bevelThickness, bevelSize } = options;
+  console.log('Creating silhouette geometry from image:', imageData.width, 'x', imageData.height);
   
-  try {
-    // Convert image to binary mask
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d')!;
-    canvas.width = imageData.width;
-    canvas.height = imageData.height;
-    ctx.putImageData(imageData, 0, 0);
-    
-    // Get image data and create binary mask
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const binaryMask = createBinaryMask(data, 128); // threshold = 128
-    
-    // Find contours using marching squares
-    const contours = findContours(binaryMask, canvas.width, canvas.height);
-    
-    if (contours.length === 0) {
-      console.warn('No contours found, creating fallback geometry');
-      return createFallbackGeometry();
+  // Use a simpler, more reliable approach - enhanced heightmap for silhouettes
+  const width = 64;  // Lower resolution for reliability
+  const height = 64;
+  const { extrudeDepth } = options;
+  
+  // Create a PlaneGeometry as the base
+  const geometry = new THREE.PlaneGeometry(4, 4, width - 1, height - 1);
+  const positions = geometry.getAttribute('position') as THREE.BufferAttribute;
+  
+  // Create canvas for image processing
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d')!;
+  canvas.width = width;
+  canvas.height = height;
+  
+  // Draw original image to temporary canvas
+  const tempCanvas = document.createElement('canvas');
+  const tempCtx = tempCanvas.getContext('2d')!;
+  tempCanvas.width = imageData.width;
+  tempCanvas.height = imageData.height;
+  tempCtx.putImageData(imageData, 0, 0);
+  
+  // Scale down to working resolution
+  ctx.drawImage(tempCanvas, 0, 0, width, height);
+  const scaledImageData = ctx.getImageData(0, 0, width, height);
+  
+  console.log('Scaled image data created');
+  
+  // Apply heightmap with silhouette logic (inverted)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const index = (y * width + x) * 4;
+      
+      // Get grayscale value
+      const r = scaledImageData.data[index];
+      const g = scaledImageData.data[index + 1];
+      const b = scaledImageData.data[index + 2];
+      const grayscale = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+      
+      // For silhouettes: dark areas (low grayscale) = high height
+      // White areas (high grayscale) = low height
+      const heightValue = (1 - grayscale) * extrudeDepth;
+      
+      // Update vertex position
+      const vertexIndex = y * width + x;
+      positions.setZ(vertexIndex, heightValue);
     }
-    
-    // Use the largest contour
-    const mainContour = contours.reduce((largest, current) => 
-      current.length > largest.length ? current : largest
-    );
-    
-    if (mainContour.length < 3) {
-      console.warn('Contour too small, creating fallback geometry');
-      return createFallbackGeometry();
-    }
-    
-    // Create THREE.js shape from contour
-    const shape = new THREE.Shape();
-    
-    // Normalize coordinates and create shape
-    const scaleX = 4 / canvas.width;  // Scale to world coordinates
-    const scaleY = 4 / canvas.height;
-    
-    // Start with first point
-    const firstPoint = mainContour[0];
-    shape.moveTo(
-      (firstPoint.x - canvas.width / 2) * scaleX,
-      (firstPoint.y - canvas.height / 2) * scaleY
-    );
-    
-    // Add all other points
-    for (let i = 1; i < mainContour.length; i++) {
-      const point = mainContour[i];
-      shape.lineTo(
-        (point.x - canvas.width / 2) * scaleX,
-        (point.y - canvas.height / 2) * scaleY
-      );
-    }
-    
-    shape.closePath();
-    
-    // Create extrude geometry
-    const extrudeSettings = {
-      depth: extrudeDepth,
-      bevelEnabled,
-      bevelThickness: bevelEnabled ? bevelThickness : 0,
-      bevelSize: bevelEnabled ? bevelSize : 0,
-      bevelSegments: 3,
-      steps: 1,
-      curveSegments: 8
-    };
-    
-    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    
-    // Center and orient the geometry
-    geometry.computeBoundingBox();
-    const center = new THREE.Vector3();
-    geometry.boundingBox?.getCenter(center);
-    geometry.translate(-center.x, -center.y, -center.z);
-    
-    return geometry;
-    
-  } catch (error) {
-    console.error('Error creating silhouette geometry:', error);
-    return createFallbackGeometry();
   }
+  
+  // Apply Gaussian smoothing to reduce jaggedness
+  const smoothedPositions = new Float32Array(positions.array.length);
+  smoothedPositions.set(positions.array);
+  
+  for (let pass = 0; pass < 2; pass++) { // Multiple smoothing passes
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const vertexIndex = y * width + x;
+        const zIndex = vertexIndex * 3 + 2; // Z component
+        
+        // Gaussian kernel (3x3)
+        const weights = [
+          [0.077847, 0.123317, 0.077847],
+          [0.123317, 0.195346, 0.123317],
+          [0.077847, 0.123317, 0.077847]
+        ];
+        
+        let weightedSum = 0;
+        let totalWeight = 0;
+        
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const neighborIndex = (y + dy) * width + (x + dx);
+            if (neighborIndex >= 0 && neighborIndex < positions.count) {
+              const weight = weights[dy + 1][dx + 1];
+              weightedSum += positions.getZ(neighborIndex) * weight;
+              totalWeight += weight;
+            }
+          }
+        }
+        
+        smoothedPositions[zIndex] = weightedSum / totalWeight;
+      }
+    }
+    
+    // Copy back for next pass
+    positions.set(smoothedPositions);
+  }
+  
+  positions.needsUpdate = true;
+  geometry.computeVertexNormals();
+  
+  console.log('Silhouette geometry created successfully');
+  return geometry;
 };
 
 const createBinaryMask = (imageData: ImageData, threshold: number): boolean[][] => {
