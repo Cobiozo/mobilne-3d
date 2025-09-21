@@ -113,8 +113,6 @@ export function AdminSidebar({ currentTab, onTabChange }: AdminSidebarProps) {
 
   return (
     <Sidebar className={state === "collapsed" ? "w-14" : "w-64"} collapsible="icon">
-      <SidebarTrigger className="m-2 self-end" />
-      
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className={state === "collapsed" ? "sr-only" : ""}>
@@ -127,13 +125,10 @@ export function AdminSidebar({ currentTab, onTabChange }: AdminSidebarProps) {
                 <SidebarMenuItem key={item.section}>
                   <SidebarMenuButton
                     onClick={() => handleNavigation(item.section, item.isExternal)}
-                    className={`
-                      ${isActive(item.section) 
-                        ? "bg-primary text-primary-foreground font-medium" 
-                        : "hover:bg-muted/50"
-                      }
-                      ${state === "collapsed" ? "justify-center" : "justify-start"}
-                    `}
+                    className={isActive(item.section) 
+                      ? "bg-primary text-primary-foreground" 
+                      : "hover:bg-muted/50"
+                    }
                   >
                     <item.icon className={`h-4 w-4 ${state === "collapsed" ? "" : "mr-2"}`} />
                     {state !== "collapsed" && <span>{item.title}</span>}
