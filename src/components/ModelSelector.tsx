@@ -1,10 +1,8 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useApp } from "@/contexts/AppContext";
 import { useTranslation } from "@/lib/i18n";
-import { Box, Layers3 } from "lucide-react";
+import { Layers3 } from "lucide-react";
 
 interface ModelInfo {
   name: string;
@@ -37,57 +35,39 @@ export const ModelSelector = ({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center gap-2 mb-2">
         <Layers3 className="w-4 h-4 text-primary" />
         <span className="text-sm font-medium">{t('modelSelection')}</span>
-        <Badge variant="secondary" className="ml-auto bg-primary/10 text-primary border-primary/20">
+        <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
           {models.length} {t('modelsAvailable')}
         </Badge>
       </div>
       
-      <Select 
-        value={selectedModelIndex.toString()} 
-        onValueChange={(value) => onModelSelect(parseInt(value))}
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent className="bg-popover border shadow-lg z-50">
-          {models.map((model) => (
-            <SelectItem key={model.index} value={model.index.toString()}>
-              <div className="flex items-center gap-2">
-                <Box className="w-3 h-3" />
-                <span>
-                  {model.name || `${t('model')} ${model.index + 1}`}
-                </span>
-                <Badge variant="outline" className="ml-auto text-xs">
-                  {model.meshCount} {t('meshes')}
-                </Badge>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {/* Numerowane przyciski */}
+      <div className="flex flex-wrap justify-center gap-2">
+        {models.map((model, index) => (
+          <Button
+            key={model.index}
+            variant={selectedModelIndex === model.index ? "default" : "outline"}
+            size="sm"
+            onClick={() => onModelSelect(model.index)}
+            className={`min-w-[2.5rem] h-8 px-2 text-xs font-medium ${
+              selectedModelIndex === model.index 
+                ? 'bg-primary text-primary-foreground shadow-md' 
+                : 'hover:bg-primary/10 hover:text-primary hover:border-primary/50'
+            }`}
+            title={model.name}
+          >
+            {index + 1}
+          </Button>
+        ))}
+      </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onModelSelect(Math.max(0, selectedModelIndex - 1))}
-          disabled={selectedModelIndex === 0}
-          className="text-xs"
-        >
-          ← {t('previous')}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onModelSelect(Math.min(models.length - 1, selectedModelIndex + 1))}
-          disabled={selectedModelIndex === models.length - 1}
-          className="text-xs"
-        >
-          {t('next')} →
-        </Button>
+      {/* Nazwa aktualnego modelu */}
+      <div className="text-center">
+        <p className="text-xs text-muted-foreground truncate max-w-full">
+          {models[selectedModelIndex]?.name || `${t('model')} ${selectedModelIndex + 1}`}
+        </p>
       </div>
     </div>
   );

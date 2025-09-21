@@ -200,20 +200,17 @@ const Index = () => {
           </div>
 
           {/* 3D Viewer - Full width on mobile, main area on desktop */}
-          <div className="xl:col-span-3 order-1 xl:order-2 min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]">
+          <div className="xl:col-span-3 order-1 xl:order-2 min-h-[300px] sm:min-h-[400px] lg:min-h-[500px] space-y-4">
             <ModelViewer
               modelData={modelData || undefined}
               modelColor={modelColor}
               fileName={fileName}
               currentGeometry={availableModels[selectedModelIndex]?.geometry}
             />
-          </div>
-          
-          {/* Debug: zawsze pokazuj ModelSelector gdy mamy model */}
-          {modelData && (
-            <div className="hidden xl:block mt-4 p-4 border rounded-lg bg-card">
-              <h3 className="text-sm font-medium mb-2">Debug: Available Models ({availableModels.length})</h3>
-              {availableModels.length > 1 ? (
+            
+            {/* Model Selector pod wyświetlanym modelem */}
+            {availableModels.length > 1 && (
+              <div className="flex justify-center">
                 <ModelSelector
                   models={availableModels.map(model => ({
                     name: model.name,
@@ -222,35 +219,16 @@ const Index = () => {
                   }))}
                   selectedModelIndex={selectedModelIndex}
                   onModelSelect={setSelectedModelIndex}
+                  className="bg-card/50 backdrop-blur-sm border rounded-lg p-3 shadow-sm"
                 />
-              ) : (
-                <p className="text-muted-foreground text-xs">Tylko jeden model wykryty: {availableModels[0]?.name}</p>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Model Selector and Upload Area when model is loaded - Mobile */}
+        {/* Upload Area when model is loaded - Mobile only */}
         {modelData && (
-          <div className="mt-4 sm:mt-6 xl:hidden space-y-4">
-            {/* Debug: zawsze pokazuj na mobile też */}
-            <div className="p-4 border rounded-lg bg-card">
-              <h3 className="text-sm font-medium mb-2">Dostępne modele ({availableModels.length})</h3>
-              {availableModels.length > 1 ? (
-                <ModelSelector
-                  models={availableModels.map(model => ({
-                    name: model.name,
-                    index: model.index,
-                    meshCount: model.meshCount
-                  }))}
-                  selectedModelIndex={selectedModelIndex}
-                  onModelSelect={setSelectedModelIndex}
-                />
-              ) : (
-                <p className="text-muted-foreground text-xs">Tylko jeden model: {availableModels[0]?.name}</p>
-              )}
-            </div>
-            
+          <div className="mt-4 sm:mt-6 xl:hidden">
             <div className="text-center">
               <p className="text-muted-foreground mb-4 text-sm sm:text-base">
                 {t('differentModel')}
