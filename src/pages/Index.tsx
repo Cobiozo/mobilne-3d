@@ -17,6 +17,10 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { useTheme } from "next-themes";
 import { loadModelFile, Model3MFInfo } from "@/utils/modelLoader";
 import { imageToGeometry, loadImageData } from "@/utils/imageToGeometry";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { User, LogIn } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import * as THREE from 'three';
 
 
@@ -24,6 +28,8 @@ const Index = () => {
   const { language } = useApp();
   const { t } = useTranslation(language);
   const { theme, resolvedTheme } = useTheme();
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"model3d" | "image2d">("model3d");
   const [modelData, setModelData] = useState<ArrayBuffer | null>(null);
   const [imageGeometry, setImageGeometry] = useState<THREE.BufferGeometry | null>(null);
@@ -284,15 +290,45 @@ const Index = () => {
                 </h1>
               </div>
             </div>
-            <div className="flex gap-1 sm:gap-2">
-              {/* Mobile: Separate buttons */}
-              <div className="flex gap-1 sm:gap-2 lg:hidden">
-                <LanguageSelector />
-                <ThemeSelector />
-              </div>
-              {/* Desktop: Combined selector */}
-              <div className="hidden lg:block">
-                <LanguageThemeSelector />
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Authentication */}
+              {!loading && (
+                <div className="flex items-center gap-2">
+                  {user ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate('/dashboard')}
+                      className="flex items-center gap-2"
+                    >
+                      <User className="w-4 h-4" />
+                      <span className="hidden sm:inline">Dashboard</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate('/auth')}
+                      className="flex items-center gap-2"
+                    >
+                      <LogIn className="w-4 h-4" />
+                      <span className="hidden sm:inline">{t('signIn')}</span>
+                    </Button>
+                  )}
+                </div>
+              )}
+              
+              {/* Theme/Language selectors */}
+              <div className="flex gap-1 sm:gap-2">
+                {/* Mobile: Separate buttons */}
+                <div className="flex gap-1 sm:gap-2 lg:hidden">
+                  <LanguageSelector />
+                  <ThemeSelector />
+                </div>
+                {/* Desktop: Combined selector */}
+                <div className="hidden lg:block">
+                  <LanguageThemeSelector />
+                </div>
               </div>
             </div>
           </div>

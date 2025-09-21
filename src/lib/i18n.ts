@@ -85,7 +85,74 @@ export const translations = {
     exportViewSide: 'Widok z boku (2D)',
     front: 'Przód',
     top: 'Góra',
-    side: 'Bok'
+    side: 'Bok',
+    
+    // Auth
+    welcome: 'Witamy',
+    authDescription: 'Zaloguj się aby uzyskać dostęp do swoich modeli 3D i panelu',
+    signIn: 'Zaloguj się',
+    signUp: 'Zarejestruj się',
+    password: 'Hasło',
+    displayName: 'Nazwa wyświetlana',
+    orContinueWith: 'lub kontynuuj z',
+    continueWithGoogle: 'Kontynuuj z Google',
+    
+    // Dashboard
+    dashboard: 'Panel główny',
+    profile: 'Profil',
+    myModels: 'Moje modele',
+    settings: 'Ustawienia',
+    adminPanel: 'Panel administratora',
+    signOut: 'Wyloguj się',
+    upload3DModel: 'Wgraj model 3D',
+    
+    // Profile
+    userProfile: 'Profil użytkownika',
+    manageProfileInfo: 'Zarządzaj informacjami w swoim profilu',
+    bio: 'Opis',
+    avatarUrl: 'URL awatara',
+    enterDisplayName: 'Wprowadź swoją nazwę wyświetlaną',
+    tellAboutYourself: 'Opowiedz o sobie',
+    saveChanges: 'Zapisz zmiany',
+    saving: 'Zapisywanie...',
+    profileUpdated: 'Profil zaktualizowany pomyślnie',
+    
+    // Models
+    manageUploaded3DModels: 'Zarządzaj swoimi wgranymi modelami 3D',
+    noModelsYet: 'Nie masz jeszcze modeli',
+    uploadFirstModel: 'Wgraj swój pierwszy model 3D aby rozpocząć',
+    uploadModel: 'Wgraj model',
+    models: 'modeli',
+    view: 'Wyświetl',
+    makePrivate: 'Ustaw jako prywatny',
+    makePublic: 'Ustaw jako publiczny',
+    delete: 'Usuń',
+    uploaded: 'Wgrano',
+    modelDeleted: 'Model usunięty pomyślnie',
+    modelVisibilityUpdated: 'Widoczność modelu zaktualizowana',
+    
+    // Admin
+    manageUsersAndContent: 'Zarządzaj użytkownikami i treścią na platformie',
+    users: 'Użytkownicy',
+    manageUserRoles: 'Zarządzaj rolami i uprawnieniami użytkowników',
+    unnamedUser: 'Użytkownik bez nazwy',
+    removeAdmin: 'Usuń uprawnienia administratora',
+    makeAdmin: 'Nadaj uprawnienia administratora',
+    allModels: 'Wszystkie modele',
+    manageAllUploaded3DModels: 'Zarządzaj wszystkimi wgranymi modelami 3D',
+    by: 'przez',
+    public: 'Publiczny',
+    private: 'Prywatny',
+    andMore: 'i {count} więcej...',
+    userRoleUpdated: 'Rola użytkownika zaktualizowana pomyślnie',
+    
+    // Settings
+    manageAccountSettings: 'Zarządzaj ustawieniami konta',
+    settingsComingSoon: 'Panel ustawień już wkrótce...',
+    
+    // General
+    error: 'Błąd',
+    success: 'Sukces'
   },
   en: {
     // Header
@@ -171,21 +238,92 @@ export const translations = {
     exportViewSide: 'Side View (2D)',
     front: 'Front',
     top: 'Top',
-    side: 'Side'
+    side: 'Side',
+    
+    // Auth
+    welcome: 'Welcome',
+    authDescription: 'Sign in to access your 3D models and dashboard',
+    signIn: 'Sign In',
+    signUp: 'Sign Up',
+    password: 'Password',
+    displayName: 'Display Name',
+    orContinueWith: 'or continue with',
+    continueWithGoogle: 'Continue with Google',
+    
+    // Dashboard
+    dashboard: 'Dashboard',
+    profile: 'Profile',
+    myModels: 'My Models',
+    settings: 'Settings',
+    adminPanel: 'Admin Panel',
+    signOut: 'Sign Out',
+    upload3DModel: 'Upload 3D Model',
+    
+    // Profile
+    userProfile: 'User Profile',
+    manageProfileInfo: 'Manage your profile information',
+    bio: 'Bio',
+    avatarUrl: 'Avatar URL',
+    enterDisplayName: 'Enter your display name',
+    tellAboutYourself: 'Tell us about yourself',
+    saveChanges: 'Save Changes',
+    saving: 'Saving...',
+    profileUpdated: 'Profile updated successfully',
+    
+    // Models
+    manageUploaded3DModels: 'Manage your uploaded 3D models',
+    noModelsYet: 'No models yet',
+    uploadFirstModel: 'Upload your first 3D model to get started',
+    uploadModel: 'Upload Model',
+    models: 'models',
+    view: 'View',
+    makePrivate: 'Make Private',
+    makePublic: 'Make Public',
+    delete: 'Delete',
+    uploaded: 'Uploaded',
+    modelDeleted: 'Model deleted successfully',
+    modelVisibilityUpdated: 'Model visibility updated',
+    
+    // Admin
+    manageUsersAndContent: 'Manage users and content across the platform',
+    users: 'Users',
+    manageUserRoles: 'Manage user roles and permissions',
+    unnamedUser: 'Unnamed User',
+    removeAdmin: 'Remove Admin',
+    makeAdmin: 'Make Admin',
+    allModels: 'All Models',
+    manageAllUploaded3DModels: 'Manage all uploaded 3D models',
+    by: 'by',
+    public: 'Public',
+    private: 'Private',
+    andMore: 'and {count} more...',
+    userRoleUpdated: 'User role updated successfully',
+    
+    // Settings
+    manageAccountSettings: 'Manage your account settings',
+    settingsComingSoon: 'Settings panel coming soon...',
+    
+    // General
+    error: 'Error',
+    success: 'Success'
   }
+};
+
+export const getText = (key: keyof typeof translations.pl, language: Language = 'pl', params?: Record<string, string>) => {
+  let text = translations[language][key] || translations.pl[key];
+  
+  if (params) {
+    Object.entries(params).forEach(([param, value]) => {
+      text = text.replace(`{${param}}`, value);
+    });
+  }
+  
+  return text;
 };
 
 export const useTranslation = (language: Language = 'pl') => {
   const t = (key: keyof typeof translations.pl, params?: Record<string, string>) => {
-    let text = translations[language][key] || translations.pl[key];
-    
-    if (params) {
-      Object.entries(params).forEach(([param, value]) => {
-        text = text.replace(`{${param}}`, value);
-      });
-    }
-    
-    return text;
+    return getText(key, language, params);
   };
   
   return { t };
