@@ -198,7 +198,18 @@ export const CustomersManagement = () => {
         .update({ role: newRole })
         .eq('user_id', customer.id);
 
-      if (error) throw error;
+      if (error) {
+        // Sprawdź czy to błąd zabezpieczenia
+        if (error.message.includes('Cannot change admin role')) {
+          toast({
+            title: getText('error', language),
+            description: getText('cannotSelfDemote', language),
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
 
       setCustomers(customers.map(c => 
         c.id === customer.id ? { ...c, role: newRole } : c

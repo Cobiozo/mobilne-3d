@@ -306,6 +306,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_change_admin_role: {
+        Args: {
+          new_role: Database["public"]["Enums"]["app_role"]
+          user_id_to_change: string
+        }
+        Returns: boolean
+      }
       generate_order_number: {
         Args: Record<PropertyKey, never>
         Returns: string
