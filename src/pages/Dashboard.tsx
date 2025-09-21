@@ -143,7 +143,7 @@ const Dashboard = () => {
                   <SidebarTrigger />
                   <div className="hidden sm:block">
                     <h1 className="text-xl font-bold">
-                      Panel administratora
+                      {getText('adminDashboard', language)}
                     </h1>
                     <Badge variant="secondary" className="hidden sm:inline-flex">Admin</Badge>
                   </div>
@@ -156,7 +156,7 @@ const Dashboard = () => {
                     onClick={() => navigate('/')}
                   >
                     <Home className="w-4 h-4 md:mr-2" />
-                    <span className="hidden md:inline">Strona główna</span>
+                    <span className="hidden md:inline">{getText('homePage', language)}</span>
                   </Button>
                   <Button
                     variant="ghost"
@@ -187,7 +187,7 @@ const Dashboard = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-lg md:text-2xl font-bold">
-              Panel klienta
+              {getText('clientPanel', language)}
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -198,7 +198,7 @@ const Dashboard = () => {
               onClick={() => navigate('/')}
             >
               <Home className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Strona główna</span>
+              <span className="hidden md:inline">{getText('homePage', language)}</span>
             </Button>
             <Button
               variant="ghost"

@@ -179,9 +179,9 @@ export const AdminOverview = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Przegląd administratora</h2>
+        <h2 className="text-2xl font-bold">{getText('adminOverview', language)}</h2>
         <p className="text-muted-foreground">
-          Główne statystyki i aktywność na platformie
+          {getText('overviewDescription', language)}
         </p>
       </div>
 
@@ -189,52 +189,52 @@ export const AdminOverview = () => {
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Wszyscy użytkownicy</CardTitle>
+            <CardTitle className="text-sm font-medium">{getText('allUsers', language)}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalUsers}</div>
             <p className="text-xs text-muted-foreground">
-              +{stats.monthlyStats.newUsers} w tym miesiącu
+              +{stats.monthlyStats.newUsers} {getText('thisMonth', language)}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Zamówienia</CardTitle>
+            <CardTitle className="text-sm font-medium">{getText('orders', language)}</CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalOrders}</div>
             <p className="text-xs text-muted-foreground">
-              +{stats.monthlyStats.newOrders} w tym miesiącu
+              +{stats.monthlyStats.newOrders} {getText('thisMonth', language)}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Modele 3D</CardTitle>
+            <CardTitle className="text-sm font-medium">{getText('myModels', language)}</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalModels}</div>
             <p className="text-xs text-muted-foreground">
-              +{stats.monthlyStats.newModels} w tym miesiącu
+              +{stats.monthlyStats.newModels} {getText('thisMonth', language)}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Przychód</CardTitle>
+            <CardTitle className="text-sm font-medium">{getText('revenue', language)}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalRevenue.toFixed(2)} zł</div>
             <p className="text-xs text-muted-foreground">
-              Łączny przychód ze wszystkich zamówień
+              {getText('totalRevenue', language)}
             </p>
           </CardContent>
         </Card>
@@ -246,10 +246,10 @@ export const AdminOverview = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="w-5 h-5" />
-              Ostatnia aktywność
+              {getText('recentActivity', language)}
             </CardTitle>
             <CardDescription>
-              Najnowsze wydarzenia na platformie
+              {getText('latestEvents', language)}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -275,10 +275,10 @@ export const AdminOverview = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5" />
-              Statystyki miesięczne
+              {getText('monthlyStats', language)}
             </CardTitle>
             <CardDescription>
-              Podsumowanie aktywności w bieżącym miesiącu
+              {getText('currentMonthSummary', language)}
             </CardDescription>
           </CardHeader>
           <CardContent>

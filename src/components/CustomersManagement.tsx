@@ -223,13 +223,13 @@ export const CustomersManagement = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Zarządzanie klientami</h2>
+          <h2 className="text-2xl font-bold">{getText('customerManagement', language)}</h2>
           <p className="text-muted-foreground">
-            Przeglądaj i zarządzaj wszystkimi klientami
+            {getText('viewAndManageCustomers', language)}
           </p>
         </div>
         <Badge variant="outline">
-          {customers.length} klientów
+          {customers.length} {getText('customers', language)}
         </Badge>
       </div>
 
@@ -238,10 +238,10 @@ export const CustomersManagement = () => {
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle>Lista klientów</CardTitle>
+              <CardTitle>{getText('customersList', language)}</CardTitle>
               <div className="space-y-2">
                 <Input
-                  placeholder="Szukaj klientów..."
+                  placeholder={getText('searchCustomers', language)}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />

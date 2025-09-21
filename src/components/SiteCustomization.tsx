@@ -119,9 +119,9 @@ export const SiteCustomization = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Personalizacja strony</h2>
+          <h2 className="text-2xl font-bold">{getText('siteCustomization', language)}</h2>
           <p className="text-muted-foreground">
-            Dostosuj wygląd i zawartość strony głównej
+            {getText('customizePageAppearance', language)}
           </p>
         </div>
         <div className="flex gap-2">

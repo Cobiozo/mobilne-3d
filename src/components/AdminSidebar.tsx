@@ -26,65 +26,67 @@ import {
   Home,
   ArrowLeft
 } from 'lucide-react';
+import { useApp } from '@/contexts/AppContext';
+import { getText } from '@/lib/i18n';
 
 const adminMenuItems = [
   {
-    title: 'Strona główna',
+    title: 'homePage',
     url: '/',
     icon: Home,
     section: 'home',
     isExternal: true
   },
   {
-    title: 'Dashboard',
+    title: 'adminOverview',
     url: '/dashboard?tab=overview',
     icon: BarChart3,
     section: 'overview'
   },
   {
-    title: 'Klienci',
+    title: 'customers',
     url: '/dashboard?tab=customers', 
     icon: Users,
     section: 'customers'
   },
   {
-    title: 'Zamówienia',
+    title: 'orders',
     url: '/dashboard?tab=orders',
     icon: ShoppingCart,
     section: 'orders'
   },
   {
-    title: 'Modele 3D',
+    title: 'myModels',
     url: '/dashboard?tab=models',
     icon: FileText,
     section: 'models'
   },
   {
-    title: 'Notatki',
+    title: 'notes',
     url: '/dashboard?tab=notes',
     icon: MessageSquare,
     section: 'notes'
   },
   {
-    title: 'Personalizacja',
+    title: 'customization',
     url: '/dashboard?tab=customization',
     icon: Palette,
     section: 'customization'
   },
   {
-    title: 'Ustawienia strony',
+    title: 'siteSettings',
     url: '/dashboard?tab=site-settings',
     icon: Globe,
     section: 'site-settings'
   },
   {
-    title: 'Powiadomienia',
+    title: 'notifications',
     url: '/dashboard?tab=notifications',
     icon: Bell,
     section: 'notifications'
   },
   {
-    title: 'Bezpieczeństwo',
+    title: 'security',
     url: '/dashboard?tab=security',
     icon: Shield,
     section: 'security'
@@ -99,6 +101,7 @@ interface AdminSidebarProps {
 export function AdminSidebar({ currentTab, onTabChange }: AdminSidebarProps) {
   const { state } = useSidebar();
   const navigate = useNavigate();
+  const { language } = useApp();
 
   const handleNavigation = (section: string, isExternal: boolean = false) => {
     if (isExternal) {
@@ -120,7 +123,7 @@ export function AdminSidebar({ currentTab, onTabChange }: AdminSidebarProps) {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className={state === "collapsed" ? "sr-only" : "px-4 py-2 text-sm font-semibold"}>
-            Panel Administratora
+            {getText('adminDashboard', language)}
           </SidebarGroupLabel>
           
           <SidebarGroupContent>
@@ -135,7 +138,7 @@ export function AdminSidebar({ currentTab, onTabChange }: AdminSidebarProps) {
                     }
                   >
                     <item.icon className={`h-4 w-4 ${state === "collapsed" ? "" : "mr-2"}`} />
-                    {state !== "collapsed" && <span>{item.title}</span>}
+                    {state !== "collapsed" && <span>{getText(item.title as any, language)}</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

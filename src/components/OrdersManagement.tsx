@@ -174,9 +174,9 @@ export const OrdersManagement = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Zarządzanie zamówieniami</h2>
+          <h2 className="text-2xl font-bold">{getText('ordersManagement', language)}</h2>
           <p className="text-muted-foreground">
-            Przeglądaj i zarządzaj wszystkimi zamówieniami
+            {getText('viewAndManageOrders', language)}
           </p>
         </div>
       </div>
@@ -185,7 +185,7 @@ export const OrdersManagement = () => {
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Wszystkie</CardTitle>
+            <CardTitle className="text-sm font-medium">{getText('all', language)}</CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -235,7 +235,7 @@ export const OrdersManagement = () => {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Lista zamówień</CardTitle>
+              <CardTitle>{getText('ordersList', language)}</CardTitle>
               <div className="flex gap-2">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-40">
