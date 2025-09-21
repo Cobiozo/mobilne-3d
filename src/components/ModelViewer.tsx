@@ -15,6 +15,8 @@ interface ModelViewerProps {
 export const ModelViewer = ({ modelData, modelColor, fileName }: ModelViewerProps) => {
   const { language } = useApp();
   const { t } = useTranslation(language);
+  
+  console.log('ModelViewer render - modelColor:', modelColor, 'hasData:', !!modelData);
   return (
     <div className="w-full h-full bg-viewer-bg rounded-lg shadow-viewer relative overflow-hidden">
       {modelData ? (
@@ -22,18 +24,22 @@ export const ModelViewer = ({ modelData, modelColor, fileName }: ModelViewerProp
           <PerspectiveCamera makeDefault position={[5, 5, 5]} />
           
           <Suspense fallback={null}>
-            <Stage
-              environment="studio"
-              intensity={0.5}
-              shadows={false}
-              adjustCamera={false}
-            >
-              <Model3D 
-                modelData={modelData} 
-                color={modelColor}
-                fileName={fileName}
-              />
-            </Stage>
+            {/* Add lighting directly instead of using Stage */}
+            <ambientLight intensity={0.4} />
+            <directionalLight
+              position={[10, 10, 5]}
+              intensity={1}
+              castShadow
+              shadow-mapSize-width={1024}
+              shadow-mapSize-height={1024}
+            />
+            <pointLight position={[-10, -10, -10]} intensity={0.5} />
+            
+            <Model3D 
+              modelData={modelData} 
+              color={modelColor}
+              fileName={fileName}
+            />
             
             <Environment preset="studio" />
           </Suspense>

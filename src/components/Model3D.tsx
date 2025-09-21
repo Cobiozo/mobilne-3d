@@ -12,6 +12,8 @@ interface Model3DProps {
 export const Model3D = ({ modelData, color, fileName }: Model3DProps) => {
   const meshRef = useRef<THREE.Mesh>(null);
   
+  console.log('Model3D render - color:', color, 'fileName:', fileName);
+  
   const geometry = useMemo(() => {
     const loader = new STLLoader();
     
@@ -43,6 +45,7 @@ export const Model3D = ({ modelData, color, fileName }: Model3DProps) => {
   }, [modelData]);
 
   const material = useMemo(() => {
+    console.log('Creating material with color:', color);
     const mat = new THREE.MeshStandardMaterial({
       color: new THREE.Color(color || "#FFFFFF"),
       metalness: 0.3,
@@ -51,7 +54,18 @@ export const Model3D = ({ modelData, color, fileName }: Model3DProps) => {
       side: THREE.DoubleSide,
     });
     mat.needsUpdate = true;
+    console.log('Material created:', mat.color.getHexString());
     return mat;
+  }, [color]);
+
+  // Force material update when color changes
+  useEffect(() => {
+    if (meshRef.current && meshRef.current.material) {
+      console.log('Updating mesh material color to:', color);
+      const mat = meshRef.current.material as THREE.MeshStandardMaterial;
+      mat.color.set(color);
+      mat.needsUpdate = true;
+    }
   }, [color]);
 
   useFrame((state) => {
@@ -66,14 +80,6 @@ export const Model3D = ({ modelData, color, fileName }: Model3DProps) => {
 
   return (
     <mesh ref={meshRef} geometry={geometry} material={material} castShadow receiveShadow>
-      {/* Optional wireframe overlay for technical look */}
-      <meshBasicMaterial
-        color={color}
-        wireframe
-        transparent
-        opacity={0.1}
-        attach="material-1"
-      />
     </mesh>
   );
 };
