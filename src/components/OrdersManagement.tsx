@@ -241,17 +241,17 @@ export const OrdersManagement = () => {
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Wszystkie</SelectItem>
-                    <SelectItem value="pending">Oczekujące</SelectItem>
-                    <SelectItem value="processing">W trakcie</SelectItem>
-                    <SelectItem value="completed">Zakończone</SelectItem>
-                    <SelectItem value="cancelled">Anulowane</SelectItem>
-                    <SelectItem value="shipped">Wysłane</SelectItem>
+                  <SelectContent sideOffset={5}>
+                    <SelectItem value="all">{getText('all', language)}</SelectItem>
+                    <SelectItem value="pending">{getText('pending', language)}</SelectItem>
+                    <SelectItem value="processing">{getText('processing', language)}</SelectItem>
+                    <SelectItem value="completed">{getText('completed', language)}</SelectItem>
+                    <SelectItem value="cancelled">{getText('cancelled', language)}</SelectItem>
+                    <SelectItem value="shipped">{getText('shipped', language)}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Input
-                  placeholder="Szukaj zamówień..."
+                  placeholder={getText('searchOrders', language)}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="flex-1"
@@ -332,12 +332,12 @@ export const OrdersManagement = () => {
                       <SelectTrigger className="w-32">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Oczekujące</SelectItem>
-                        <SelectItem value="processing">W trakcie</SelectItem>
-                        <SelectItem value="completed">Zakończone</SelectItem>
-                        <SelectItem value="cancelled">Anulowane</SelectItem>
-                        <SelectItem value="shipped">Wysłane</SelectItem>
+                      <SelectContent sideOffset={5}>
+                        <SelectItem value="pending">{getText('pending', language)}</SelectItem>
+                        <SelectItem value="processing">{getText('processing', language)}</SelectItem>
+                        <SelectItem value="completed">{getText('completed', language)}</SelectItem>
+                        <SelectItem value="cancelled">{getText('cancelled', language)}</SelectItem>
+                        <SelectItem value="shipped">{getText('shipped', language)}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

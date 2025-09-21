@@ -415,20 +415,20 @@ export const CustomersManagement = () => {
                           <SelectTrigger className="w-40">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="general">Ogólne</SelectItem>
-                            <SelectItem value="support">Wsparcie</SelectItem>
-                            <SelectItem value="billing">Płatności</SelectItem>
-                            <SelectItem value="technical">Techniczne</SelectItem>
+                          <SelectContent sideOffset={5}>
+                            <SelectItem value="general">{getText('generalNote', language)}</SelectItem>
+                            <SelectItem value="support">{getText('supportNote', language)}</SelectItem>
+                            <SelectItem value="billing">{getText('billingNote', language)}</SelectItem>
+                            <SelectItem value="technical">{getText('technicalNote', language)}</SelectItem>
                           </SelectContent>
                         </Select>
                         <Button onClick={addCustomerNote} disabled={!newNote.trim()}>
                           <Plus className="w-4 h-4 mr-2" />
-                          Dodaj
+                          {getText('addNote', language)}
                         </Button>
                       </div>
                       <Textarea
-                        placeholder="Dodaj nową notatkę..."
+                        placeholder={getText('addNote', language) + '...'}
                         value={newNote}
                         onChange={(e) => setNewNote(e.target.value)}
                         rows={3}
