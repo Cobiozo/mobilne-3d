@@ -108,18 +108,32 @@ export const ControlPanel = ({
             <span className="text-sm font-medium">{t('color')}</span>
           </div>
           
-          {/* Current Color Display */}
-          <div className="flex items-center gap-2">
-            <div 
-              className="w-8 h-8 rounded-md border-2 border-border"
-              style={{ backgroundColor: modelColor }}
-            />
-            <input
-              type="color"
-              value={modelColor}
-              onChange={(e) => onColorChange(e.target.value)}
-              className="w-16 h-8 rounded border border-border bg-transparent cursor-pointer"
-            />
+          {/* Aktualnie wybrany kolor */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Aktualnie wybrany:</span>
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-6 h-6 rounded-md border-2 border-border shadow-sm"
+                  style={{ backgroundColor: modelColor }}
+                />
+                <span className="text-xs font-mono text-muted-foreground">
+                  {modelColor.toUpperCase()}
+                </span>
+              </div>
+            </div>
+            
+            {/* Przycisk wybierz niestandardowy */}
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={modelColor}
+                onChange={(e) => onColorChange(e.target.value)}
+                className="w-8 h-8 rounded border border-border cursor-pointer bg-transparent"
+                title="Wybierz niestandardowy kolor"
+              />
+              <span className="text-xs text-muted-foreground">Wybierz niestandardowy</span>
+            </div>
           </div>
 
           {/* Preset Colors - Responsive grid */}

@@ -78,7 +78,18 @@ export const ModelViewer = ({ modelData, modelColor, fileName, currentGeometry }
         <div className="flex items-center justify-center h-full p-4 sm:p-6">
           <div className="text-center space-y-3 sm:space-y-4 max-w-sm mx-auto">
             <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mx-auto rounded-full bg-muted flex items-center justify-center">
-              <ArrowDown className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-primary animate-bounce" />
+              <ArrowDown 
+                className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-primary animate-bounce cursor-pointer hover:text-primary/80 transition-colors"
+                onClick={() => {
+                  // Na mobile scroll w dół do sekcji upload
+                  if (window.innerWidth < 1280) { // xl breakpoint
+                    window.scrollTo({
+                      top: window.innerHeight,
+                      behavior: 'smooth'
+                    });
+                  }
+                }}
+              />
             </div>
             <h3 className="text-lg sm:text-xl font-semibold text-muted-foreground">
               {t('readyTitle')}
