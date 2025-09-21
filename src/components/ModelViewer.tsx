@@ -3,6 +3,8 @@ import { OrbitControls, Environment, Stage, PerspectiveCamera } from "@react-thr
 import { Suspense } from "react";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { Model3D } from "./Model3D";
+import { useApp } from "@/contexts/AppContext";
+import { useTranslation } from "@/lib/i18n";
 
 interface ModelViewerProps {
   modelData?: ArrayBuffer;
@@ -11,6 +13,8 @@ interface ModelViewerProps {
 }
 
 export const ModelViewer = ({ modelData, modelColor, fileName }: ModelViewerProps) => {
+  const { language } = useApp();
+  const { t } = useTranslation(language);
   return (
     <div className="w-full h-full bg-viewer-bg rounded-lg shadow-viewer relative overflow-hidden">
       {modelData ? (
@@ -51,10 +55,10 @@ export const ModelViewer = ({ modelData, modelColor, fileName }: ModelViewerProp
               <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
             </div>
             <h3 className="text-xl font-semibold text-muted-foreground">
-              Ready for 3D Models
+              {t('readyTitle')}
             </h3>
             <p className="text-muted-foreground">
-              Upload a file to start viewing your 3D model
+              {t('readySubtitle')}
             </p>
           </div>
         </div>

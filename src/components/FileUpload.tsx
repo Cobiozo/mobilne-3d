@@ -1,6 +1,8 @@
 import { useCallback } from "react";
 import { Upload, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useApp } from "@/contexts/AppContext";
+import { useTranslation } from "@/lib/i18n";
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
@@ -8,6 +10,8 @@ interface FileUploadProps {
 }
 
 export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
+  const { language } = useApp();
+  const { t } = useTranslation(language);
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
@@ -62,9 +66,9 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
         </div>
         
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold">Upload 3D Model</h3>
+          <h3 className="text-lg font-semibold">{t('uploadTitle')}</h3>
           <p className="text-muted-foreground">
-            Drag and drop your STL or 3MF file here, or click to browse
+            {t('uploadSubtitle')}
           </p>
         </div>
         

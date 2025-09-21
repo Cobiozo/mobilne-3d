@@ -42,7 +42,7 @@ export const exportCanvasAs = async (
         
         pdf.addImage(dataURL, 'PNG', x, y, width, height);
         pdf.save(`${fileName}.pdf`);
-        toast.success('Model exported as PDF successfully!');
+        toast.success('Model wyeksportowany jako PDF pomyślnie!');
       };
       img.src = dataURL;
     } else {
@@ -53,11 +53,11 @@ export const exportCanvasAs = async (
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.success(`Model exported as ${format.toUpperCase()} successfully!`);
+      toast.success(`Model wyeksportowany jako ${format.toUpperCase()} pomyślnie!`);
     }
   } catch (error) {
     console.error('Export error:', error);
-    toast.error('Failed to export model. Please try again.');
+    toast.error('Nie udało się wyeksportować modelu. Spróbuj ponownie.');
   }
 };
 

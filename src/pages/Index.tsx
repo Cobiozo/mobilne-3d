@@ -5,8 +5,13 @@ import { ControlPanel } from "@/components/ControlPanel";
 import { toast } from "sonner";
 import { Box, Layers3 } from "lucide-react";
 import { exportCanvasAs, captureCanvasFromThreeJS } from "@/utils/exportUtils";
+import { useApp } from "@/contexts/AppContext";
+import { useTranslation } from "@/lib/i18n";
+import { LanguageThemeSelector } from "@/components/LanguageThemeSelector";
 
 const Index = () => {
+  const { language } = useApp();
+  const { t } = useTranslation(language);
   const [modelData, setModelData] = useState<ArrayBuffer | null>(null);
   const [modelColor, setModelColor] = useState("#FFFFFF");
   const [fileName, setFileName] = useState<string>();
@@ -16,10 +21,10 @@ const Index = () => {
       const arrayBuffer = await file.arrayBuffer();
       setModelData(arrayBuffer);
       setFileName(file.name);
-      toast.success(`Model "${file.name}" loaded successfully!`);
+      toast.success(t('uploadSuccess', { fileName: file.name }));
     } catch (error) {
       console.error("Error loading file:", error);
-      toast.error("Failed to load the model file");
+      toast.error(t('uploadError'));
     }
   };
 
@@ -27,12 +32,12 @@ const Index = () => {
     setModelData(null);
     setFileName(undefined);
     setModelColor("#FFFFFF");
-    toast.info("Viewer reset");
+    toast.info(t('resetMessage'));
   };
 
   const handleExport = async (format: 'png' | 'jpg' | 'pdf') => {
     try {
-      toast.info(`Preparing ${format.toUpperCase()} export...`);
+      toast.info(t('exportPreparing', { format: format.toUpperCase() }));
       
       // Wait a moment for the scene to fully render
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -51,14 +56,14 @@ const Index = () => {
       }
       
       if (!canvas) {
-        toast.error('No 3D model to export');
+        toast.error(t('exportNoModel'));
         return;
       }
 
       // Ensure the canvas has preserveDrawingBuffer enabled for capture
       const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
       if (gl && !gl.getContextAttributes()?.preserveDrawingBuffer) {
-        toast.error('Canvas not configured for export. Please reload the model.');
+        toast.error(t('exportConfigError'));
         return;
       }
 
@@ -70,7 +75,7 @@ const Index = () => {
       await exportCanvasAs(captureCanvas, format, baseFileName);
     } catch (error) {
       console.error('Export failed:', error);
-      toast.error('Export failed. Please try again.');
+      toast.error(t('exportError'));
     }
   };
 
@@ -79,18 +84,21 @@ const Index = () => {
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-primary">
-              <Layers3 className="w-6 h-6 text-primary-foreground" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-primary">
+                <Layers3 className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                  {t('appTitle')}
+                </h1>
+                <p className="text-muted-foreground text-sm">
+                  {t('appSubtitle')}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                3D Model Viewer
-              </h1>
-              <p className="text-muted-foreground text-sm">
-                Upload and view STL & 3MF files with interactive controls
-              </p>
-            </div>
+            <LanguageThemeSelector />
           </div>
         </div>
       </header>
@@ -128,7 +136,7 @@ const Index = () => {
           <div className="mt-6">
             <div className="text-center">
               <p className="text-muted-foreground mb-4">
-                Want to view a different model?
+                {t('differentModel')}
               </p>
               <div className="max-w-md mx-auto">
                 <FileUpload onFileSelect={handleFileSelect} />

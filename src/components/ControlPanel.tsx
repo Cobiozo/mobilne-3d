@@ -4,6 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useApp } from "@/contexts/AppContext";
+import { useTranslation } from "@/lib/i18n";
 
 interface ControlPanelProps {
   modelColor: string;
@@ -35,6 +37,8 @@ export const ControlPanel = ({
   onReset,
   onExport 
 }: ControlPanelProps) => {
+  const { language } = useApp();
+  const { t } = useTranslation(language);
   return (
     <Card className="bg-viewer-panel shadow-panel border-border/50 backdrop-blur-sm">
       <div className="p-4 space-y-4">
@@ -43,7 +47,7 @@ export const ControlPanel = ({
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Info className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Model Info</span>
+              <span className="text-sm font-medium">{t('modelInfo')}</span>
             </div>
             <Badge variant="secondary" className="text-xs">
               {fileName}
@@ -57,7 +61,7 @@ export const ControlPanel = ({
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Palette className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Color</span>
+            <span className="text-sm font-medium">{t('color')}</span>
           </div>
           
           {/* Current Color Display */}
@@ -96,7 +100,7 @@ export const ControlPanel = ({
 
         {/* Controls */}
         <div className="space-y-2">
-          <span className="text-sm font-medium">Controls</span>
+          <span className="text-sm font-medium">{t('controls')}</span>
           <div className="grid grid-cols-2 gap-2">
             <Button 
               variant="outline" 
@@ -105,7 +109,7 @@ export const ControlPanel = ({
               onClick={onReset}
             >
               <RotateCcw className="w-3 h-3 mr-1" />
-              Reset
+              {t('reset')}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -116,19 +120,19 @@ export const ControlPanel = ({
                   disabled={!fileName}
                 >
                   <Download className="w-3 h-3 mr-1" />
-                  Export
+                  {t('export')}
                   <ChevronDown className="w-3 h-3 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => onExport?.('png')}>
-                  Export as PNG
+                  {t('exportPNG')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onExport?.('jpg')}>
-                  Export as JPG
+                  {t('exportJPG')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onExport?.('pdf')}>
-                  Export as PDF
+                  {t('exportPDF')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -137,9 +141,9 @@ export const ControlPanel = ({
 
         {/* Instructions */}
         <div className="text-xs text-muted-foreground space-y-1">
-          <p>• Left click + drag to rotate</p>
-          <p>• Right click + drag to pan</p>
-          <p>• Scroll to zoom in/out</p>
+          <p>{t('instructionRotate')}</p>
+          <p>{t('instructionPan')}</p>
+          <p>{t('instructionZoom')}</p>
         </div>
       </div>
     </Card>
