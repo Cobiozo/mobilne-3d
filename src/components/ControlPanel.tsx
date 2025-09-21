@@ -166,7 +166,6 @@ export const ControlPanel = ({
 
         {/* Controls */}
         <div className="space-y-2">
-          <span className="text-sm font-medium">{t('controls')}</span>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Button 
               variant="outline" 
@@ -234,12 +233,6 @@ export const ControlPanel = ({
           </div>
         </div>
 
-        {/* Instructions - Hidden on very small screens */}
-        <div className="text-xs text-muted-foreground space-y-1 hidden sm:block">
-          <p>{t('instructionRotate')}</p>
-          <p>{t('instructionPan')}</p>
-          <p>{t('instructionZoom')}</p>
-        </div>
       </div>
     </Card>
   );
