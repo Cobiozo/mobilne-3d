@@ -74,7 +74,7 @@ export const Model3D = ({ modelData, color, fileName }: Model3DProps) => {
     }
   }, [color]);
 
-  // Wyłączamy auto-rotation tymczasowo żeby sprawdzić czy to powoduje problem
+  // CAŁKOWICIE WYŁĄCZAM useFrame żeby sprawdzić czy to powoduje problem
   // useFrame((state) => {
   //   if (meshRef.current) {
   //     // Subtle auto-rotation when not being controlled - ale tylko obracanie, nie skalowanie

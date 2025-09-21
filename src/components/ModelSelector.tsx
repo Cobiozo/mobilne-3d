@@ -35,23 +35,22 @@ export const ModelSelector = ({
 
   return (
     <div className={`space-y-3 ${className}`}>
-      <div className="flex items-center justify-center gap-2 mb-2">
-        <Layers3 className="w-4 h-4 text-primary" />
-        <span className="text-sm font-medium">{t('modelSelection')}</span>
-        <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-          {models.length} {t('modelsAvailable')}
-        </Badge>
+      {/* Tylko nazwa pliku - bez dodatkowych informacji */}
+      <div className="text-center">
+        <span className="text-sm font-medium text-muted-foreground">
+          {models[0]?.name?.split(' - ')[0] || 'Model File'}
+        </span>
       </div>
       
-      {/* Numerowane przyciski */}
-      <div className="flex flex-wrap justify-center gap-2">
+      {/* Przyciski obok siebie */}
+      <div className="flex justify-center items-center gap-2 flex-wrap">
         {models.map((model, index) => (
           <Button
             key={model.index}
             variant={selectedModelIndex === model.index ? "default" : "outline"}
             size="sm"
             onClick={() => onModelSelect(model.index)}
-            className={`min-w-[2.5rem] h-8 px-2 text-xs font-medium ${
+            className={`w-10 h-8 px-0 text-sm font-medium ${
               selectedModelIndex === model.index 
                 ? 'bg-primary text-primary-foreground shadow-md' 
                 : 'hover:bg-primary/10 hover:text-primary hover:border-primary/50'
@@ -61,13 +60,6 @@ export const ModelSelector = ({
             {index + 1}
           </Button>
         ))}
-      </div>
-
-      {/* Nazwa aktualnego modelu */}
-      <div className="text-center">
-        <p className="text-xs text-muted-foreground truncate max-w-full">
-          {models[selectedModelIndex]?.name || `${t('model')} ${selectedModelIndex + 1}`}
-        </p>
       </div>
     </div>
   );

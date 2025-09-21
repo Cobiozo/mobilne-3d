@@ -55,6 +55,9 @@ async function load3MFFile(arrayBuffer: ArrayBuffer, fileName: string): Promise<
         console.log(`Extracted geometry for child ${index}:`, geometry);
         
         if (geometry) {
+          // Sprawdź czy geometria nie jest już w cache
+          const geometryId = `3mf_${fileName}_${index}`;
+          
           const processedGeometry = processGeometry(geometry);
           console.log(`Processed geometry for child ${index}:`, processedGeometry);
           
