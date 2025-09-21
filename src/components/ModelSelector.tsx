@@ -28,14 +28,19 @@ export const ModelSelector = ({
   const { language } = useApp();
   const { t } = useTranslation(language);
 
-  if (models.length <= 1) return null;
+  console.log('ModelSelector render - models:', models, 'selectedIndex:', selectedModelIndex);
+
+  if (models.length <= 1) {
+    console.log('ModelSelector hidden - only', models.length, 'models');
+    return null;
+  }
 
   return (
     <div className={`space-y-3 ${className}`}>
       <div className="flex items-center gap-2">
         <Layers3 className="w-4 h-4 text-primary" />
         <span className="text-sm font-medium">{t('modelSelection')}</span>
-        <Badge variant="secondary" className="ml-auto">
+        <Badge variant="secondary" className="ml-auto bg-primary/10 text-primary border-primary/20">
           {models.length} {t('modelsAvailable')}
         </Badge>
       </div>
@@ -47,7 +52,7 @@ export const ModelSelector = ({
         <SelectTrigger className="w-full">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-popover border shadow-lg z-50">
           {models.map((model) => (
             <SelectItem key={model.index} value={model.index.toString()}>
               <div className="flex items-center gap-2">

@@ -44,6 +44,7 @@ const Index = () => {
       // Load models using the unified loader
       try {
         const models = await loadModelFile(arrayBuffer, file.name);
+        console.log('Loaded models:', models, 'Count:', models.length);
         setAvailableModels(models);
         setSelectedModelIndex(0);
         
@@ -207,11 +208,49 @@ const Index = () => {
               currentGeometry={availableModels[selectedModelIndex]?.geometry}
             />
           </div>
+          
+          {/* Debug: zawsze pokazuj ModelSelector gdy mamy model */}
+          {modelData && (
+            <div className="hidden xl:block mt-4 p-4 border rounded-lg bg-card">
+              <h3 className="text-sm font-medium mb-2">Debug: Available Models ({availableModels.length})</h3>
+              {availableModels.length > 1 ? (
+                <ModelSelector
+                  models={availableModels.map(model => ({
+                    name: model.name,
+                    index: model.index,
+                    meshCount: model.meshCount
+                  }))}
+                  selectedModelIndex={selectedModelIndex}
+                  onModelSelect={setSelectedModelIndex}
+                />
+              ) : (
+                <p className="text-muted-foreground text-xs">Tylko jeden model wykryty: {availableModels[0]?.name}</p>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Upload Area when model is loaded - Hidden on mobile when in sidebar */}
+        {/* Model Selector and Upload Area when model is loaded - Mobile */}
         {modelData && (
-          <div className="mt-4 sm:mt-6 xl:hidden">
+          <div className="mt-4 sm:mt-6 xl:hidden space-y-4">
+            {/* Debug: zawsze pokazuj na mobile też */}
+            <div className="p-4 border rounded-lg bg-card">
+              <h3 className="text-sm font-medium mb-2">Dostępne modele ({availableModels.length})</h3>
+              {availableModels.length > 1 ? (
+                <ModelSelector
+                  models={availableModels.map(model => ({
+                    name: model.name,
+                    index: model.index,
+                    meshCount: model.meshCount
+                  }))}
+                  selectedModelIndex={selectedModelIndex}
+                  onModelSelect={setSelectedModelIndex}
+                />
+              ) : (
+                <p className="text-muted-foreground text-xs">Tylko jeden model: {availableModels[0]?.name}</p>
+              )}
+            </div>
+            
             <div className="text-center">
               <p className="text-muted-foreground mb-4 text-sm sm:text-base">
                 {t('differentModel')}

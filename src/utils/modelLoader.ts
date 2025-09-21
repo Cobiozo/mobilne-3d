@@ -38,6 +38,8 @@ async function load3MFFile(arrayBuffer: ArrayBuffer, fileName: string): Promise<
     const loader = new ThreeMFLoader();
     const result = loader.parse(arrayBuffer);
     
+    console.log('3MF result structure:', result);
+    
     if (!result) {
       throw new Error('Failed to parse 3MF file');
     }
