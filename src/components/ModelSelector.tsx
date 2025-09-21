@@ -34,29 +34,29 @@ export const ModelSelector = ({
   }
 
   return (
-    <div className={`w-full ${className}`}>
-      {/* Nazwa pliku - oddzielna sekcja */}
-      <div className="text-center mb-6 p-3 bg-card/30 rounded-lg">
-        <span className="text-sm font-medium text-foreground block">
+    <div className={`w-full max-w-sm mx-auto ${className}`}>
+      {/* Nazwa pliku */}
+      <div className="text-center mb-8">
+        <h3 className="text-base font-semibold text-foreground">
           {models[0]?.name?.split(' - ')[0] || 'Model File'}
-        </span>
+        </h3>
       </div>
       
-      {/* Przyciski w zupełnie oddzielnej sekcji */}
-      <div className="mt-6 pt-4">
-        <div className="flex justify-center items-center gap-4">
+      {/* Przyciski w osobnej sekcji z dużym marginesem */}
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center gap-3 p-2">
           {models.map((model, index) => (
             <Button
               key={model.index}
               variant={selectedModelIndex === model.index ? "default" : "outline"}
-              size="sm"
+              size="lg"
               onClick={() => onModelSelect(model.index)}
-              className={`w-12 h-12 px-0 text-base font-bold rounded-lg ${
+              className={`w-14 h-14 text-lg font-bold ${
                 selectedModelIndex === model.index 
-                  ? 'bg-primary text-primary-foreground shadow-lg ring-2 ring-primary/30' 
-                  : 'hover:bg-primary/10 hover:text-primary hover:border-primary/50'
+                  ? 'bg-primary text-primary-foreground shadow-lg' 
+                  : 'hover:bg-primary/10 hover:text-primary'
               }`}
-              title={`Model ${index + 1}: ${model.name}`}
+              title={`Model ${index + 1}`}
             >
               {index + 1}
             </Button>

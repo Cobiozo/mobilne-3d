@@ -188,17 +188,19 @@ const Index = () => {
           </div>
 
           {/* 3D Viewer - Full width on mobile, main area on desktop */}
-          <div className="xl:col-span-3 order-1 xl:order-2 min-h-[300px] sm:min-h-[400px] lg:min-h-[500px] space-y-4">
+          <div className="xl:col-span-3 order-1 xl:order-2 min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]">
             <ModelViewer
               modelData={modelData || undefined}
               modelColor={modelColor}
               fileName={fileName}
               currentGeometry={availableModels[selectedModelIndex]?.geometry}
             />
-            
-            {/* Model Selector pod wyświetlanym modelem */}
-            {availableModels.length > 1 && (
-              <div className="flex justify-center">
+          </div>
+          
+          {/* Model Selector w osobnej sekcji poniżej viewera */}
+          {availableModels.length > 1 && (
+            <div className="xl:col-span-3 order-3 xl:order-3 mt-6 mb-4">
+              <div className="max-w-md mx-auto">
                 <ModelSelector
                   models={availableModels.map(model => ({
                     name: model.name,
@@ -207,11 +209,11 @@ const Index = () => {
                   }))}
                   selectedModelIndex={selectedModelIndex}
                   onModelSelect={setSelectedModelIndex}
-                  className="bg-card/50 backdrop-blur-sm border rounded-lg p-3 shadow-sm"
+                  className="bg-card border rounded-lg p-4 shadow-sm"
                 />
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Upload Area when model is loaded - Mobile only */}
