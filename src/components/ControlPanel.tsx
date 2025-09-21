@@ -109,30 +109,38 @@ export const ControlPanel = ({
           </div>
           
           {/* Aktualnie wybrany kolor */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Aktualnie wybrany:</span>
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-6 h-6 rounded-md border-2 border-border shadow-sm"
-                  style={{ backgroundColor: modelColor }}
-                />
-                <span className="text-xs font-mono text-muted-foreground">
-                  {modelColor.toUpperCase()}
-                </span>
+          <div className="flex items-center justify-between gap-3">
+            {/* Kolumna 1: Aktualnie wybrany */}
+            <div className="flex-1">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Aktualnie wybrany:</span>
+                <div className="flex items-center gap-2">
+                  <div 
+                    className="w-6 h-6 rounded-md border-2 border-border shadow-sm"
+                    style={{ backgroundColor: modelColor }}
+                  />
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {modelColor.toUpperCase()}
+                  </span>
+                </div>
               </div>
             </div>
             
-            {/* Przycisk wybierz niestandardowy */}
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={modelColor}
-                onChange={(e) => onColorChange(e.target.value)}
-                className="w-8 h-8 rounded border border-border cursor-pointer bg-transparent"
-                title="Wybierz niestandardowy kolor"
-              />
-              <span className="text-xs text-muted-foreground">Wybierz niestandardowy</span>
+            {/* Kolumna 2: Wybierz niestandardowy */}
+            <div className="flex-1">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Wybierz niestandardowy:</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={modelColor}
+                    onChange={(e) => onColorChange(e.target.value)}
+                    className="w-6 h-6 rounded border border-border cursor-pointer bg-transparent"
+                    title="Wybierz niestandardowy kolor"
+                  />
+                  <span className="text-xs text-muted-foreground opacity-70">Kliknij</span>
+                </div>
+              </div>
             </div>
           </div>
 
