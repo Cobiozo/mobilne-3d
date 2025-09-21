@@ -22,10 +22,19 @@ import {
   Palette,
   Globe,
   Bell,
-  Shield
+  Shield,
+  Home,
+  ArrowLeft
 } from 'lucide-react';
 
 const adminMenuItems = [
+  {
+    title: 'Strona główna',
+    url: '/',
+    icon: Home,
+    section: 'home',
+    isExternal: true
+  },
   {
     title: 'Dashboard',
     url: '/dashboard?tab=overview',
@@ -91,9 +100,13 @@ export function AdminSidebar({ currentTab, onTabChange }: AdminSidebarProps) {
   const { state } = useSidebar();
   const navigate = useNavigate();
 
-  const handleNavigation = (section: string) => {
-    onTabChange(section);
-    navigate(`/dashboard?tab=${section}`);
+  const handleNavigation = (section: string, isExternal: boolean = false) => {
+    if (isExternal) {
+      navigate('/');
+    } else {
+      onTabChange(section);
+      navigate(`/dashboard?tab=${section}`);
+    }
   };
 
   const isActive = (section: string) => currentTab === section;
@@ -113,7 +126,7 @@ export function AdminSidebar({ currentTab, onTabChange }: AdminSidebarProps) {
               {adminMenuItems.map((item) => (
                 <SidebarMenuItem key={item.section}>
                   <SidebarMenuButton
-                    onClick={() => handleNavigation(item.section)}
+                    onClick={() => handleNavigation(item.section, item.isExternal)}
                     className={`
                       ${isActive(item.section) 
                         ? "bg-primary text-primary-foreground font-medium" 

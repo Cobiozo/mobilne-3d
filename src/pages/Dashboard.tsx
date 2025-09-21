@@ -16,7 +16,7 @@ import { OrdersManagement } from '@/components/OrdersManagement';
 import { SiteCustomization } from '@/components/SiteCustomization';
 import { AdminOverview } from '@/components/AdminOverview';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { User, LogOut, Upload, Settings } from 'lucide-react';
+import { User, LogOut, Upload, Settings, Home } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
@@ -151,8 +151,8 @@ const Dashboard = () => {
                     variant="outline"
                     onClick={() => navigate('/')}
                   >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {getText('upload3DModel', language)}
+                    <Home className="w-4 h-4 mr-2" />
+                    Strona główna
                   </Button>
                   <Button
                     variant="ghost"
@@ -190,8 +190,8 @@ const Dashboard = () => {
               variant="outline"
               onClick={() => navigate('/')}
             >
-              <Upload className="w-4 h-4 mr-2" />
-              {getText('upload3DModel', language)}
+              <Home className="w-4 h-4 mr-2" />
+              Strona główna
             </Button>
             <Button
               variant="ghost"
