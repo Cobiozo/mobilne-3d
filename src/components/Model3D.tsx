@@ -43,13 +43,15 @@ export const Model3D = ({ modelData, color, fileName }: Model3DProps) => {
   }, [modelData]);
 
   const material = useMemo(() => {
-    return new THREE.MeshStandardMaterial({
-      color: new THREE.Color(color),
+    const mat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(color || "#FFFFFF"),
       metalness: 0.3,
       roughness: 0.4,
       transparent: false,
       side: THREE.DoubleSide,
     });
+    mat.needsUpdate = true;
+    return mat;
   }, [color]);
 
   useFrame((state) => {
