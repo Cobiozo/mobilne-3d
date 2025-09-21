@@ -78,12 +78,15 @@ const Index = () => {
       // Load image data
       const imageData = await loadImageData(file);
       
-      // Convert to 3D geometry
+      // Convert to 3D geometry using silhouette mode for better results
       const geometry = imageToGeometry(imageData, {
-        width: 128,
-        height: 128,
-        heightScale: 1.5,
-        smoothing: true
+        width: 256,  // Higher resolution for smoother curves
+        height: 256,
+        mode: 'silhouette',
+        extrudeDepth: 0.3,
+        bevelEnabled: true,
+        bevelThickness: 0.02,
+        bevelSize: 0.02
       });
       
       setImageGeometry(geometry);
