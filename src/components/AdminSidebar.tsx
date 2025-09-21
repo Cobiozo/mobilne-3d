@@ -112,10 +112,14 @@ export function AdminSidebar({ currentTab, onTabChange }: AdminSidebarProps) {
   const isActive = (section: string) => currentTab === section;
 
   return (
-    <Sidebar className={state === "collapsed" ? "w-14" : "w-64"} collapsible="icon">
+    <Sidebar 
+      className={state === "collapsed" ? "w-14" : "w-64"} 
+      collapsible="icon"
+      side="left"
+    >
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className={state === "collapsed" ? "sr-only" : ""}>
+          <SidebarGroupLabel className={state === "collapsed" ? "sr-only" : "px-4 py-2 text-sm font-semibold"}>
             Panel Administratora
           </SidebarGroupLabel>
           

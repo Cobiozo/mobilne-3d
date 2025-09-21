@@ -132,43 +132,46 @@ const Dashboard = () => {
   if (userRole === 'admin') {
     return (
       <SidebarProvider>
-        <div className="min-h-screen flex w-full">
+        <div className="min-h-screen flex w-full bg-background">
           <AdminSidebar currentTab={currentTab} onTabChange={handleTabChange} />
           
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col min-w-0">
             {/* Header */}
-            <header className="border-b bg-card/50 backdrop-blur-sm">
-              <div className="flex items-center justify-between px-6 py-4">
+            <header className="border-b bg-card/50 backdrop-blur-sm px-4 md:px-6">
+              <div className="flex items-center justify-between py-4">
                 <div className="flex items-center gap-4">
                   <SidebarTrigger />
-                  <div>
+                  <div className="hidden sm:block">
                     <h1 className="text-xl font-bold">
-                      {getText('dashboard', language)}
+                      Panel administratora
                     </h1>
-                    <Badge variant="secondary">Admin</Badge>
+                    <Badge variant="secondary" className="hidden sm:inline-flex">Admin</Badge>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
+                    size="sm"
+                    className="hidden sm:flex"
                     onClick={() => navigate('/')}
                   >
-                    <Home className="w-4 h-4 mr-2" />
-                    Strona główna
+                    <Home className="w-4 h-4 md:mr-2" />
+                    <span className="hidden md:inline">Strona główna</span>
                   </Button>
                   <Button
                     variant="ghost"
+                    size="sm"
                     onClick={handleSignOut}
                   >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    {getText('signOut', language)}
+                    <LogOut className="w-4 h-4 md:mr-2" />
+                    <span className="hidden md:inline">{getText('signOut', language)}</span>
                   </Button>
                 </div>
               </div>
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 p-6">
+            <main className="flex-1 p-4 md:p-6 overflow-auto">
               {renderTabContent()}
             </main>
           </div>
@@ -177,37 +180,40 @@ const Dashboard = () => {
     );
   }
 
-  // Regular user dashboard (non-admin)
+  // Regular user dashboard (non-admin) - Made responsive
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold">
-              {getText('dashboard', language)}
+            <h1 className="text-lg md:text-2xl font-bold">
+              Panel klienta
             </h1>
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
+              size="sm"
+              className="hidden sm:flex"
               onClick={() => navigate('/')}
             >
-              <Home className="w-4 h-4 mr-2" />
-              Strona główna
+              <Home className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">Strona główna</span>
             </Button>
             <Button
               variant="ghost"
+              size="sm"
               onClick={handleSignOut}
             >
-              <LogOut className="w-4 h-4 mr-2" />
-              {getText('signOut', language)}
+              <LogOut className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">{getText('signOut', language)}</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid w-full grid-cols-2 mb-6">
+      <main className="container mx-auto px-4 py-6 md:py-8">
+        <div className="grid w-full grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
           <Button
             variant={currentTab === 'profile' ? 'default' : 'outline'}
             onClick={() => handleTabChange('profile')}

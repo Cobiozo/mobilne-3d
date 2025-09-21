@@ -233,7 +233,7 @@ export const CustomersManagement = () => {
         </Badge>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
         {/* Customers List */}
         <div className="lg:col-span-1">
           <Card>
@@ -303,7 +303,7 @@ export const CustomersManagement = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                       <div>
                         <Label>Nazwa wyświetlana</Label>
                         <p className="mt-1 p-2 bg-muted rounded">
