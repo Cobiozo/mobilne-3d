@@ -153,13 +153,20 @@ function processGeometry(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
       processedGeometry.boundingBox.getCenter(center);
       processedGeometry.translate(-center.x, -center.y, -center.z);
       
-      // Scale to reasonable size
+      // Scale to reasonable size - tylko raz!
       const size = new THREE.Vector3();
       processedGeometry.boundingBox.getSize(size);
       const maxDimension = Math.max(size.x, size.y, size.z);
-      if (maxDimension > 0) {
+      
+      // Dodajemy zabezpieczenie przed nieskończonym skalowaniem
+      if (maxDimension > 0 && maxDimension < 1000) { // maksymalna rozsądna wielkość
         const scale = 3 / maxDimension;
-        processedGeometry.scale(scale, scale, scale);
+        // Ograniczamy skalowanie do rozsądnych wartości
+        const clampedScale = Math.max(0.1, Math.min(10, scale));
+        processedGeometry.scale(clampedScale, clampedScale, clampedScale);
+        console.log('Geometry scaled by factor:', clampedScale, 'original size:', maxDimension);
+      } else {
+        console.warn('Geometry size unusual, skipping scaling. Max dimension:', maxDimension);
       }
     }
     

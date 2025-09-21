@@ -47,13 +47,13 @@ export const ModelViewer = ({ modelData, modelColor, fileName, currentGeometry }
                   side={THREE.DoubleSide}
                 />
               </mesh>
-            ) : (
+            ) : modelData ? (
               <Model3D 
-                modelData={modelData!} 
+                modelData={modelData} 
                 color={modelColor}
                 fileName={fileName}
               />
-            )}
+            ) : null}
             
             <Environment preset="studio" />
           </Suspense>

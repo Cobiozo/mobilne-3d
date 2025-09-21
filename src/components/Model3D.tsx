@@ -68,15 +68,16 @@ export const Model3D = ({ modelData, color, fileName }: Model3DProps) => {
     }
   }, [color]);
 
-  useFrame((state) => {
-    if (meshRef.current) {
-      // Subtle auto-rotation when not being controlled
-      const controls = state.controls as any;
-      if (!controls?.enabled || !controls.getUserInteraction?.()) {
-        meshRef.current.rotation.y += 0.005;
-      }
-    }
-  });
+  // Wyłączamy auto-rotation tymczasowo żeby sprawdzić czy to powoduje problem
+  // useFrame((state) => {
+  //   if (meshRef.current) {
+  //     // Subtle auto-rotation when not being controlled - ale tylko obracanie, nie skalowanie
+  //     const controls = state.controls as any;
+  //     if (!controls?.enabled || !controls.getUserInteraction?.()) {
+  //       meshRef.current.rotation.y += 0.005;
+  //     }
+  //   }
+  // });
 
   return (
     <mesh ref={meshRef} geometry={geometry} material={material} castShadow receiveShadow>
