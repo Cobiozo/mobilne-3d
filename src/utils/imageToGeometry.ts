@@ -63,11 +63,11 @@ const createProperlySilhouetteGeometry = (
     bevelSize: number;
   }
 ): THREE.BufferGeometry => {
-  console.log('Creating silhouette geometry from image:', imageData.width, 'x', imageData.height);
+  console.log('Creating SHARP silhouette geometry from image:', imageData.width, 'x', imageData.height);
   
-  // Use a simpler, more reliable approach - enhanced heightmap for silhouettes
-  const width = 64;  // Lower resolution for reliability
-  const height = 64;
+  // Use higher resolution for better detail
+  const width = 128;
+  const height = 128;
   const { extrudeDepth } = options;
   
   // Create a PlaneGeometry as the base
@@ -87,13 +87,15 @@ const createProperlySilhouetteGeometry = (
   tempCanvas.height = imageData.height;
   tempCtx.putImageData(imageData, 0, 0);
   
-  // Scale down to working resolution
+  // Scale to working resolution with crisp edges
+  ctx.imageSmoothingEnabled = false; // Disable smoothing for sharp edges
   ctx.drawImage(tempCanvas, 0, 0, width, height);
   const scaledImageData = ctx.getImageData(0, 0, width, height);
   
-  console.log('Scaled image data created');
+  console.log('Scaled image data created with crisp edges');
   
-  // Apply heightmap with silhouette logic (inverted)
+  // Apply BINARY heightmap (only 0 or full height)
+  const threshold = 128; // Black/white threshold
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const index = (y * width + x) * 4;
@@ -102,11 +104,10 @@ const createProperlySilhouetteGeometry = (
       const r = scaledImageData.data[index];
       const g = scaledImageData.data[index + 1];
       const b = scaledImageData.data[index + 2];
-      const grayscale = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+      const grayscale = (r * 0.299 + g * 0.587 + b * 0.114);
       
-      // For silhouettes: dark areas (low grayscale) = high height
-      // White areas (high grayscale) = low height
-      const heightValue = (1 - grayscale) * extrudeDepth;
+      // BINARY: either 0 (white/background) or full height (black/silhouette)
+      const heightValue = grayscale < threshold ? extrudeDepth : 0;
       
       // Update vertex position
       const vertexIndex = y * width + x;
@@ -114,49 +115,42 @@ const createProperlySilhouetteGeometry = (
     }
   }
   
-  // Apply Gaussian smoothing to reduce jaggedness
+  // Apply MINIMAL smoothing only at edges to avoid pixelation but preserve shape
   const smoothedPositions = new Float32Array(positions.array.length);
   smoothedPositions.set(positions.array);
   
-  for (let pass = 0; pass < 2; pass++) { // Multiple smoothing passes
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
-        const vertexIndex = y * width + x;
-        const zIndex = vertexIndex * 3 + 2; // Z component
-        
-        // Gaussian kernel (3x3)
-        const weights = [
-          [0.077847, 0.123317, 0.077847],
-          [0.123317, 0.195346, 0.123317],
-          [0.077847, 0.123317, 0.077847]
-        ];
-        
-        let weightedSum = 0;
-        let totalWeight = 0;
-        
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            const neighborIndex = (y + dy) * width + (x + dx);
-            if (neighborIndex >= 0 && neighborIndex < positions.count) {
-              const weight = weights[dy + 1][dx + 1];
-              weightedSum += positions.getZ(neighborIndex) * weight;
-              totalWeight += weight;
-            }
-          }
-        }
-        
-        smoothedPositions[zIndex] = weightedSum / totalWeight;
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      const vertexIndex = y * width + x;
+      const zIndex = vertexIndex * 3 + 2; // Z component
+      
+      const currentHeight = positions.getZ(vertexIndex);
+      
+      // Get neighbors
+      const neighbors = [
+        positions.getZ((y - 1) * width + x),     // top
+        positions.getZ((y + 1) * width + x),     // bottom
+        positions.getZ(y * width + (x - 1)),     // left
+        positions.getZ(y * width + (x + 1)),     // right
+      ];
+      
+      // Only smooth if we're at an edge (some neighbors different from current)
+      const isDifferent = neighbors.some(h => h !== currentHeight);
+      
+      if (isDifferent) {
+        // Very light smoothing - mostly preserve current height
+        const neighborSum = neighbors.reduce((sum, h) => sum + h, 0);
+        const smoothed = (currentHeight * 3 + neighborSum) / 7; // Weight current height more
+        smoothedPositions[zIndex] = smoothed;
       }
     }
-    
-    // Copy back for next pass
-    positions.set(smoothedPositions);
   }
   
+  positions.set(smoothedPositions);
   positions.needsUpdate = true;
   geometry.computeVertexNormals();
   
-  console.log('Silhouette geometry created successfully');
+  console.log('SHARP silhouette geometry created successfully');
   return geometry;
 };
 
