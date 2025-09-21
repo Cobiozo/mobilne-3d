@@ -43,14 +43,20 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchUserRole = async () => {
       if (user) {
+        console.log('Fetching role for user:', user.email);
         const { data, error } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id)
           .single();
 
+        console.log('Role data:', data, 'Error:', error);
         if (data && !error) {
+          console.log('Setting user role to:', data.role);
           setUserRole(data.role);
+        } else {
+          console.log('No role found, defaulting to user');
+          setUserRole('user');
         }
         setIsLoadingRole(false);
       }
@@ -128,6 +134,7 @@ const Dashboard = () => {
   };
 
   if (userRole === 'admin') {
+    console.log('Rendering admin dashboard for user:', user.email);
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
