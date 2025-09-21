@@ -67,13 +67,13 @@ const createSilhouetteGeometry = (
     bevelSize: number;
   }
 ): THREE.BufferGeometry => {
-  const { width, height, extrudeDepth, bevelEnabled, bevelThickness, bevelSize } = options;
+  const { width, height, extrudeDepth } = options;
   
-  // Create a higher resolution canvas for better edge detection
+  // Create a canvas for processing
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d')!;
-  canvas.width = width * 2; // Higher resolution for better curves
-  canvas.height = height * 2;
+  canvas.width = width;
+  canvas.height = height;
   
   // Create a temporary canvas with original image
   const tempCanvas = document.createElement('canvas');
@@ -82,60 +82,70 @@ const createSilhouetteGeometry = (
   tempCanvas.height = imageData.height;
   tempCtx.putImageData(imageData, 0, 0);
   
-  // Scale up for smoother edges
-  ctx.drawImage(tempCanvas, 0, 0, width * 2, height * 2);
-  const scaledImageData = ctx.getImageData(0, 0, width * 2, height * 2);
+  // Scale the image
+  ctx.drawImage(tempCanvas, 0, 0, width, height);
+  const scaledImageData = ctx.getImageData(0, 0, width, height);
   
-  // Extract shape outline using marching squares
-  const shape = extractShapeFromImage(scaledImageData, width * 2, height * 2);
+  // Convert to height map with proper silhouette handling
+  const geometry = new THREE.PlaneGeometry(4, 4, width - 1, height - 1);
+  const positions = geometry.getAttribute('position') as THREE.BufferAttribute;
   
-  if (shape.length === 0) {
-    // Fallback to simple extrude if no shape found
-    return createSimpleBoxGeometry();
-  }
+  const threshold = 128; // Threshold for black/white
   
-  // Create THREE.js shape
-  const threeShape = new THREE.Shape();
-  
-  // Start from first point
-  if (shape.length > 0) {
-    // Normalize coordinates to [-2, 2] range
-    const firstPoint = shape[0];
-    threeShape.moveTo(
-      (firstPoint.x / (width * 2)) * 4 - 2,
-      (firstPoint.y / (height * 2)) * 4 - 2
-    );
-    
-    // Add all other points
-    for (let i = 1; i < shape.length; i++) {
-      const point = shape[i];
-      threeShape.lineTo(
-        (point.x / (width * 2)) * 4 - 2,
-        (point.y / (height * 2)) * 4 - 2
-      );
+  // Apply binary heightmap (0 or extrudeDepth)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const index = (y * width + x) * 4;
+      
+      // Get grayscale value
+      const r = scaledImageData.data[index];
+      const g = scaledImageData.data[index + 1];
+      const b = scaledImageData.data[index + 2];
+      const grayscale = (r * 0.299 + g * 0.587 + b * 0.114);
+      
+      // Binary height: either 0 (white/background) or extrudeDepth (black/foreground)
+      const heightValue = grayscale < threshold ? extrudeDepth : 0;
+      
+      // Update vertex position
+      const vertexIndex = y * width + x;
+      positions.setZ(vertexIndex, heightValue);
     }
-    
-    threeShape.closePath();
   }
   
-  // Create extrude geometry
-  const extrudeSettings = {
-    depth: extrudeDepth,
-    bevelEnabled,
-    bevelThickness,
-    bevelSize,
-    bevelSegments: 8,
-    steps: 1,
-    curveSegments: 12
-  };
+  // Apply smoothing only at edges to avoid jagged transitions
+  const smoothedPositions = new Float32Array(positions.array.length);
+  smoothedPositions.set(positions.array);
   
-  const geometry = new THREE.ExtrudeGeometry(threeShape, extrudeSettings);
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      const vertexIndex = y * width + x;
+      const zIndex = vertexIndex * 3 + 2;
+      
+      const currentHeight = positions.getZ(vertexIndex);
+      
+      // Check neighbors
+      const neighbors = [
+        positions.getZ((y - 1) * width + x),     // top
+        positions.getZ((y + 1) * width + x),     // bottom
+        positions.getZ(y * width + (x - 1)),     // left
+        positions.getZ(y * width + (x + 1)),     // right
+      ];
+      
+      // Only smooth if we're at an edge (transition between 0 and extrudeDepth)
+      const hasZeroNeighbor = neighbors.some(h => h === 0);
+      const hasHeightNeighbor = neighbors.some(h => h === extrudeDepth);
+      
+      if (hasZeroNeighbor && hasHeightNeighbor) {
+        // This is an edge, apply slight smoothing
+        const sum = neighbors.reduce((acc, h) => acc + h, currentHeight);
+        smoothedPositions[zIndex] = sum / (neighbors.length + 1);
+      }
+    }
+  }
   
-  // Center the geometry
-  geometry.computeBoundingBox();
-  const center = new THREE.Vector3();
-  geometry.boundingBox?.getCenter(center);
-  geometry.translate(-center.x, -center.y, -center.z);
+  positions.set(smoothedPositions);
+  positions.needsUpdate = true;
+  geometry.computeVertexNormals();
   
   // Rotate to face forward
   geometry.rotateX(-Math.PI / 2);
@@ -144,69 +154,8 @@ const createSilhouetteGeometry = (
 };
 
 const extractShapeFromImage = (imageData: ImageData, width: number, height: number): Array<{x: number, y: number}> => {
-  const points: Array<{x: number, y: number}> = [];
-  
-  // Simple edge detection - find the boundary between dark and light pixels
-  const threshold = 128; // Mid-gray threshold
-  
-  // Find contour points by scanning edges
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const index = (y * width + x) * 4;
-      const currentPixel = imageData.data[index]; // Red channel (grayscale)
-      
-      // Check if this is an edge pixel
-      const neighbors = [
-        imageData.data[((y-1) * width + x) * 4], // top
-        imageData.data[((y+1) * width + x) * 4], // bottom
-        imageData.data[(y * width + (x-1)) * 4], // left
-        imageData.data[(y * width + (x+1)) * 4], // right
-      ];
-      
-      const isDark = currentPixel < threshold;
-      const hasLightNeighbor = neighbors.some(n => n >= threshold);
-      const hasDarkNeighbor = neighbors.some(n => n < threshold);
-      
-      // This is an edge if it's dark with light neighbors or light with dark neighbors
-      if ((isDark && hasLightNeighbor) || (!isDark && hasDarkNeighbor)) {
-        points.push({ x, y: height - y }); // Flip Y for correct orientation
-      }
-    }
-  }
-  
-  // Sort points to create a contour (simple approach)
-  if (points.length > 0) {
-    const sortedPoints = [points[0]];
-    const remaining = points.slice(1);
-    
-    while (remaining.length > 0 && sortedPoints.length < 1000) { // Limit to prevent infinite loops
-      const lastPoint = sortedPoints[sortedPoints.length - 1];
-      let closest = 0;
-      let minDistance = Infinity;
-      
-      for (let i = 0; i < remaining.length; i++) {
-        const distance = Math.sqrt(
-          Math.pow(remaining[i].x - lastPoint.x, 2) + 
-          Math.pow(remaining[i].y - lastPoint.y, 2)
-        );
-        if (distance < minDistance) {
-          minDistance = distance;
-          closest = i;
-        }
-      }
-      
-      if (minDistance < 50) { // Only connect nearby points
-        sortedPoints.push(remaining[closest]);
-        remaining.splice(closest, 1);
-      } else {
-        break; // No nearby points found
-      }
-    }
-    
-    return sortedPoints;
-  }
-  
-  return points;
+  // Simplified - not used in new approach
+  return [];
 };
 
 const createSimpleBoxGeometry = (): THREE.BufferGeometry => {
