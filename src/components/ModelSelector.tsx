@@ -34,28 +34,28 @@ export const ModelSelector = ({
   }
 
   return (
-    <div className={`space-y-3 ${className}`}>
-      {/* Tylko nazwa pliku - bez dodatkowych informacji */}
-      <div className="text-center">
-        <span className="text-sm font-medium text-muted-foreground">
+    <div className={`space-y-4 ${className}`}>
+      {/* Nazwa pliku - wyraźnie oddzielona */}
+      <div className="text-center pb-2 border-b border-border/30">
+        <span className="text-sm font-medium text-foreground">
           {models[0]?.name?.split(' - ')[0] || 'Model File'}
         </span>
       </div>
       
-      {/* Przyciski obok siebie */}
-      <div className="flex justify-center items-center gap-2 flex-wrap">
+      {/* Przyciski w osobnej sekcji - obok siebie */}
+      <div className="flex justify-center items-center gap-3 pt-2">
         {models.map((model, index) => (
           <Button
             key={model.index}
             variant={selectedModelIndex === model.index ? "default" : "outline"}
             size="sm"
             onClick={() => onModelSelect(model.index)}
-            className={`w-10 h-8 px-0 text-sm font-medium ${
+            className={`w-10 h-10 px-0 text-sm font-medium rounded-lg ${
               selectedModelIndex === model.index 
-                ? 'bg-primary text-primary-foreground shadow-md' 
+                ? 'bg-primary text-primary-foreground shadow-md ring-2 ring-primary/20' 
                 : 'hover:bg-primary/10 hover:text-primary hover:border-primary/50'
             }`}
-            title={model.name}
+            title={`Model ${index + 1}: ${model.name}`}
           >
             {index + 1}
           </Button>
