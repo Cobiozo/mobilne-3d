@@ -14,7 +14,7 @@ export const ModelViewer = ({ modelData, modelColor, fileName }: ModelViewerProp
   return (
     <div className="w-full h-full bg-viewer-bg rounded-lg shadow-viewer relative overflow-hidden">
       {modelData ? (
-        <Canvas className="w-full h-full">
+        <Canvas className="w-full h-full" gl={{ preserveDrawingBuffer: true }}>
           <PerspectiveCamera makeDefault position={[5, 5, 5]} />
           
           <Suspense fallback={null}>

@@ -32,10 +32,33 @@ const Index = () => {
 
   const handleExport = async (format: 'png' | 'jpg' | 'pdf') => {
     try {
+      toast.info(`Preparing ${format.toUpperCase()} export...`);
+      
+      // Wait a moment for the scene to fully render
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Find the Three.js canvas
-      const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+      const canvasElements = document.querySelectorAll('canvas');
+      let canvas: HTMLCanvasElement | null = null;
+      
+      // Look for the Three.js canvas (should be the one with WebGL context)
+      for (const canvasEl of canvasElements) {
+        const gl = canvasEl.getContext('webgl') || canvasEl.getContext('webgl2');
+        if (gl) {
+          canvas = canvasEl;
+          break;
+        }
+      }
+      
       if (!canvas) {
         toast.error('No 3D model to export');
+        return;
+      }
+
+      // Ensure the canvas has preserveDrawingBuffer enabled for capture
+      const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
+      if (gl && !gl.getContextAttributes()?.preserveDrawingBuffer) {
+        toast.error('Canvas not configured for export. Please reload the model.');
         return;
       }
 

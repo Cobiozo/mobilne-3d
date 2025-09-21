@@ -70,15 +70,49 @@ export const captureCanvasFromThreeJS = (canvasElement: HTMLCanvasElement): HTML
     throw new Error('Could not get canvas context');
   }
   
-  captureCanvas.width = canvasElement.width;
-  captureCanvas.height = canvasElement.height;
+  // Set canvas size to match the WebGL canvas
+  captureCanvas.width = canvasElement.width || 800;
+  captureCanvas.height = canvasElement.height || 600;
   
   // Set white background for better visibility
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, captureCanvas.width, captureCanvas.height);
   
-  // Draw the WebGL canvas onto the new canvas
-  ctx.drawImage(canvasElement, 0, 0);
+  try {
+    // Draw the WebGL canvas onto the new canvas
+    ctx.drawImage(canvasElement, 0, 0);
+  } catch (error) {
+    console.error('Error capturing canvas:', error);
+    // Fallback: try to get image data directly
+    try {
+      const gl = canvasElement.getContext('webgl') || canvasElement.getContext('webgl2');
+      if (gl) {
+        const pixels = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
+        gl.readPixels(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+        
+        const imageData = new ImageData(gl.drawingBufferWidth, gl.drawingBufferHeight);
+        imageData.data.set(pixels);
+        
+        captureCanvas.width = gl.drawingBufferWidth;
+        captureCanvas.height = gl.drawingBufferHeight;
+        ctx.putImageData(imageData, 0, 0);
+        
+        // Flip the image vertically (WebGL reads bottom-to-top)
+        const flippedCanvas = document.createElement('canvas');
+        const flippedCtx = flippedCanvas.getContext('2d');
+        if (flippedCtx) {
+          flippedCanvas.width = captureCanvas.width;
+          flippedCanvas.height = captureCanvas.height;
+          flippedCtx.scale(1, -1);
+          flippedCtx.drawImage(captureCanvas, 0, -captureCanvas.height);
+          return flippedCanvas;
+        }
+      }
+    } catch (fallbackError) {
+      console.error('Fallback capture also failed:', fallbackError);
+    }
+    throw error;
+  }
   
   return captureCanvas;
 };
