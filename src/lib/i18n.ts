@@ -57,7 +57,13 @@ export const translations = {
     model: 'Model',
     meshes: 'siatki',
     previous: 'Poprzedni',
-    next: 'Następny'
+    next: 'Następny',
+    
+    // Color Panel
+    currentlySelected: 'Aktualnie wybrany:',
+    selectCustom: 'Wybierz niestandardowy:',
+    clickHint: 'Kliknij',
+    fileName: 'Nazwa pliku'
   },
   en: {
     // Header
@@ -115,7 +121,13 @@ export const translations = {
     model: 'Model',
     meshes: 'meshes',
     previous: 'Previous',
-    next: 'Next'
+    next: 'Next',
+    
+    // Color Panel
+    currentlySelected: 'Currently selected:',
+    selectCustom: 'Select custom:',
+    clickHint: 'Click',
+    fileName: 'File name'
   }
 };
 

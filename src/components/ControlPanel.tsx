@@ -56,7 +56,7 @@ export const ControlPanel = ({
               {/* Kolumna 1: Nazwa pliku */}
               <div className="flex-1 min-w-0">
                 <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-muted-foreground">Nazwa pliku</span>
+                  <span className="text-xs font-medium text-muted-foreground">{t('fileName')}</span>
                   <span className="text-sm text-foreground truncate">
                     {availableModels[0]?.name?.split(' - ')[0] || fileName}
                   </span>
@@ -113,7 +113,7 @@ export const ControlPanel = ({
             {/* Kolumna 1: Aktualnie wybrany */}
             <div className="flex-1">
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Aktualnie wybrany:</span>
+                <span className="text-xs text-muted-foreground">{t('currentlySelected')}</span>
                 <div className="flex items-center gap-2">
                   <div 
                     className="w-6 h-6 rounded-md border-2 border-border shadow-sm"
@@ -129,7 +129,7 @@ export const ControlPanel = ({
             {/* Kolumna 2: Wybierz niestandardowy */}
             <div className="flex-1">
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Wybierz niestandardowy:</span>
+                <span className="text-xs text-muted-foreground">{t('selectCustom')}</span>
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
@@ -138,7 +138,7 @@ export const ControlPanel = ({
                     className="w-6 h-6 rounded border border-border cursor-pointer bg-transparent"
                     title="Wybierz niestandardowy kolor"
                   />
-                  <span className="text-xs text-muted-foreground opacity-70">Kliknij</span>
+                  <span className="text-xs text-muted-foreground opacity-70">{t('clickHint')}</span>
                 </div>
               </div>
             </div>

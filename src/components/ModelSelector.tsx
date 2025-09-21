@@ -39,7 +39,7 @@ export const ModelSelector = ({
         {/* Kolumna 1: Nazwa pliku */}
         <div className="flex-1">
           <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-muted-foreground">Nazwa pliku</span>
+            <span className="text-sm font-medium text-muted-foreground">{t('fileName')}</span>
             <span className="text-sm text-foreground">
               {models[0]?.name?.split(' - ')[0] || 'Model File'}
             </span>
