@@ -6,21 +6,23 @@ import { Model3D } from "./Model3D";
 import { useApp } from "@/contexts/AppContext";
 import { useTranslation } from "@/lib/i18n";
 import { ArrowDown } from "lucide-react";
+import * as THREE from "three";
 
 interface ModelViewerProps {
   modelData?: ArrayBuffer;
   modelColor: string;
   fileName?: string;
+  currentGeometry?: THREE.BufferGeometry;
 }
 
-export const ModelViewer = ({ modelData, modelColor, fileName }: ModelViewerProps) => {
+export const ModelViewer = ({ modelData, modelColor, fileName, currentGeometry }: ModelViewerProps) => {
   const { language } = useApp();
   const { t } = useTranslation(language);
   
   console.log('ModelViewer render - modelColor:', modelColor, 'hasData:', !!modelData);
   return (
     <div className="w-full h-full bg-viewer-bg rounded-lg shadow-viewer relative overflow-hidden min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]">
-      {modelData ? (
+      {(modelData || currentGeometry) ? (
         <Canvas className="w-full h-full" gl={{ preserveDrawingBuffer: true }}>
           <PerspectiveCamera makeDefault position={[5, 5, 5]} />
           
@@ -36,11 +38,22 @@ export const ModelViewer = ({ modelData, modelColor, fileName }: ModelViewerProp
             />
             <pointLight position={[-10, -10, -10]} intensity={0.5} />
             
-            <Model3D 
-              modelData={modelData} 
-              color={modelColor}
-              fileName={fileName}
-            />
+            {currentGeometry ? (
+              <mesh geometry={currentGeometry} castShadow receiveShadow>
+                <meshStandardMaterial
+                  color={modelColor}
+                  metalness={0.3}
+                  roughness={0.4}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+            ) : (
+              <Model3D 
+                modelData={modelData!} 
+                color={modelColor}
+                fileName={fileName}
+              />
+            )}
             
             <Environment preset="studio" />
           </Suspense>

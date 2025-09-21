@@ -49,7 +49,15 @@ export const translations = {
     exportConfigError: 'Canvas nie skonfigurowany do eksportu. Proszę przeładować model.',
     
     // Reset
-    resetMessage: 'Przeglądarka zresetowana'
+    resetMessage: 'Przeglądarka zresetowana',
+    
+    // Model Selection
+    modelSelection: 'Wybór modelu',
+    modelsAvailable: 'modeli dostępnych',
+    model: 'Model',
+    meshes: 'siatki',
+    previous: 'Poprzedni',
+    next: 'Następny'
   },
   en: {
     // Header
@@ -99,7 +107,15 @@ export const translations = {
     exportConfigError: 'Canvas not configured for export. Please reload the model.',
     
     // Reset
-    resetMessage: 'Viewer reset'
+    resetMessage: 'Viewer reset',
+    
+    // Model Selection
+    modelSelection: 'Model Selection',
+    modelsAvailable: 'models available',
+    model: 'Model',
+    meshes: 'meshes',
+    previous: 'Previous',
+    next: 'Next'
   }
 };
 
