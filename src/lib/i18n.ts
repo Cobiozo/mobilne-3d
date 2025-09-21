@@ -15,7 +15,7 @@ export const translations = {
     uploadError: 'Nie udało się załadować pliku modelu',
     
     // Control Panel
-    modelInfo: 'Informacje o modelu',
+    modelInfo: 'Nazwa pliku',
     color: 'Kolor',
     controls: 'Kontrolki',
     reset: 'Resetuj',
@@ -101,7 +101,7 @@ export const translations = {
     uploadError: 'Failed to load the model file',
     
     // Control Panel
-    modelInfo: 'Model Info',
+    modelInfo: 'File name',
     color: 'Color',
     controls: 'Controls',
     reset: 'Reset',

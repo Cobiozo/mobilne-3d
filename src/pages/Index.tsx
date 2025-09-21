@@ -365,9 +365,6 @@ const Index = () => {
         {(modelData || imageGeometry) && (
           <div className="mt-4 sm:mt-6 xl:hidden">
             <div className="text-center">
-              <p className="text-muted-foreground mb-4 text-sm sm:text-base">
-                {t('differentModel')}
-              </p>
               <div className="max-w-md mx-auto">
                 <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d")} className="w-full">
                   <TabsList className="grid w-full grid-cols-2">
