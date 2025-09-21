@@ -9,6 +9,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useAuth } from '@/hooks/useAuth';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
+import { Check, X } from 'lucide-react';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -18,6 +19,21 @@ const Auth = () => {
   const { user, loading, signUp, signIn, signInWithGoogle } = useAuth();
   const { language } = useApp();
   const navigate = useNavigate();
+
+  // Password validation state
+  const [passwordFocus, setPasswordFocus] = useState(false);
+  
+  const validatePassword = (pass: string) => {
+    return {
+      minLength: pass.length >= 6,
+      hasLowercase: /[a-z]/.test(pass),
+      hasUppercase: /[A-Z]/.test(pass),
+      hasDigit: /\d/.test(pass)
+    };
+  };
+
+  const passwordValidation = validatePassword(password);
+  const isPasswordValid = Object.values(passwordValidation).every(Boolean);
 
   useEffect(() => {
     if (user && !loading) {
@@ -31,6 +47,9 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isPasswordValid) {
+      return;
+    }
     setIsLoading(true);
     await signUp(email, password, displayName);
     setIsLoading(false);
@@ -133,11 +152,71 @@ const Auth = () => {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onFocus={() => setPasswordFocus(true)}
+                    onBlur={() => setPasswordFocus(false)}
                     required
                     minLength={6}
+                    className={!isPasswordValid && password.length > 0 ? 'border-destructive' : ''}
                   />
+                  
+                  {/* Password Requirements */}
+                  {(passwordFocus || password.length > 0) && (
+                    <div className="space-y-2 p-3 bg-muted rounded-md text-sm">
+                      <p className="font-medium text-muted-foreground">Wymagania hasła:</p>
+                      
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          {passwordValidation.minLength ? 
+                            <Check className="h-4 w-4 text-green-600" /> : 
+                            <X className="h-4 w-4 text-destructive" />
+                          }
+                          <span className={passwordValidation.minLength ? 'text-green-600' : 'text-muted-foreground'}>
+                            Minimum 6 znaków (zalecane 8 lub więcej)
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          {passwordValidation.hasLowercase ? 
+                            <Check className="h-4 w-4 text-green-600" /> : 
+                            <X className="h-4 w-4 text-destructive" />
+                          }
+                          <span className={passwordValidation.hasLowercase ? 'text-green-600' : 'text-muted-foreground'}>
+                            Małe litery (a-z)
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          {passwordValidation.hasUppercase ? 
+                            <Check className="h-4 w-4 text-green-600" /> : 
+                            <X className="h-4 w-4 text-destructive" />
+                          }
+                          <span className={passwordValidation.hasUppercase ? 'text-green-600' : 'text-muted-foreground'}>
+                            Wielkie litery (A-Z)
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          {passwordValidation.hasDigit ? 
+                            <Check className="h-4 w-4 text-green-600" /> : 
+                            <X className="h-4 w-4 text-destructive" />
+                          }
+                          <span className={passwordValidation.hasDigit ? 'text-green-600' : 'text-muted-foreground'}>
+                            Cyfry (0-9)
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Hasła niespełniające tych wymagań zostaną odrzucone jako zbyt słabe.
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isLoading || !isPasswordValid}
+                >
                   {isLoading ? <LoadingSpinner /> : getText('signUp', language)}
                 </Button>
               </form>
