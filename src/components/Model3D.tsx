@@ -26,12 +26,14 @@ export const Model3D = ({ modelData, color, fileName }: Model3DProps) => {
       geometry.boundingBox?.getCenter(center);
       geometry.translate(-center.x, -center.y, -center.z);
       
-      // Scale to reasonable size
-      const size = new THREE.Vector3();
-      geometry.boundingBox?.getSize(size);
-      const maxDimension = Math.max(size.x, size.y, size.z);
-      const scale = 3 / maxDimension;
-      geometry.scale(scale, scale, scale);
+      // WYŁĄCZAM SKALOWANIE TUTAJ TAKŻE!
+      // const size = new THREE.Vector3();
+      // geometry.boundingBox?.getSize(size);
+      // const maxDimension = Math.max(size.x, size.y, size.z);
+      // const scale = 3 / maxDimension;
+      // geometry.scale(scale, scale, scale);
+      
+      console.log('Model3D: geometry processed WITHOUT scaling');
       
       // Compute normals for proper lighting
       geometry.computeVertexNormals();

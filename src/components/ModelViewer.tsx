@@ -39,7 +39,7 @@ export const ModelViewer = ({ modelData, modelColor, fileName, currentGeometry }
             <pointLight position={[-10, -10, -10]} intensity={0.5} />
             
             {currentGeometry ? (
-              <mesh geometry={currentGeometry} castShadow receiveShadow>
+              <mesh geometry={currentGeometry} castShadow receiveShadow scale={[1, 1, 1]}>
                 <meshStandardMaterial
                   color={modelColor}
                   metalness={0.3}
