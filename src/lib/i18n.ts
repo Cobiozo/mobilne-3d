@@ -37,7 +37,7 @@ export const translations = {
     instructionZoom: '• Scroll aby powiększyć/pomniejszyć',
     
     // Model Viewer
-    readyTitle: 'Gotowy na modele 3D',
+    readyTitle: 'Wczytaj plik poniżej',
     readySubtitle: 'Wczytaj plik aby rozpocząć wyświetlanie modelu 3D',
     differentModel: 'Chcesz wyświetlić inny model?',
     
@@ -87,7 +87,7 @@ export const translations = {
     instructionZoom: '• Scroll to zoom in/out',
     
     // Model Viewer
-    readyTitle: 'Ready for 3D Models',
+    readyTitle: 'Load file below',
     readySubtitle: 'Upload a file to start viewing your 3D model',
     differentModel: 'Want to view a different model?',
     

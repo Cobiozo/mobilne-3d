@@ -5,6 +5,7 @@ import { LoadingSpinner } from "./LoadingSpinner";
 import { Model3D } from "./Model3D";
 import { useApp } from "@/contexts/AppContext";
 import { useTranslation } from "@/lib/i18n";
+import { ArrowDown } from "lucide-react";
 
 interface ModelViewerProps {
   modelData?: ArrayBuffer;
@@ -58,7 +59,7 @@ export const ModelViewer = ({ modelData, modelColor, fileName }: ModelViewerProp
         <div className="flex items-center justify-center h-full p-4 sm:p-6">
           <div className="text-center space-y-3 sm:space-y-4 max-w-sm mx-auto">
             <div className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 mx-auto rounded-full bg-muted flex items-center justify-center">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+              <ArrowDown className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-primary animate-bounce" />
             </div>
             <h3 className="text-lg sm:text-xl font-semibold text-muted-foreground">
               {t('readyTitle')}
