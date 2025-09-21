@@ -19,6 +19,12 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        viewer: {
+          bg: "hsl(var(--viewer-bg))",
+          panel: "hsl(var(--control-panel))",
+          upload: "hsl(var(--upload-area))",
+          "upload-hover": "hsl(var(--upload-hover))",
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -57,6 +63,16 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+      },
+      backgroundImage: {
+        "gradient-primary": "var(--gradient-primary)",
+        "gradient-secondary": "var(--gradient-secondary)",
+        "gradient-upload": "var(--gradient-upload)",
+      },
+      boxShadow: {
+        viewer: "var(--shadow-viewer)",
+        panel: "var(--shadow-panel)",
+        glow: "var(--shadow-glow)",
       },
       borderRadius: {
         lg: "var(--radius)",
