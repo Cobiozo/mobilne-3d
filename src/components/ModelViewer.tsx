@@ -17,7 +17,7 @@ export const ModelViewer = ({ modelData, modelColor, fileName }: ModelViewerProp
         <Canvas className="w-full h-full">
           <PerspectiveCamera makeDefault position={[5, 5, 5]} />
           
-          <Suspense fallback={<LoadingSpinner />}>
+          <Suspense fallback={null}>
             <Stage
               environment="studio"
               intensity={0.5}
