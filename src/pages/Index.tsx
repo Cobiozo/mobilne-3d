@@ -94,29 +94,29 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-secondary">
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-primary">
-                <Layers3 className="w-6 h-6 text-primary-foreground" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-primary">
+                <Layers3 className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                   {t('appTitle')}
                 </h1>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
                   {t('appSubtitle')}
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-1 sm:gap-2">
               {/* Mobile: Separate buttons */}
-              <div className="flex gap-2 sm:hidden">
+              <div className="flex gap-1 sm:gap-2 lg:hidden">
                 <LanguageSelector />
                 <ThemeSelector />
               </div>
               {/* Desktop: Combined selector */}
-              <div className="hidden sm:block">
+              <div className="hidden lg:block">
                 <LanguageThemeSelector />
               </div>
             </div>
@@ -125,25 +125,29 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-140px)]">
-          {/* Control Panel */}
-          <div className="lg:col-span-1 space-y-4">
-            <ControlPanel
-              modelColor={modelColor}
-              onColorChange={setModelColor}
-              fileName={fileName}
-              onReset={handleReset}
-              onExport={handleExport}
-            />
-            
-            {!modelData && (
-              <FileUpload onFileSelect={handleFileSelect} />
-            )}
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6 min-h-[calc(100vh-120px)] sm:min-h-[calc(100vh-140px)]">
+          {/* Control Panel - Full width on mobile, sidebar on desktop */}
+          <div className="xl:col-span-1 order-2 xl:order-1">
+            <div className="space-y-4">
+              <ControlPanel
+                modelColor={modelColor}
+                onColorChange={setModelColor}
+                fileName={fileName}
+                onReset={handleReset}
+                onExport={handleExport}
+              />
+              
+              {!modelData && (
+                <div className="block xl:hidden">
+                  <FileUpload onFileSelect={handleFileSelect} />
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* 3D Viewer */}
-          <div className="lg:col-span-3">
+          {/* 3D Viewer - Full width on mobile, main area on desktop */}
+          <div className="xl:col-span-3 order-1 xl:order-2 min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]">
             <ModelViewer
               modelData={modelData || undefined}
               modelColor={modelColor}
@@ -152,13 +156,24 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Upload Area when model is loaded */}
+        {/* Upload Area when model is loaded - Hidden on mobile when in sidebar */}
         {modelData && (
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6 xl:hidden">
             <div className="text-center">
-              <p className="text-muted-foreground mb-4">
+              <p className="text-muted-foreground mb-4 text-sm sm:text-base">
                 {t('differentModel')}
               </p>
+              <div className="max-w-md mx-auto">
+                <FileUpload onFileSelect={handleFileSelect} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Desktop file upload when no model loaded */}
+        {!modelData && (
+          <div className="hidden xl:block mt-6">
+            <div className="text-center">
               <div className="max-w-md mx-auto">
                 <FileUpload onFileSelect={handleFileSelect} />
               </div>

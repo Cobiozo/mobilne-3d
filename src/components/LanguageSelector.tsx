@@ -11,9 +11,9 @@ export const LanguageSelector = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-1 sm:gap-2 px-2 sm:px-3">
           <Languages className="w-4 h-4" />
-          <span className="hidden sm:inline">
+          <span className="hidden md:inline text-sm">
             {language === 'pl' ? 'PL' : 'EN'}
           </span>
         </Button>

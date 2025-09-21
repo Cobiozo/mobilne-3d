@@ -21,9 +21,9 @@ export const ThemeSelector = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-1 sm:gap-2 px-2 sm:px-3">
           {getThemeIcon()}
-          <span className="hidden sm:inline">
+          <span className="hidden md:inline text-sm">
             {t('theme')}
           </span>
         </Button>

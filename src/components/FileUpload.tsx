@@ -47,9 +47,10 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       className={cn(
-        "relative border-2 border-dashed border-border rounded-lg p-8 text-center",
+        "relative border-2 border-dashed border-border rounded-lg text-center",
         "bg-gradient-upload hover:bg-viewer-upload-hover transition-all duration-300",
         "hover:border-primary cursor-pointer group",
+        "p-4 sm:p-6 lg:p-8", // Responsive padding
         className
       )}
     >
@@ -60,19 +61,19 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
       />
       
-      <div className="flex flex-col items-center gap-4">
-        <div className="p-4 rounded-full bg-muted group-hover:bg-primary/20 transition-colors">
-          <Upload className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
+      <div className="flex flex-col items-center gap-3 sm:gap-4">
+        <div className="p-3 sm:p-4 rounded-full bg-muted group-hover:bg-primary/20 transition-colors">
+          <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground group-hover:text-primary transition-colors" />
         </div>
         
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold">{t('uploadTitle')}</h3>
-          <p className="text-muted-foreground">
+        <div className="space-y-1 sm:space-y-2">
+          <h3 className="text-base sm:text-lg font-semibold">{t('uploadTitle')}</h3>
+          <p className="text-muted-foreground text-sm sm:text-base">
             {t('uploadSubtitle')}
           </p>
         </div>
         
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
           <FileText className="w-4 h-4" />
           <span>Supported: .STL, .3MF</span>
         </div>

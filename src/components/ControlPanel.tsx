@@ -41,7 +41,7 @@ export const ControlPanel = ({
   const { t } = useTranslation(language);
   return (
     <Card className="bg-viewer-panel shadow-panel border-border/50 backdrop-blur-sm">
-      <div className="p-4 space-y-4">
+      <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
         {/* File Info */}
         {fileName && (
           <div className="space-y-2">
@@ -78,13 +78,13 @@ export const ControlPanel = ({
             />
           </div>
 
-          {/* Preset Colors */}
-          <div className="grid grid-cols-6 gap-1">
+          {/* Preset Colors - Responsive grid */}
+          <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-6 gap-1 sm:gap-1.5">
             {PRESET_COLORS.map((color) => (
               <button
                 key={color}
                 onClick={() => onColorChange(color)}
-                className={`w-6 h-6 rounded border-2 transition-all hover:scale-110 ${
+                className={`w-5 h-5 sm:w-6 sm:h-6 rounded border-2 transition-all hover:scale-110 ${
                   modelColor.toLowerCase() === color.toLowerCase() 
                     ? 'border-primary shadow-glow' 
                     : 'border-border hover:border-primary/50'
@@ -101,7 +101,7 @@ export const ControlPanel = ({
         {/* Controls */}
         <div className="space-y-2">
           <span className="text-sm font-medium">{t('controls')}</span>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Button 
               variant="outline" 
               size="sm" 
@@ -168,8 +168,8 @@ export const ControlPanel = ({
           </div>
         </div>
 
-        {/* Instructions */}
-        <div className="text-xs text-muted-foreground space-y-1">
+        {/* Instructions - Hidden on very small screens */}
+        <div className="text-xs text-muted-foreground space-y-1 hidden sm:block">
           <p>{t('instructionRotate')}</p>
           <p>{t('instructionPan')}</p>
           <p>{t('instructionZoom')}</p>
