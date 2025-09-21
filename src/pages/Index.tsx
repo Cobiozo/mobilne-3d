@@ -177,6 +177,13 @@ const Index = () => {
                 fileName={fileName}
                 onReset={handleReset}
                 onExport={handleExport}
+                availableModels={availableModels.map(model => ({
+                  name: model.name,
+                  index: model.index,
+                  meshCount: model.meshCount
+                }))}
+                selectedModelIndex={selectedModelIndex}
+                onModelSelect={setSelectedModelIndex}
               />
               
               {!modelData && (
@@ -196,24 +203,6 @@ const Index = () => {
               currentGeometry={availableModels[selectedModelIndex]?.geometry}
             />
           </div>
-          
-          {/* Model Selector w osobnej sekcji poniżej viewera */}
-          {availableModels.length > 1 && (
-            <div className="xl:col-span-3 order-3 xl:order-3 mt-6 mb-4">
-              <div className="max-w-md mx-auto">
-                <ModelSelector
-                  models={availableModels.map(model => ({
-                    name: model.name,
-                    index: model.index,
-                    meshCount: model.meshCount
-                  }))}
-                  selectedModelIndex={selectedModelIndex}
-                  onModelSelect={setSelectedModelIndex}
-                  className="bg-card border rounded-lg p-4 shadow-sm"
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Upload Area when model is loaded - Mobile only */}

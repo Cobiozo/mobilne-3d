@@ -13,6 +13,10 @@ interface ControlPanelProps {
   fileName?: string;
   onReset?: () => void;
   onExport?: (format: 'png' | 'jpg' | 'pdf', view: '2d-front' | '2d-top' | '2d-side') => void;
+  // Dodane dla ModelSelector
+  availableModels?: Array<{name: string; index: number; meshCount: number}>;
+  selectedModelIndex?: number;
+  onModelSelect?: (index: number) => void;
 }
 
 const PRESET_COLORS = [
@@ -35,15 +39,55 @@ export const ControlPanel = ({
   onColorChange, 
   fileName,
   onReset,
-  onExport 
+  onExport,
+  availableModels = [],
+  selectedModelIndex = 0,
+  onModelSelect
 }: ControlPanelProps) => {
   const { language } = useApp();
   const { t } = useTranslation(language);
   return (
     <Card className="bg-viewer-panel shadow-panel border-border/50 backdrop-blur-sm">
       <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
-        {/* File Info */}
-        {fileName && (
+        {/* Model Selector zamiast File Info */}
+        {fileName && availableModels.length > 1 && onModelSelect && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-4">
+              {/* Kolumna 1: Nazwa pliku */}
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-medium text-muted-foreground">Nazwa pliku</span>
+                  <span className="text-sm text-foreground truncate">
+                    {availableModels[0]?.name?.split(' - ')[0] || fileName}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Kolumna 2: Przyciski */}
+              <div className="flex items-center gap-2">
+                {availableModels.map((model, index) => (
+                  <Button
+                    key={model.index}
+                    variant={selectedModelIndex === model.index ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => onModelSelect(model.index)}
+                    className={`w-8 h-8 text-xs font-medium ${
+                      selectedModelIndex === model.index 
+                        ? 'bg-primary text-primary-foreground shadow-md' 
+                        : 'hover:bg-primary/10 hover:text-primary'
+                    }`}
+                    title={`Model ${index + 1}`}
+                  >
+                    {index + 1}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Fallback dla pojedynczego modelu */}
+        {fileName && availableModels.length <= 1 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Info className="w-4 h-4 text-muted-foreground" />
