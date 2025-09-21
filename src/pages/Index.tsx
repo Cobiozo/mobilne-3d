@@ -282,9 +282,6 @@ const Index = () => {
                 <h1 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                   {t('appTitle')}
                 </h1>
-                <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-                  {t('appSubtitle')}
-                </p>
               </div>
             </div>
             <div className="flex gap-1 sm:gap-2">
