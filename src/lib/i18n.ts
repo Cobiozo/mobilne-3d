@@ -23,6 +23,7 @@ export const translations = {
     exportPNG: 'Eksportuj jako PNG',
     exportJPG: 'Eksportuj jako JPG',
     exportPDF: 'Eksportuj jako PDF',
+    exportSTL: 'Eksportuj jako STL',
     
     // Settings
     language: 'Język',
@@ -76,7 +77,15 @@ export const translations = {
     imageSuccess: 'Obraz "{fileName}" załadowany pomyślnie!',
     imageError: 'Nie udało się załadować obrazu',
     imageGenerating: 'Generowanie modelu 3D z obrazu...',
-    imageGenerated: 'Model 3D wygenerowany z obrazu!'
+    imageGenerated: 'Model 3D wygenerowany z obrazu!',
+    
+    // Export views
+    exportViewFront: 'Widok z przodu (2D)',
+    exportViewTop: 'Widok z góry (2D)', 
+    exportViewSide: 'Widok z boku (2D)',
+    front: 'Przód',
+    top: 'Góra',
+    side: 'Bok'
   },
   en: {
     // Header
@@ -98,8 +107,9 @@ export const translations = {
     reset: 'Reset',
     export: 'Export',
     exportPNG: 'Export as PNG',
-    exportJPG: 'Export as JPG',
+    exportJPG: 'Export as JPG', 
     exportPDF: 'Export as PDF',
+    exportSTL: 'Export as STL',
     
     // Settings
     language: 'Language',
@@ -153,7 +163,15 @@ export const translations = {
     imageSuccess: 'Image "{fileName}" loaded successfully!',
     imageError: 'Failed to load the image',
     imageGenerating: 'Generating 3D model from image...',
-    imageGenerated: '3D model generated from image!'
+    imageGenerated: '3D model generated from image!',
+    
+    // Export views
+    exportViewFront: 'Front View (2D)',
+    exportViewTop: 'Top View (2D)',
+    exportViewSide: 'Side View (2D)',
+    front: 'Front',
+    top: 'Top',
+    side: 'Side'
   }
 };
 

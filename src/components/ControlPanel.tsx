@@ -13,10 +13,13 @@ interface ControlPanelProps {
   fileName?: string;
   onReset?: () => void;
   onExport?: (format: 'png' | 'jpg' | 'pdf', view: '2d-front' | '2d-top' | '2d-side') => void;
+  onExportSTL?: () => void;
   // Dodane dla ModelSelector
   availableModels?: Array<{name: string; index: number; meshCount: number}>;
   selectedModelIndex?: number;
   onModelSelect?: (index: number) => void;
+  // Nowa prop do określenia czy to model z obrazu
+  isImageGenerated?: boolean;
 }
 
 const PRESET_COLORS = [
@@ -40,9 +43,11 @@ export const ControlPanel = ({
   fileName,
   onReset,
   onExport,
+  onExportSTL,
   availableModels = [],
   selectedModelIndex = 0,
-  onModelSelect
+  onModelSelect,
+  isImageGenerated = false
 }: ControlPanelProps) => {
   const { language } = useApp();
   const { t } = useTranslation(language);
@@ -176,60 +181,76 @@ export const ControlPanel = ({
               <RotateCcw className="w-3 h-3 mr-1" />
               {t('reset')}
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="text-xs"
-                  disabled={!fileName}
-                >
-                  <Download className="w-3 h-3 mr-1" />
-                  {t('export')}
-                  <ChevronDown className="w-3 h-3 ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                  Widok z przodu (2D)
-                </div>
-                <DropdownMenuItem onClick={() => onExport?.('png', '2d-front')}>
-                  Eksportuj PNG - Przód
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onExport?.('jpg', '2d-front')}>
-                  Eksportuj JPG - Przód
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onExport?.('pdf', '2d-front')}>
-                  Eksportuj PDF - Przód
-                </DropdownMenuItem>
-                
-                <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground border-t mt-1 pt-2">
-                  Widok z góry (2D)
-                </div>
-                <DropdownMenuItem onClick={() => onExport?.('png', '2d-top')}>
-                  Eksportuj PNG - Góra
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onExport?.('jpg', '2d-top')}>
-                  Eksportuj JPG - Góra
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onExport?.('pdf', '2d-top')}>
-                  Eksportuj PDF - Góra
-                </DropdownMenuItem>
-                
-                <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground border-t mt-1 pt-2">
-                  Widok z boku (2D)
-                </div>
-                <DropdownMenuItem onClick={() => onExport?.('png', '2d-side')}>
-                  Eksportuj PNG - Bok
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onExport?.('jpg', '2d-side')}>
-                  Eksportuj JPG - Bok
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onExport?.('pdf', '2d-side')}>
-                  Eksportuj PDF - Bok
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            
+            {isImageGenerated ? (
+              // For image-generated 3D models, show STL export
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-xs"
+                disabled={!fileName}
+                onClick={onExportSTL}
+              >
+                <Download className="w-3 h-3 mr-1" />
+                {t('exportSTL')}
+              </Button>
+            ) : (
+              // For STL/3MF models, show 2D export options
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-xs"
+                    disabled={!fileName}
+                  >
+                    <Download className="w-3 h-3 mr-1" />
+                    {t('export')}
+                    <ChevronDown className="w-3 h-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                    {t('exportViewFront')}
+                  </div>
+                  <DropdownMenuItem onClick={() => onExport?.('png', '2d-front')}>
+                    {t('exportPNG')} - {t('front')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onExport?.('jpg', '2d-front')}>
+                    {t('exportJPG')} - {t('front')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onExport?.('pdf', '2d-front')}>
+                    {t('exportPDF')} - {t('front')}
+                  </DropdownMenuItem>
+                  
+                  <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground border-t mt-1 pt-2">
+                    {t('exportViewTop')}
+                  </div>
+                  <DropdownMenuItem onClick={() => onExport?.('png', '2d-top')}>
+                    {t('exportPNG')} - {t('top')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onExport?.('jpg', '2d-top')}>
+                    {t('exportJPG')} - {t('top')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onExport?.('pdf', '2d-top')}>
+                    {t('exportPDF')} - {t('top')}
+                  </DropdownMenuItem>
+                  
+                  <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground border-t mt-1 pt-2">
+                    {t('exportViewSide')}
+                  </div>
+                  <DropdownMenuItem onClick={() => onExport?.('png', '2d-side')}>
+                    {t('exportPNG')} - {t('side')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onExport?.('jpg', '2d-side')}>
+                    {t('exportJPG')} - {t('side')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onExport?.('pdf', '2d-side')}>
+                    {t('exportPDF')} - {t('side')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
 

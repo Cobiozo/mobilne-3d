@@ -113,9 +113,95 @@ const Index = () => {
     toast.info(t('resetMessage'));
   };
 
+  const handleExportSTL = async () => {
+    try {
+      if (!imageGeometry) {
+        toast.error(t('exportNoModel'));
+        return;
+      }
+
+      toast.info('Przygotowywanie eksportu STL...');
+      
+      // Create STL content from geometry
+      const stlContent = generateSTLFromGeometry(imageGeometry);
+      
+      // Create blob and download
+      const blob = new Blob([stlContent], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${fileName ? fileName.replace(/\.[^/.]+$/, '') : 'model'}.stl`;
+      link.click();
+      
+      URL.revokeObjectURL(url);
+      toast.success('Model wyeksportowany jako STL pomyślnie!');
+      
+    } catch (error) {
+      console.error('STL export failed:', error);
+      toast.error(t('exportError'));
+    }
+  };
+
+  const generateSTLFromGeometry = (geometry: THREE.BufferGeometry): string => {
+    const positions = geometry.getAttribute('position') as THREE.BufferAttribute;
+    const indices = geometry.index;
+    
+    let stl = 'solid model\n';
+    
+    if (indices) {
+      // Indexed geometry
+      for (let i = 0; i < indices.count; i += 3) {
+        const a = indices.getX(i) * 3;
+        const b = indices.getX(i + 1) * 3;
+        const c = indices.getX(i + 2) * 3;
+        
+        const v1 = [positions.getX(a / 3), positions.getY(a / 3), positions.getZ(a / 3)];
+        const v2 = [positions.getX(b / 3), positions.getY(b / 3), positions.getZ(b / 3)];
+        const v3 = [positions.getX(c / 3), positions.getY(c / 3), positions.getZ(c / 3)];
+        
+        // Calculate normal
+        const normal = calculateNormal(v1, v2, v3);
+        
+        stl += `  facet normal ${normal[0]} ${normal[1]} ${normal[2]}\n`;
+        stl += '    outer loop\n';
+        stl += `      vertex ${v1[0]} ${v1[1]} ${v1[2]}\n`;
+        stl += `      vertex ${v2[0]} ${v2[1]} ${v2[2]}\n`;
+        stl += `      vertex ${v3[0]} ${v3[1]} ${v3[2]}\n`;
+        stl += '    endloop\n';
+        stl += '  endfacet\n';
+      }
+    }
+    
+    stl += 'endsolid model\n';
+    return stl;
+  };
+
+  const calculateNormal = (v1: number[], v2: number[], v3: number[]): number[] => {
+    // Calculate two edges
+    const edge1 = [v2[0] - v1[0], v2[1] - v1[1], v2[2] - v1[2]];
+    const edge2 = [v3[0] - v1[0], v3[1] - v1[1], v3[2] - v1[2]];
+    
+    // Cross product
+    const normal = [
+      edge1[1] * edge2[2] - edge1[2] * edge2[1],
+      edge1[2] * edge2[0] - edge1[0] * edge2[2],
+      edge1[0] * edge2[1] - edge1[1] * edge2[0]
+    ];
+    
+    // Normalize
+    const length = Math.sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+    if (length > 0) {
+      normal[0] /= length;
+      normal[1] /= length;
+      normal[2] /= length;
+    }
+    
+    return normal;
+  };
+
   const handleExport = async (format: 'png' | 'jpg' | 'pdf', view: '2d-front' | '2d-top' | '2d-side') => {
     try {
-      if (!modelData && !imageGeometry) {
+      if (!modelData) {
         toast.error(t('exportNoModel'));
         return;
       }
@@ -128,12 +214,7 @@ const Index = () => {
       
       // Use the appropriate geometry
       let geometry: any;
-      
-      if (imageGeometry) {
-        // Use generated geometry from image
-        geometry = imageGeometry.clone();
-        console.log('Eksportowanie wygenerowanego modelu z obrazu');
-      } else if (availableModels.length > 1 && availableModels[selectedModelIndex]?.geometry) {
+      if (availableModels.length > 1 && availableModels[selectedModelIndex]?.geometry) {
         // For 3MF files with multiple models - use currently selected
         geometry = availableModels[selectedModelIndex].geometry.clone();
         console.log(`Eksportowanie modelu ${selectedModelIndex + 1} z ${availableModels.length} dostępnych`);
@@ -233,6 +314,7 @@ const Index = () => {
                 fileName={fileName}
                 onReset={handleReset}
                 onExport={handleExport}
+                onExportSTL={handleExportSTL}
                 availableModels={availableModels.map(model => ({
                   name: model.name,
                   index: model.index,
@@ -240,6 +322,7 @@ const Index = () => {
                 }))}
                 selectedModelIndex={selectedModelIndex}
                 onModelSelect={setSelectedModelIndex}
+                isImageGenerated={!!imageGeometry}
               />
               
               {!modelData && !imageGeometry && (
