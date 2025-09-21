@@ -223,11 +223,23 @@ export const CustomersManagement = () => {
         title: getText('success', language),
         description: `${getText('userRoleUpdated', language)} ${newRole}`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating role:', error);
+      
+      let errorMessage = getText('error', language);
+      
+      // Sprawdź czy to błąd związany z zabezpieczeniami ról
+      if (error.message && error.message.includes('Cannot change admin role')) {
+        if (error.message.includes('self-demotion')) {
+          errorMessage = getText('cannotSelfDemote', language);
+        } else if (error.message.includes('removing last admin')) {
+          errorMessage = getText('lastAdminWarning', language);
+        }
+      }
+      
       toast({
         title: getText('error', language),
-        description: getText('error', language),
+        description: errorMessage,
         variant: "destructive",
       });
     }
