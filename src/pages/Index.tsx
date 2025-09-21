@@ -13,9 +13,7 @@ import { LanguageThemeSelector } from "@/components/LanguageThemeSelector";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useTheme } from "next-themes";
-import { load3MFFile, Model3MFInfo } from "@/utils/3mfLoader";
-import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
-import * as THREE from "three";
+import { loadModelFile, Model3MFInfo } from "@/utils/modelLoader";
 
 
 const Index = () => {
@@ -43,51 +41,22 @@ const Index = () => {
       setModelData(arrayBuffer);
       setFileName(file.name);
       
-      // Check if it's a 3MF file and try to load multiple models
-      if (file.name.toLowerCase().endsWith('.3mf')) {
-        try {
-          const models = await load3MFFile(arrayBuffer, file.name);
-          setAvailableModels(models);
-          setSelectedModelIndex(0);
-          
-          if (models.length > 1) {
-            toast.success(t('uploadSuccess', { fileName: file.name }) + ` (${models.length} ${t('modelsAvailable')})`);
-          } else {
-            toast.success(t('uploadSuccess', { fileName: file.name }));
-          }
-        } catch (error) {
-          console.warn('3MF parsing failed, treating as single model:', error);
-          // Fall back to treating as single model
-          setAvailableModels([]);
-          setSelectedModelIndex(0);
+      // Load models using the unified loader
+      try {
+        const models = await loadModelFile(arrayBuffer, file.name);
+        setAvailableModels(models);
+        setSelectedModelIndex(0);
+        
+        if (models.length > 1) {
+          toast.success(t('uploadSuccess', { fileName: file.name }) + ` (${models.length} ${t('modelsAvailable')})`);
+        } else {
           toast.success(t('uploadSuccess', { fileName: file.name }));
         }
-      } else {
-        // STL files - process as single model
-        const loader = new STLLoader();
-        const geometry = loader.parse(arrayBuffer);
-        
-        // Process geometry
-        geometry.computeBoundingBox();
-        const center = new THREE.Vector3();
-        geometry.boundingBox?.getCenter(center);
-        geometry.translate(-center.x, -center.y, -center.z);
-        
-        const size = new THREE.Vector3();
-        geometry.boundingBox?.getSize(size);
-        const maxDimension = Math.max(size.x, size.y, size.z);
-        const scale = 3 / maxDimension;
-        geometry.scale(scale, scale, scale);
-        geometry.computeVertexNormals();
-        
-        setAvailableModels([{
-          name: file.name,
-          index: 0,
-          meshCount: 1,
-          geometry
-        }]);
+      } catch (error) {
+        console.error('Model loading failed:', error);
+        setAvailableModels([]);
         setSelectedModelIndex(0);
-        toast.success(t('uploadSuccess', { fileName: file.name }));
+        toast.error(t('uploadError'));
       }
     } catch (error) {
       console.error("Error loading file:", error);
