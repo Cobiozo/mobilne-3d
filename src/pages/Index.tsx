@@ -78,15 +78,13 @@ const Index = () => {
       // Load image data
       const imageData = await loadImageData(file);
       
-      // Convert to 3D geometry using improved silhouette mode
+      // Convert to 3D geometry using proper contour tracing algorithm
       const geometry = imageToGeometry(imageData, {
-        width: 128,  // Balanced resolution for good detail and performance
-        height: 128,
         mode: 'silhouette',
-        extrudeDepth: 1.0,  // More pronounced depth
+        extrudeDepth: 0.3,  // Reasonable depth for clean silhouette
         bevelEnabled: true,
-        bevelThickness: 0.05,
-        bevelSize: 0.05
+        bevelThickness: 0.01,
+        bevelSize: 0.01
       });
       
       setImageGeometry(geometry);
