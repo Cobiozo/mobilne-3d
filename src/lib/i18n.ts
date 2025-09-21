@@ -220,6 +220,10 @@ export const translations = {
     daysAgo: 'dni temu',
     failedToLoadStats: 'Nie udało się załadować statystyk',
     
+    // Security
+    cannotSelfDemote: 'Nie możesz usunąć sobie uprawnień administratora',
+    lastAdminWarning: 'Nie można usunąć ostatniego administratora w systemie',
+    
     // Profile
     userProfile: 'Profil użytkownika',
     manageProfileInfo: 'Zarządzaj informacjami w swoim profilu',
@@ -486,6 +490,10 @@ export const translations = {
     hoursAgo: 'hours ago',
     daysAgo: 'days ago',
     failedToLoadStats: 'Failed to load statistics',
+    
+    // Security
+    cannotSelfDemote: 'You cannot remove your own admin privileges',
+    lastAdminWarning: 'Cannot remove the last administrator in the system',
     
     // Profile
     userProfile: 'User Profile',

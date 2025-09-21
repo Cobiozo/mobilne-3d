@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -45,6 +46,7 @@ export const CustomersManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
   const { language } = useApp();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchCustomers();
@@ -178,6 +180,16 @@ export const CustomersManagement = () => {
   };
 
   const toggleUserRole = async (customer: Customer) => {
+    // Zabezpieczenie: administrator nie może usunąć sobie uprawnień
+    if (user && customer.id === user.id && customer.role === 'admin') {
+      toast({
+        title: getText('error', language),
+        description: getText('cannotSelfDemote', language),
+        variant: "destructive",
+      });
+      return;
+    }
+
     const newRole = customer.role === 'admin' ? 'user' : 'admin';
     
     try {
@@ -198,13 +210,13 @@ export const CustomersManagement = () => {
 
       toast({
         title: getText('success', language),
-        description: `Rola użytkownika zmieniona na ${newRole}`,
+        description: `${getText('userRoleUpdated', language)} ${newRole}`,
       });
     } catch (error) {
       console.error('Error updating role:', error);
       toast({
         title: getText('error', language),
-        description: 'Failed to update user role',
+        description: getText('error', language),
         variant: "destructive",
       });
     }
@@ -332,13 +344,19 @@ export const CustomersManagement = () => {
                           <Badge variant={selectedCustomer.role === 'admin' ? 'default' : 'secondary'}>
                             {selectedCustomer.role}
                           </Badge>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => toggleUserRole(selectedCustomer)}
-                          >
-                            Zmień rolę
-                          </Button>
+                          {user && selectedCustomer.id === user.id && selectedCustomer.role === 'admin' ? (
+                            <Badge variant="outline" className="text-xs">
+                              {getText('cannotSelfDemote', language)}
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => toggleUserRole(selectedCustomer)}
+                            >
+                              {getText('changeRole', language)}
+                            </Button>
+                          )}
                         </div>
                       </div>
                       <div>
