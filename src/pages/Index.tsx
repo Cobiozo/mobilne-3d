@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { FileUpload } from "@/components/FileUpload";
+import { ImageUpload } from "@/components/ImageUpload";
 import { ModelViewer } from "@/components/ModelViewer";
 import { ControlPanel } from "@/components/ControlPanel";
 import { ModelSelector } from "@/components/ModelSelector";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Box, Layers3 } from "lucide-react";
+import { Box, Layers3, Image } from "lucide-react";
 import { exportCanvasAs, captureCanvasFromThreeJS } from "@/utils/exportUtils";
 import { render2DView } from "@/utils/export2D";
 import { useApp } from "@/contexts/AppContext";
@@ -14,13 +16,17 @@ import { ThemeSelector } from "@/components/ThemeSelector";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useTheme } from "next-themes";
 import { loadModelFile, Model3MFInfo } from "@/utils/modelLoader";
+import { imageToGeometry, loadImageData } from "@/utils/imageToGeometry";
+import * as THREE from 'three';
 
 
 const Index = () => {
   const { language } = useApp();
   const { t } = useTranslation(language);
   const { theme, resolvedTheme } = useTheme();
+  const [activeTab, setActiveTab] = useState<"model3d" | "image2d">("model3d");
   const [modelData, setModelData] = useState<ArrayBuffer | null>(null);
+  const [imageGeometry, setImageGeometry] = useState<THREE.BufferGeometry | null>(null);
   const [modelColor, setModelColor] = useState("#FFFFFF");
   const [fileName, setFileName] = useState<string>();
   const [availableModels, setAvailableModels] = useState<Model3MFInfo[]>([]);
@@ -65,8 +71,37 @@ const Index = () => {
     }
   };
 
+  const handleImageSelect = async (file: File) => {
+    try {
+      toast.info(t('imageGenerating'));
+      
+      // Load image data
+      const imageData = await loadImageData(file);
+      
+      // Convert to 3D geometry
+      const geometry = imageToGeometry(imageData, {
+        width: 128,
+        height: 128,
+        heightScale: 1.5,
+        smoothing: true
+      });
+      
+      setImageGeometry(geometry);
+      setFileName(file.name);
+      setModelData(null); // Clear 3D model data
+      setAvailableModels([]);
+      setSelectedModelIndex(0);
+      
+      toast.success(t('imageGenerated'));
+    } catch (error) {
+      console.error("Error processing image:", error);
+      toast.error(t('imageError'));
+    }
+  };
+
   const handleReset = () => {
     setModelData(null);
+    setImageGeometry(null);
     setFileName(undefined);
     setAvailableModels([]);
     setSelectedModelIndex(0);
@@ -81,7 +116,7 @@ const Index = () => {
 
   const handleExport = async (format: 'png' | 'jpg' | 'pdf', view: '2d-front' | '2d-top' | '2d-side') => {
     try {
-      if (!modelData) {
+      if (!modelData && !imageGeometry) {
         toast.error(t('exportNoModel'));
         return;
       }
@@ -92,17 +127,22 @@ const Index = () => {
       const THREE = await import('three');
       const { STLLoader } = await import('three/examples/jsm/loaders/STLLoader.js');
       
-      // Użyj aktualnie wybranej geometrii zamiast parsowania całego pliku
+      // Use the appropriate geometry
       let geometry: any;
-      if (availableModels.length > 1 && availableModels[selectedModelIndex]?.geometry) {
-        // Dla plików 3MF z wieloma modelami - użyj aktualnie wybranego
+      
+      if (imageGeometry) {
+        // Use generated geometry from image
+        geometry = imageGeometry.clone();
+        console.log('Eksportowanie wygenerowanego modelu z obrazu');
+      } else if (availableModels.length > 1 && availableModels[selectedModelIndex]?.geometry) {
+        // For 3MF files with multiple models - use currently selected
         geometry = availableModels[selectedModelIndex].geometry.clone();
         console.log(`Eksportowanie modelu ${selectedModelIndex + 1} z ${availableModels.length} dostępnych`);
         toast.info(`Eksportowanie modelu ${selectedModelIndex + 1} z ${availableModels.length}`);
       } else {
-        // Dla plików STL lub pojedynczych modeli - parsuj normalnie
+        // For STL files or single models - parse normally
         const loader = new STLLoader();
-        geometry = loader.parse(modelData);
+        geometry = loader.parse(modelData!);
         
         // Center and scale geometry for STL
         geometry.computeBoundingBox();
@@ -203,9 +243,26 @@ const Index = () => {
                 onModelSelect={setSelectedModelIndex}
               />
               
-              {!modelData && (
+              {!modelData && !imageGeometry && (
                 <div className="block xl:hidden">
-                  <FileUpload onFileSelect={handleFileSelect} />
+                  <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d")} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="model3d" className="flex items-center gap-2">
+                        <Layers3 className="w-4 h-4" />
+                        {t('tabModel3D')}
+                      </TabsTrigger>
+                      <TabsTrigger value="image2d" className="flex items-center gap-2">
+                        <Image className="w-4 h-4" />
+                        {t('tabImageTo3D')}
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="model3d" className="mt-4">
+                      <FileUpload onFileSelect={handleFileSelect} />
+                    </TabsContent>
+                    <TabsContent value="image2d" className="mt-4">
+                      <ImageUpload onFileSelect={handleImageSelect} />
+                    </TabsContent>
+                  </Tabs>
                 </div>
               )}
             </div>
@@ -217,31 +274,65 @@ const Index = () => {
               modelData={modelData || undefined}
               modelColor={modelColor}
               fileName={fileName}
-              currentGeometry={availableModels[selectedModelIndex]?.geometry}
+              currentGeometry={imageGeometry || availableModels[selectedModelIndex]?.geometry}
             />
           </div>
         </div>
 
         {/* Upload Area when model is loaded - Mobile only */}
-        {modelData && (
+        {(modelData || imageGeometry) && (
           <div className="mt-4 sm:mt-6 xl:hidden">
             <div className="text-center">
               <p className="text-muted-foreground mb-4 text-sm sm:text-base">
                 {t('differentModel')}
               </p>
               <div className="max-w-md mx-auto">
-                <FileUpload onFileSelect={handleFileSelect} />
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d")} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="model3d" className="flex items-center gap-2">
+                      <Layers3 className="w-4 h-4" />
+                      {t('tabModel3D')}
+                    </TabsTrigger>
+                    <TabsTrigger value="image2d" className="flex items-center gap-2">
+                      <Image className="w-4 h-4" />
+                      {t('tabImageTo3D')}
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="model3d" className="mt-4">
+                    <FileUpload onFileSelect={handleFileSelect} />
+                  </TabsContent>
+                  <TabsContent value="image2d" className="mt-4">
+                    <ImageUpload onFileSelect={handleImageSelect} />
+                  </TabsContent>
+                </Tabs>
               </div>
             </div>
           </div>
         )}
 
         {/* Desktop file upload when no model loaded */}
-        {!modelData && (
+        {!modelData && !imageGeometry && (
           <div className="hidden xl:block mt-6">
             <div className="text-center">
               <div className="max-w-md mx-auto">
-                <FileUpload onFileSelect={handleFileSelect} />
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d")} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="model3d" className="flex items-center gap-2">
+                      <Layers3 className="w-4 h-4" />
+                      {t('tabModel3D')}
+                    </TabsTrigger>
+                    <TabsTrigger value="image2d" className="flex items-center gap-2">
+                      <Image className="w-4 h-4" />
+                      {t('tabImageTo3D')}
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="model3d" className="mt-4">
+                    <FileUpload onFileSelect={handleFileSelect} />
+                  </TabsContent>
+                  <TabsContent value="image2d" className="mt-4">
+                    <ImageUpload onFileSelect={handleImageSelect} />
+                  </TabsContent>
+                </Tabs>
               </div>
             </div>
           </div>

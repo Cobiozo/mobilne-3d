@@ -63,7 +63,20 @@ export const translations = {
     currentlySelected: 'Aktualnie wybrany:',
     selectCustom: 'Wybierz niestandardowy:',
     clickHint: 'Kliknij',
-    fileName: 'Nazwa pliku'
+    fileName: 'Nazwa pliku',
+    
+    // Tabs
+    tabModel3D: 'Model 3D',
+    tabImageTo3D: 'Obraz na 3D',
+    
+    // Image to 3D
+    imageUploadTitle: 'Przeciągnij i upuść obraz tutaj',
+    imageUploadSubtitle: 'Obsługiwane formaty: JPG, PNG',
+    imageUploadButton: 'Wybierz obraz',
+    imageSuccess: 'Obraz "{fileName}" załadowany pomyślnie!',
+    imageError: 'Nie udało się załadować obrazu',
+    imageGenerating: 'Generowanie modelu 3D z obrazu...',
+    imageGenerated: 'Model 3D wygenerowany z obrazu!'
   },
   en: {
     // Header
@@ -127,7 +140,20 @@ export const translations = {
     currentlySelected: 'Currently selected:',
     selectCustom: 'Select custom:',
     clickHint: 'Click',
-    fileName: 'File name'
+    fileName: 'File name',
+    
+    // Tabs
+    tabModel3D: '3D Model',
+    tabImageTo3D: 'Image to 3D',
+    
+    // Image to 3D
+    imageUploadTitle: 'Drag & drop image here',
+    imageUploadSubtitle: 'Supported formats: JPG, PNG',
+    imageUploadButton: 'Choose Image',
+    imageSuccess: 'Image "{fileName}" loaded successfully!',
+    imageError: 'Failed to load the image',
+    imageGenerating: 'Generating 3D model from image...',
+    imageGenerated: '3D model generated from image!'
   }
 };
 
