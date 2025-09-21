@@ -7,7 +7,7 @@ import { Box, Layers3 } from "lucide-react";
 
 const Index = () => {
   const [modelData, setModelData] = useState<ArrayBuffer | null>(null);
-  const [modelColor, setModelColor] = useState("#4F8EF7");
+  const [modelColor, setModelColor] = useState("#FFFFFF");
   const [fileName, setFileName] = useState<string>();
 
   const handleFileSelect = async (file: File) => {
@@ -25,7 +25,7 @@ const Index = () => {
   const handleReset = () => {
     setModelData(null);
     setFileName(undefined);
-    setModelColor("#4F8EF7");
+    setModelColor("#FFFFFF");
     toast.info("Viewer reset");
   };
 
