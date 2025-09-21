@@ -41,7 +41,18 @@ export const exportCanvasAs = async (
         const y = (pdfHeight - height) / 2;
         
         pdf.addImage(dataURL, 'PNG', x, y, width, height);
+        const blob = pdf.output('blob');
+        const url = URL.createObjectURL(blob);
+        
+        // Save the PDF
         pdf.save(`${fileName}.pdf`);
+        
+        // Open PDF in new tab
+        const newWindow = window.open(url, '_blank');
+        if (!newWindow) {
+          toast.info('PDF zostało zapisane. Sprawdź folder Downloads lub włącz wyskakujące okna aby automatycznie otworzyć plik.');
+        }
+        
         toast.success('Model wyeksportowany jako PDF pomyślnie!');
       };
       img.src = dataURL;

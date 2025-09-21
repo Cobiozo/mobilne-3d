@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FileUpload } from "@/components/FileUpload";
 import { ModelViewer } from "@/components/ModelViewer";
 import { ControlPanel } from "@/components/ControlPanel";
@@ -11,13 +11,25 @@ import { useTranslation } from "@/lib/i18n";
 import { LanguageThemeSelector } from "@/components/LanguageThemeSelector";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { useTheme } from "next-themes";
+
 
 const Index = () => {
   const { language } = useApp();
   const { t } = useTranslation(language);
+  const { theme, resolvedTheme } = useTheme();
   const [modelData, setModelData] = useState<ArrayBuffer | null>(null);
   const [modelColor, setModelColor] = useState("#FFFFFF");
   const [fileName, setFileName] = useState<string>();
+
+  // Auto-adjust color based on theme
+  useEffect(() => {
+    if (resolvedTheme === 'light') {
+      setModelColor('#000000'); // Black for light theme
+    } else {
+      setModelColor('#FFFFFF'); // White for dark theme
+    }
+  }, [resolvedTheme]);
 
   const handleFileSelect = async (file: File) => {
     try {
@@ -34,7 +46,12 @@ const Index = () => {
   const handleReset = () => {
     setModelData(null);
     setFileName(undefined);
-    setModelColor("#FFFFFF");
+    // Reset color based on current theme
+    if (resolvedTheme === 'light') {
+      setModelColor('#000000');
+    } else {
+      setModelColor('#FFFFFF');
+    }
     toast.info(t('resetMessage'));
   };
 
