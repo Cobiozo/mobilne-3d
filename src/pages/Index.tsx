@@ -9,6 +9,8 @@ import { render2DView } from "@/utils/export2D";
 import { useApp } from "@/contexts/AppContext";
 import { useTranslation } from "@/lib/i18n";
 import { LanguageThemeSelector } from "@/components/LanguageThemeSelector";
+import { ThemeSelector } from "@/components/ThemeSelector";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 const Index = () => {
   const { language } = useApp();
@@ -107,7 +109,17 @@ const Index = () => {
                 </p>
               </div>
             </div>
-            <LanguageThemeSelector />
+            <div className="flex gap-2">
+              {/* Mobile: Separate buttons */}
+              <div className="flex gap-2 sm:hidden">
+                <LanguageSelector />
+                <ThemeSelector />
+              </div>
+              {/* Desktop: Combined selector */}
+              <div className="hidden sm:block">
+                <LanguageThemeSelector />
+              </div>
+            </div>
           </div>
         </div>
       </header>
