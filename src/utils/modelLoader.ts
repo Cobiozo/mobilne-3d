@@ -50,13 +50,19 @@ async function load3MFFile(arrayBuffer: ArrayBuffer, fileName: string): Promise<
     if (result.children && result.children.length > 0) {
       // Multiple models case
       result.children.forEach((child: any, index: number) => {
+        console.log(`Processing 3MF child ${index}:`, child);
         const geometry = extractGeometry(child);
+        console.log(`Extracted geometry for child ${index}:`, geometry);
+        
         if (geometry) {
+          const processedGeometry = processGeometry(geometry);
+          console.log(`Processed geometry for child ${index}:`, processedGeometry);
+          
           models.push({
             name: child.name || `${fileName} - Model ${index + 1}`,
             index,
             meshCount: 1,
-            geometry: processGeometry(geometry)
+            geometry: processedGeometry
           });
         }
       });
@@ -127,17 +133,25 @@ function loadSTLFile(arrayBuffer: ArrayBuffer, fileName: string): Model3MFInfo[]
 }
 
 function extractGeometry(object: any): THREE.BufferGeometry | null {
+  console.log('extractGeometry called with:', object);
+  
   if (object.geometry) {
+    console.log('Found direct geometry:', object.geometry);
     return object.geometry;
   }
   
   if (object.children && object.children.length > 0) {
+    console.log('Searching in children, count:', object.children.length);
     for (const child of object.children) {
       const geometry = extractGeometry(child);
-      if (geometry) return geometry;
+      if (geometry) {
+        console.log('Found geometry in child:', geometry);
+        return geometry;
+      }
     }
   }
   
+  console.log('No geometry found in object');
   return null;
 }
 
