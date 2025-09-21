@@ -63,22 +63,16 @@ const createProperlySilhouetteGeometry = (
     bevelSize: number;
   }
 ): THREE.BufferGeometry => {
-  console.log('Creating SHARP silhouette geometry from image:', imageData.width, 'x', imageData.height);
+  console.log('Creating VOXEL-BASED silhouette geometry from image:', imageData.width, 'x', imageData.height);
   
-  // Use higher resolution for better detail
-  const width = 128;
-  const height = 128;
   const { extrudeDepth } = options;
-  
-  // Create a PlaneGeometry as the base
-  const geometry = new THREE.PlaneGeometry(4, 4, width - 1, height - 1);
-  const positions = geometry.getAttribute('position') as THREE.BufferAttribute;
+  const resolution = 100; // Resolution for final geometry
   
   // Create canvas for image processing
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d')!;
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = resolution;
+  canvas.height = resolution;
   
   // Draw original image to temporary canvas
   const tempCanvas = document.createElement('canvas');
@@ -87,18 +81,29 @@ const createProperlySilhouetteGeometry = (
   tempCanvas.height = imageData.height;
   tempCtx.putImageData(imageData, 0, 0);
   
-  // Scale to working resolution with crisp edges
-  ctx.imageSmoothingEnabled = false; // Disable smoothing for sharp edges
-  ctx.drawImage(tempCanvas, 0, 0, width, height);
-  const scaledImageData = ctx.getImageData(0, 0, width, height);
+  // Scale to working resolution with NO smoothing for pixel-perfect result
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(tempCanvas, 0, 0, resolution, resolution);
+  const scaledImageData = ctx.getImageData(0, 0, resolution, resolution);
   
-  console.log('Scaled image data created with crisp edges');
+  // Create geometry using BufferGeometry for better performance
+  const vertices: number[] = [];
+  const indices: number[] = [];
+  const normals: number[] = [];
   
-  // Apply BINARY heightmap (only 0 or full height)
-  const threshold = 128; // Black/white threshold
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const index = (y * width + x) * 4;
+  const voxelSize = 4 / resolution; // World size divided by resolution
+  const halfSize = voxelSize / 2;
+  
+  let vertexIndex = 0;
+  
+  // Very strict threshold for pure black/white detection
+  const threshold = 50; // Even stricter threshold for better black detection
+  
+  console.log('Processing pixels with threshold:', threshold);
+  
+  for (let y = 0; y < resolution; y++) {
+    for (let x = 0; x < resolution; x++) {
+      const index = (y * resolution + x) * 4;
       
       // Get grayscale value
       const r = scaledImageData.data[index];
@@ -106,52 +111,102 @@ const createProperlySilhouetteGeometry = (
       const b = scaledImageData.data[index + 2];
       const grayscale = (r * 0.299 + g * 0.587 + b * 0.114);
       
-      // BINARY: either 0 (white/background) or full height (black/silhouette)
-      const heightValue = grayscale < threshold ? extrudeDepth : 0;
-      
-      // Update vertex position
-      const vertexIndex = y * width + x;
-      positions.setZ(vertexIndex, heightValue);
-    }
-  }
-  
-  // Apply MINIMAL smoothing only at edges to avoid pixelation but preserve shape
-  const smoothedPositions = new Float32Array(positions.array.length);
-  smoothedPositions.set(positions.array);
-  
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const vertexIndex = y * width + x;
-      const zIndex = vertexIndex * 3 + 2; // Z component
-      
-      const currentHeight = positions.getZ(vertexIndex);
-      
-      // Get neighbors
-      const neighbors = [
-        positions.getZ((y - 1) * width + x),     // top
-        positions.getZ((y + 1) * width + x),     // bottom
-        positions.getZ(y * width + (x - 1)),     // left
-        positions.getZ(y * width + (x + 1)),     // right
-      ];
-      
-      // Only smooth if we're at an edge (some neighbors different from current)
-      const isDifferent = neighbors.some(h => h !== currentHeight);
-      
-      if (isDifferent) {
-        // Very light smoothing - mostly preserve current height
-        const neighborSum = neighbors.reduce((sum, h) => sum + h, 0);
-        const smoothed = (currentHeight * 3 + neighborSum) / 7; // Weight current height more
-        smoothedPositions[zIndex] = smoothed;
+      // Only create geometry for dark pixels (silhouette)
+      if (grayscale < threshold) {
+        // Calculate world position
+        const worldX = (x / resolution) * 4 - 2; // Center at origin
+        const worldZ = (y / resolution) * 4 - 2; // Center at origin
+        const worldY = extrudeDepth / 2; // Center vertically
+        
+        // Create a box for this voxel
+        addVoxel(vertices, indices, normals, worldX, worldY, worldZ, voxelSize, extrudeDepth, vertexIndex);
+        vertexIndex += 8; // 8 vertices per box
       }
     }
   }
   
-  positions.set(smoothedPositions);
-  positions.needsUpdate = true;
+  console.log('Created voxels:', vertexIndex / 8, 'Total vertices:', vertices.length / 3);
+  
+  if (vertices.length === 0) {
+    console.warn('No dark pixels found, creating fallback geometry');
+    return createFallbackGeometry();
+  }
+  
+  // Create BufferGeometry
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setIndex(indices);
+  
+  // Compute final normals
   geometry.computeVertexNormals();
   
-  console.log('SHARP silhouette geometry created successfully');
+  console.log('VOXEL silhouette geometry created successfully');
   return geometry;
+};
+
+// Helper function to add a voxel (small box) to the geometry
+const addVoxel = (
+  vertices: number[], 
+  indices: number[], 
+  normals: number[], 
+  x: number, 
+  y: number, 
+  z: number, 
+  size: number, 
+  height: number,
+  baseIndex: number
+) => {
+  const halfSize = size / 2;
+  const halfHeight = height / 2;
+  
+  // 8 vertices of a box
+  const boxVertices = [
+    // Bottom face
+    [x - halfSize, y - halfHeight, z - halfSize],
+    [x + halfSize, y - halfHeight, z - halfSize],
+    [x + halfSize, y - halfHeight, z + halfSize],
+    [x - halfSize, y - halfHeight, z + halfSize],
+    // Top face
+    [x - halfSize, y + halfHeight, z - halfSize],
+    [x + halfSize, y + halfHeight, z - halfSize],
+    [x + halfSize, y + halfHeight, z + halfSize],
+    [x - halfSize, y + halfHeight, z + halfSize],
+  ];
+  
+  // Add vertices
+  boxVertices.forEach(vertex => {
+    vertices.push(vertex[0], vertex[1], vertex[2]);
+  });
+  
+  // Add box faces (12 triangles, 2 per face)
+  const faces = [
+    // Bottom face
+    [0, 1, 2], [0, 2, 3],
+    // Top face
+    [4, 6, 5], [4, 7, 6],
+    // Front face
+    [0, 4, 5], [0, 5, 1],
+    // Back face
+    [2, 6, 7], [2, 7, 3],
+    // Left face
+    [0, 3, 7], [0, 7, 4],
+    // Right face
+    [1, 5, 6], [1, 6, 2],
+  ];
+  
+  faces.forEach(face => {
+    indices.push(
+      baseIndex + face[0],
+      baseIndex + face[1], 
+      baseIndex + face[2]
+    );
+  });
+  
+  // Add normals (simplified - will be recomputed)
+  for (let i = 0; i < 8; i++) {
+    normals.push(0, 1, 0);
+  }
 };
 
 const createBinaryMask = (imageData: ImageData, threshold: number): boolean[][] => {
