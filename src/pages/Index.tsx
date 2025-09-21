@@ -88,26 +88,37 @@ const Index = () => {
 
       toast.info(`Przygotowywanie eksportu 2D (${view})...`);
       
-      // Import STLLoader for geometry parsing
-      const { STLLoader } = await import('three/examples/jsm/loaders/STLLoader.js');
+      // Import dependencies
       const THREE = await import('three');
+      const { STLLoader } = await import('three/examples/jsm/loaders/STLLoader.js');
       
-      // Parse geometry from model data
-      const loader = new STLLoader();
-      const geometry = loader.parse(modelData);
-      
-      // Center and scale geometry
-      geometry.computeBoundingBox();
-      const center = new THREE.Vector3();
-      geometry.boundingBox?.getCenter(center);
-      geometry.translate(-center.x, -center.y, -center.z);
-      
-      const size = new THREE.Vector3();
-      geometry.boundingBox?.getSize(size);
-      const maxDimension = Math.max(size.x, size.y, size.z);
-      const scale = 3 / maxDimension;
-      geometry.scale(scale, scale, scale);
-      geometry.computeVertexNormals();
+      // Użyj aktualnie wybranej geometrii zamiast parsowania całego pliku
+      let geometry: any;
+      if (availableModels.length > 1 && availableModels[selectedModelIndex]?.geometry) {
+        // Dla plików 3MF z wieloma modelami - użyj aktualnie wybranego
+        geometry = availableModels[selectedModelIndex].geometry.clone();
+        console.log(`Eksportowanie modelu ${selectedModelIndex + 1} z ${availableModels.length} dostępnych`);
+        toast.info(`Eksportowanie modelu ${selectedModelIndex + 1} z ${availableModels.length}`);
+      } else {
+        // Dla plików STL lub pojedynczych modeli - parsuj normalnie
+        const loader = new STLLoader();
+        geometry = loader.parse(modelData);
+        
+        // Center and scale geometry for STL
+        geometry.computeBoundingBox();
+        const center = new THREE.Vector3();
+        geometry.boundingBox?.getCenter(center);
+        geometry.translate(-center.x, -center.y, -center.z);
+        
+        const size = new THREE.Vector3();
+        geometry.boundingBox?.getSize(size);
+        const maxDimension = Math.max(size.x, size.y, size.z);
+        const targetSize = 4;
+        const scaleFactor = targetSize / maxDimension;
+        const safeScale = Math.max(0.01, Math.min(100, scaleFactor));
+        geometry.scale(safeScale, safeScale, safeScale);
+        geometry.computeVertexNormals();
+      }
       
       // Create material
       const material = new THREE.MeshStandardMaterial({
@@ -120,9 +131,15 @@ const Index = () => {
       // Render 2D view
       const canvas2D = render2DView(geometry, material, view, modelColor);
       
-      // Export
+      // Export with model-specific filename
       const viewName = view === '2d-front' ? 'przod' : view === '2d-top' ? 'gora' : 'bok';
-      const baseFileName = fileName ? fileName.replace(/\.[^/.]+$/, '') : 'model-export';
+      let baseFileName = fileName ? fileName.replace(/\.[^/.]+$/, '') : 'model-export';
+      
+      // Add model number for 3MF files
+      if (availableModels.length > 1) {
+        baseFileName += `-model-${selectedModelIndex + 1}`;
+      }
+      
       await exportCanvasAs(canvas2D, format, `${baseFileName}-${viewName}`);
       
     } catch (error) {
