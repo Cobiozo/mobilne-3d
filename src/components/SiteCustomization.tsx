@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
@@ -49,8 +49,8 @@ export const SiteCustomization = () => {
     } catch (error) {
       console.error('Error fetching settings:', error);
       toast({
-        title: getText('error', language),
-        description: 'Failed to load site settings',
+        title: "Błąd",
+        description: 'Nie udało się załadować ustawień strony',
         variant: "destructive",
       });
     } finally {
@@ -83,6 +83,7 @@ export const SiteCustomization = () => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError) {
+        console.error('Auth error:', authError);
         throw new Error(`Authentication error: ${authError.message}`);
       }
       
@@ -90,14 +91,24 @@ export const SiteCustomization = () => {
         throw new Error('User not authenticated');
       }
 
+      console.log('Saving settings:', settings);
+
       // Filter out empty settings and prepare updates
       const updates = Object.entries(settings)
-        .filter(([_, value]) => value !== '' && value !== null && value !== undefined)
+        .filter(([_, value]) => {
+          // Keep all non-null, non-undefined values
+          if (value === null || value === undefined) return false;
+          // Keep empty strings and empty arrays as they are valid values
+          if (typeof value === 'string' && value.trim() === '') return false;
+          return true;
+        })
         .map(([key, value]) => ({
           setting_key: key,
           setting_value: value,
           updated_by: user.id
         }));
+
+      console.log('Updates to save:', updates);
 
       if (updates.length === 0) {
         throw new Error('No settings to save');
@@ -109,17 +120,23 @@ export const SiteCustomization = () => {
           onConflict: 'setting_key'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
 
+      console.log('Settings saved successfully');
+      
       toast({
-        title: getText('success', language),
-        description: 'Wszystkie ustawienia zostały zapisane',
+        title: "Sukces",
+        description: `Zapisano ${updates.length} ustawień pomyślnie`,
+        variant: "default",
       });
     } catch (error) {
       console.error('Error saving settings:', error);
       toast({
-        title: getText('error', language),
-        description: 'Błąd podczas zapisywania ustawień: ' + (error as Error).message,
+        title: "Błąd",
+        description: `Błąd podczas zapisywania ustawień: ${(error as Error).message}`,
         variant: "destructive",
       });
     } finally {
@@ -128,6 +145,7 @@ export const SiteCustomization = () => {
   };
 
   const handleInputChange = (key: string, value: any) => {
+    console.log(`Setting ${key} to:`, value);
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
