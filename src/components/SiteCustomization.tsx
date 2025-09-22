@@ -11,7 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Palette, Globe, Upload, Save, RefreshCw } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Palette, Globe, Upload, Save, RefreshCw, Settings, Eye, Shield, Mail } from 'lucide-react';
 
 interface SiteSetting {
   setting_key: string;
@@ -79,20 +80,34 @@ export const SiteCustomization = () => {
   const handleSaveAll = async () => {
     setIsSaving(true);
     try {
-      const user = await supabase.auth.getUser();
-      if (!user.data.user) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        throw new Error(`Authentication error: ${authError.message}`);
+      }
+      
+      if (!user) {
         throw new Error('User not authenticated');
       }
 
-      const updates = Object.entries(settings).map(([key, value]) => ({
-        setting_key: key,
-        setting_value: value,
-        updated_by: user.data.user.id
-      }));
+      // Filter out empty settings and prepare updates
+      const updates = Object.entries(settings)
+        .filter(([_, value]) => value !== '' && value !== null && value !== undefined)
+        .map(([key, value]) => ({
+          setting_key: key,
+          setting_value: value,
+          updated_by: user.id
+        }));
+
+      if (updates.length === 0) {
+        throw new Error('No settings to save');
+      }
 
       const { error } = await supabase
         .from('site_settings')
-        .upsert(updates);
+        .upsert(updates, {
+          onConflict: 'setting_key'
+        });
 
       if (error) throw error;
 
@@ -148,10 +163,12 @@ export const SiteCustomization = () => {
       </div>
 
       <Tabs defaultValue="content" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="content">Treść</TabsTrigger>
           <TabsTrigger value="branding">Branding</TabsTrigger>
+          <TabsTrigger value="appearance">Wygląd</TabsTrigger>
           <TabsTrigger value="features">Funkcje</TabsTrigger>
+          <TabsTrigger value="security">Bezpieczeństwo</TabsTrigger>
           <TabsTrigger value="advanced">Zaawansowane</TabsTrigger>
         </TabsList>
 
@@ -230,6 +247,58 @@ export const SiteCustomization = () => {
                   Pozostaw puste aby używać domyślnego gradientu
                 </p>
               </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Meta opis (Polski)</Label>
+                  <Textarea
+                    value={settings.meta_description?.pl || ''}
+                    onChange={(e) => handleInputChange('meta_description', {
+                      ...settings.meta_description,
+                      pl: e.target.value
+                    })}
+                    placeholder="Profesjonalna platforma do przeglądania i drukowania modeli 3D"
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Meta opis (Angielski)</Label>
+                  <Textarea
+                    value={settings.meta_description?.en || ''}
+                    onChange={(e) => handleInputChange('meta_description', {
+                      ...settings.meta_description,
+                      en: e.target.value
+                    })}
+                    placeholder="Professional platform for viewing and printing 3D models"
+                    rows={2}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Słowa kluczowe (Polski)</Label>
+                  <Input
+                    value={settings.meta_keywords?.pl || ''}
+                    onChange={(e) => handleInputChange('meta_keywords', {
+                      ...settings.meta_keywords,
+                      pl: e.target.value
+                    })}
+                    placeholder="3D, drukowanie, modele, viewer"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Słowa kluczowe (Angielski)</Label>
+                  <Input
+                    value={settings.meta_keywords?.en || ''}
+                    onChange={(e) => handleInputChange('meta_keywords', {
+                      ...settings.meta_keywords,
+                      en: e.target.value
+                    })}
+                    placeholder="3D, printing, models, viewer"
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -291,6 +360,153 @@ export const SiteCustomization = () => {
                   onChange={(e) => handleInputChange('company_logo', e.target.value)}
                   placeholder="https://example.com/logo.png"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Strona internetowa firmy</Label>
+                <Input
+                  value={settings.company_website || ''}
+                  onChange={(e) => handleInputChange('company_website', e.target.value)}
+                  placeholder="https://www.example.com"
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Godziny pracy</Label>
+                  <Textarea
+                    value={settings.business_hours || ''}
+                    onChange={(e) => handleInputChange('business_hours', e.target.value)}
+                    placeholder="Pon-Pt: 9:00-17:00"
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>NIP</Label>
+                  <Input
+                    value={settings.company_nip || ''}
+                    onChange={(e) => handleInputChange('company_nip', e.target.value)}
+                    placeholder="1234567890"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>REGON</Label>
+                  <Input
+                    value={settings.company_regon || ''}
+                    onChange={(e) => handleInputChange('company_regon', e.target.value)}
+                    placeholder="123456789"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>KRS</Label>
+                  <Input
+                    value={settings.company_krs || ''}
+                    onChange={(e) => handleInputChange('company_krs', e.target.value)}
+                    placeholder="0000123456"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="appearance" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="w-5 h-5" />
+                Wygląd i motyw
+              </CardTitle>
+              <CardDescription>
+                Dostosuj kolory, fonty i ogólny wygląd strony
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Główny kolor motywu</Label>
+                  <Input
+                    type="color"
+                    value={settings.primary_color || '#3b82f6'}
+                    onChange={(e) => handleInputChange('primary_color', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Kolor dodatkowy</Label>
+                  <Input
+                    type="color"
+                    value={settings.secondary_color || '#64748b'}
+                    onChange={(e) => handleInputChange('secondary_color', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Font nagłówków</Label>
+                  <Select
+                    value={settings.heading_font || 'Inter'}
+                    onValueChange={(value) => handleInputChange('heading_font', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Wybierz font" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Inter">Inter</SelectItem>
+                      <SelectItem value="Roboto">Roboto</SelectItem>
+                      <SelectItem value="Open Sans">Open Sans</SelectItem>
+                      <SelectItem value="Montserrat">Montserrat</SelectItem>
+                      <SelectItem value="Poppins">Poppins</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Font tekstu</Label>
+                  <Select
+                    value={settings.body_font || 'Inter'}
+                    onValueChange={(value) => handleInputChange('body_font', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Wybierz font" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Inter">Inter</SelectItem>
+                      <SelectItem value="Roboto">Roboto</SelectItem>
+                      <SelectItem value="Open Sans">Open Sans</SelectItem>
+                      <SelectItem value="Source Sans Pro">Source Sans Pro</SelectItem>
+                      <SelectItem value="Lato">Lato</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Tryb ciemny domyślnie</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Strona będzie domyślnie uruchamiać się w trybie ciemnym
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.default_dark_mode || false}
+                  onCheckedChange={(checked) => handleInputChange('default_dark_mode', checked)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Niestandardowy CSS</Label>
+                <Textarea
+                  value={settings.custom_css || ''}
+                  onChange={(e) => handleInputChange('custom_css', e.target.value)}
+                  placeholder="/* Dodaj swój niestandardowy CSS */"
+                  rows={6}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Ostrożnie! Niestandardowy CSS może wpłynąć na wygląd całej strony
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -369,6 +585,164 @@ export const SiteCustomization = () => {
                   onCheckedChange={(checked) => handleInputChange('public_model_viewing', checked)}
                 />
               </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Komentarze użytkowników</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Pozwala użytkownikom komentować modele
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.comments_enabled || false}
+                  onCheckedChange={(checked) => handleInputChange('comments_enabled', checked)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Oceny modeli</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Pozwala użytkownikom oceniać modele gwiazdkami
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.ratings_enabled || false}
+                  onCheckedChange={(checked) => handleInputChange('ratings_enabled', checked)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Udostępnianie społecznościowe</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Przyciski udostępniania w mediach społecznościowych
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.social_sharing || false}
+                  onCheckedChange={(checked) => handleInputChange('social_sharing', checked)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Analityka Google</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Włącz śledzenie Google Analytics
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.google_analytics_enabled || false}
+                  onCheckedChange={(checked) => handleInputChange('google_analytics_enabled', checked)}
+                />
+              </div>
+
+              {settings.google_analytics_enabled && (
+                <div className="space-y-2">
+                  <Label>ID Google Analytics</Label>
+                  <Input
+                    value={settings.google_analytics_id || ''}
+                    onChange={(e) => handleInputChange('google_analytics_id', e.target.value)}
+                    placeholder="G-XXXXXXXXXX"
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                Bezpieczeństwo i prywatność
+              </CardTitle>
+              <CardDescription>
+                Ustawienia związane z bezpieczeństwem i prywatnością
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Dwuetapowa weryfikacja</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Wymagaj 2FA dla nowych kont administratorów
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.require_2fa_admin || false}
+                  onCheckedChange={(checked) => handleInputChange('require_2fa_admin', checked)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Automatyczne wylogowanie</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Automatycznie wyloguj nieaktywnych użytkowników po 24h
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.auto_logout || false}
+                  onCheckedChange={(checked) => handleInputChange('auto_logout', checked)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Czas sesji (godziny)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="168"
+                  value={settings.session_timeout || 24}
+                  onChange={(e) => handleInputChange('session_timeout', parseInt(e.target.value))}
+                  placeholder="24"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Po jakim czasie nieaktywności użytkownik zostanie wylogowany
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Captcha na formularzu kontaktowym</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Zabezpiecz formularz kontaktowy przed spamem
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.captcha_enabled || false}
+                  onCheckedChange={(checked) => handleInputChange('captcha_enabled', checked)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Logowanie nieudanych prób</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Zapisuj nieudane próby logowania w celach bezpieczeństwa
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.log_failed_attempts || false}
+                  onCheckedChange={(checked) => handleInputChange('log_failed_attempts', checked)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Dozwolone domeny email</Label>
+                <Textarea
+                  value={settings.allowed_email_domains || ''}
+                  onChange={(e) => handleInputChange('allowed_email_domains', e.target.value)}
+                  placeholder="gmail.com, company.com (jedna domena na linię)"
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Pozostaw puste aby pozwolić wszystkie domeny. Jedna domena na linię.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -433,6 +807,82 @@ export const SiteCustomization = () => {
                 <p className="text-xs text-muted-foreground">
                   Maksymalna liczba modeli jaką może przesłać jeden użytkownik
                 </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Domyślny język</Label>
+                  <Select
+                    value={settings.default_language || 'pl'}
+                    onValueChange={(value) => handleInputChange('default_language', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Wybierz język" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pl">Polski</SelectItem>
+                      <SelectItem value="en">English</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Strefa czasowa</Label>
+                  <Select
+                    value={settings.timezone || 'Europe/Warsaw'}
+                    onValueChange={(value) => handleInputChange('timezone', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Wybierz strefę" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Europe/Warsaw">Europa/Warszawa</SelectItem>
+                      <SelectItem value="Europe/London">Europa/Londyn</SelectItem>
+                      <SelectItem value="America/New_York">Ameryka/Nowy Jork</SelectItem>
+                      <SelectItem value="Asia/Tokyo">Azja/Tokio</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Niestandardowy JavaScript</Label>
+                <Textarea
+                  value={settings.custom_javascript || ''}
+                  onChange={(e) => handleInputChange('custom_javascript', e.target.value)}
+                  placeholder="// Dodaj swój niestandardowy JavaScript"
+                  rows={6}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Ostrożnie! Niestandardowy kod JavaScript może wpłynąć na działanie strony
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Backup frequency (dni)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="30"
+                  value={settings.backup_frequency || 7}
+                  onChange={(e) => handleInputChange('backup_frequency', parseInt(e.target.value))}
+                  placeholder="7"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Jak często system ma automatycznie tworzyć kopie zapasowe
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Debug mode</Label>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={settings.debug_mode || false}
+                    onCheckedChange={(checked) => handleInputChange('debug_mode', checked)}
+                  />
+                  <Label className="text-sm text-muted-foreground">
+                    Włącz szczegółowe logowanie (tylko dla deweloperów)
+                  </Label>
+                </div>
               </div>
 
               <div className="p-4 bg-muted rounded-lg">
