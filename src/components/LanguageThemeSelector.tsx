@@ -29,7 +29,7 @@ export const LanguageThemeSelector = () => {
           {getThemeIcon()}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48 bg-background border border-border shadow-lg">
+      <DropdownMenuContent align="end" sideOffset={5} className="w-48 bg-background border border-border shadow-lg z-50">
         <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
           {t('language')}
         </div>

@@ -79,10 +79,15 @@ export const SiteCustomization = () => {
   const handleSaveAll = async () => {
     setIsSaving(true);
     try {
+      const user = await supabase.auth.getUser();
+      if (!user.data.user) {
+        throw new Error('User not authenticated');
+      }
+
       const updates = Object.entries(settings).map(([key, value]) => ({
         setting_key: key,
         setting_value: value,
-        updated_by: null // Will be set by the trigger
+        updated_by: user.data.user.id
       }));
 
       const { error } = await supabase
@@ -99,7 +104,7 @@ export const SiteCustomization = () => {
       console.error('Error saving settings:', error);
       toast({
         title: getText('error', language),
-        description: 'Failed to save settings',
+        description: 'Błąd podczas zapisywania ustawień: ' + (error as Error).message,
         variant: "destructive",
       });
     } finally {
@@ -259,6 +264,34 @@ export const SiteCustomization = () => {
                   placeholder="info@example.com"
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label>Telefon kontaktowy</Label>
+                <Input
+                  value={settings.contact_phone || ''}
+                  onChange={(e) => handleInputChange('contact_phone', e.target.value)}
+                  placeholder="+48 123 456 789"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Adres firmy</Label>
+                <Textarea
+                  value={settings.company_address || ''}
+                  onChange={(e) => handleInputChange('company_address', e.target.value)}
+                  placeholder="ul. Przykładowa 123, 00-000 Warszawa"
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>URL logo firmy</Label>
+                <Input
+                  value={settings.company_logo || ''}
+                  onChange={(e) => handleInputChange('company_logo', e.target.value)}
+                  placeholder="https://example.com/logo.png"
+                />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -297,6 +330,45 @@ export const SiteCustomization = () => {
                   onCheckedChange={(checked) => handleInputChange('maintenance_mode', checked)}
                 />
               </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Rejestracja nowych użytkowników</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Pozwala nowym użytkownikom na tworzenie kont
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.registration_enabled !== false}
+                  onCheckedChange={(checked) => handleInputChange('registration_enabled', checked)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Powiadomienia email</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Wysyła emaile o statusie zamówień i ważnych wydarzeniach
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.email_notifications || false}
+                  onCheckedChange={(checked) => handleInputChange('email_notifications', checked)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>Publiczny podgląd modeli</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Pozwala niezalogowanym użytkownikom przeglądać publiczne modele
+                  </p>
+                </div>
+                <Switch
+                  checked={settings.public_model_viewing !== false}
+                  onCheckedChange={(checked) => handleInputChange('public_model_viewing', checked)}
+                />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -322,6 +394,44 @@ export const SiteCustomization = () => {
                 />
                 <p className="text-xs text-muted-foreground">
                   Wprowadź ID modeli które mają być wyróżnione na stronie głównej
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Maksymalny rozmiar pliku (MB)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={settings.max_file_size || 10}
+                  onChange={(e) => handleInputChange('max_file_size', parseInt(e.target.value))}
+                  placeholder="10"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Maksymalny rozmiar przesyłanych plików modeli 3D
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Domyślna waluta</Label>
+                <Input
+                  value={settings.default_currency || 'PLN'}
+                  onChange={(e) => handleInputChange('default_currency', e.target.value)}
+                  placeholder="PLN"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Limit modeli na użytkownika</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={settings.user_model_limit || 50}
+                  onChange={(e) => handleInputChange('user_model_limit', parseInt(e.target.value))}
+                  placeholder="50"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Maksymalna liczba modeli jaką może przesłać jeden użytkownik
                 </p>
               </div>
 
