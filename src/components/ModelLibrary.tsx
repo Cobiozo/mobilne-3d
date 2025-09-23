@@ -3,11 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { ModelUpload } from '@/components/ModelUpload';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
-import { Eye, Download, Trash2, Globe, Lock } from 'lucide-react';
+import { Eye, Download, Trash2, Globe, Lock, Plus } from 'lucide-react';
 
 interface Model {
   id: string;
@@ -27,32 +28,38 @@ interface ModelLibraryProps {
 export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
   const [models, setModels] = useState<Model[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showUpload, setShowUpload] = useState(false);
   const { toast } = useToast();
   const { language } = useApp();
 
+  const fetchModels = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('models')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      toast({
+        title: getText('error', language),
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setModels(data || []);
+    }
+    setIsLoading(false);
+  };
+
   useEffect(() => {
-    const fetchModels = async () => {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('models')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        toast({
-          title: getText('error', language),
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        setModels(data || []);
-      }
-      setIsLoading(false);
-    };
-
     fetchModels();
   }, [userId, toast, language]);
+
+  const handleUploadComplete = () => {
+    setShowUpload(false);
+    fetchModels(); // Refresh the models list
+  };
 
   const deleteModel = async (modelId: string) => {
     const { error } = await supabase
@@ -108,6 +115,10 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
     return <LoadingSpinner />;
   }
 
+  if (showUpload) {
+    return <ModelUpload onUploadComplete={handleUploadComplete} />;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -117,9 +128,15 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
             {getText('manageUploaded3DModels', language)}
           </p>
         </div>
-        <Badge variant="outline">
-          {models.length} {getText('models', language)}
-        </Badge>
+        <div className="flex items-center gap-4">
+          <Badge variant="outline">
+            {models.length} {getText('models', language)}
+          </Badge>
+          <Button onClick={() => setShowUpload(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            {getText('uploadModel', language)}
+          </Button>
+        </div>
       </div>
 
       {models.length === 0 ? (
@@ -131,7 +148,8 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
             <p className="text-muted-foreground text-center mb-4">
               {getText('uploadFirstModel', language)}
             </p>
-            <Button onClick={() => window.location.href = '/'}>
+            <Button onClick={() => setShowUpload(true)}>
+              <Plus className="w-4 h-4 mr-2" />
               {getText('uploadModel', language)}
             </Button>
           </CardContent>
