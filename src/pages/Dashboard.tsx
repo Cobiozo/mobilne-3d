@@ -13,7 +13,8 @@ import { ModelLibrary } from '@/components/ModelLibrary';
 import { AdminSidebar } from '@/components/AdminSidebar';
 import { CustomersManagement } from '@/components/CustomersManagement';
 import { OrdersManagement } from '@/components/OrdersManagement';
-import { SiteCustomization } from '@/components/SiteCustomization';
+import { SiteSettings } from '@/components/SiteSettings';
+import { SitePersonalization } from '@/components/SitePersonalization';
 import { AdminOverview } from '@/components/AdminOverview';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { User, LogOut, Upload, Settings, Home } from 'lucide-react';
@@ -97,10 +98,10 @@ const Dashboard = () => {
         return <OrdersManagement />;
       case 'models':
         return <ModelLibrary userId={user.id} />;
-      case 'customization':
-        return <SiteCustomization />;
+      case 'personalization':
+        return <SitePersonalization />;
       case 'site-settings':
-        return <SiteCustomization />;
+        return <SiteSettings />;
       case 'profile':
         return <UserProfile user={user} />;
       case 'settings':

@@ -23,9 +23,36 @@ import { User, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import * as THREE from 'three';
 
+// Helper function to convert hex to HSL
+const hexToHsl = (hex: string): string | null => {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h, s, l = (max + min) / 2;
+
+  if (max === min) {
+    h = s = 0;
+  } else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+      default: h = 0;
+    }
+    h /= 6;
+  }
+
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+};
+
 
 const Index = () => {
-  const { language } = useApp();
+  const { language, siteSettings } = useApp();
   const { t } = useTranslation(language);
   const { theme, resolvedTheme } = useTheme();
   const { user, loading } = useAuth();
@@ -38,14 +65,35 @@ const Index = () => {
   const [availableModels, setAvailableModels] = useState<Model3MFInfo[]>([]);
   const [selectedModelIndex, setSelectedModelIndex] = useState(0);
 
-  // Auto-adjust color based on theme
+  // Auto-adjust color based on theme and apply site settings
   useEffect(() => {
     if (resolvedTheme === 'light') {
       setModelColor('#000000'); // Black for light theme
     } else {
       setModelColor('#FFFFFF'); // White for dark theme
     }
-  }, [resolvedTheme]);
+
+    // Apply site settings to the page
+    if (siteSettings.homepage_title) {
+      document.title = siteSettings.homepage_title[language] || siteSettings.homepage_title.pl || '3D Model Viewer';
+    }
+    
+    // Apply primary color if available
+    if (siteSettings.primary_color) {
+      const primaryHsl = hexToHsl(siteSettings.primary_color);
+      if (primaryHsl) {
+        document.documentElement.style.setProperty('--primary', primaryHsl);
+      }
+    }
+    
+    // Apply secondary color if available
+    if (siteSettings.secondary_color) {
+      const secondaryHsl = hexToHsl(siteSettings.secondary_color);
+      if (secondaryHsl) {
+        document.documentElement.style.setProperty('--secondary', secondaryHsl);
+      }
+    }
+  }, [resolvedTheme, siteSettings, language]);
 
   const handleFileSelect = async (file: File) => {
     try {
@@ -286,7 +334,7 @@ const Index = () => {
               </div>
               <div>
                 <h1 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                  {t('appTitle')}
+                  {siteSettings.homepage_title?.[language] || siteSettings.homepage_title?.pl || t('appTitle')}
                 </h1>
               </div>
             </div>

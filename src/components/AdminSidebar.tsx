@@ -68,15 +68,15 @@ const adminMenuItems = [
     section: 'notes'
   },
   {
-    title: 'customization',
-    url: '/dashboard?tab=customization',
+    title: 'personalization',
+    url: '/dashboard?tab=personalization',
     icon: Palette,
-    section: 'customization'
+    section: 'personalization'
   },
   {
     title: 'siteSettings',
     url: '/dashboard?tab=site-settings',
-    icon: Globe,
+    icon: Settings,
     section: 'site-settings'
   },
   {
