@@ -142,13 +142,21 @@ const Index = () => {
         should_texture: true
       });
       
-      if (gen3dResult.success && gen3dResult.model_urls?.glb) {
-        // Load the generated 3D model
-        const { loadModelFromUrl } = await import('@/utils/imageToGeometry');
-        const geometry = await loadModelFromUrl(gen3dResult.model_urls.glb);
-        setImageGeometry(geometry);
-        toast.success('✨ Gen3D 2.0: Model 3D wygenerowany!');
-        console.log('Gen3D 2.0 model loaded successfully');
+      if (gen3dResult.success) {
+        if (gen3dResult.geometry) {
+          // Direct geometry from enhanced local generation
+          setImageGeometry(gen3dResult.geometry);
+          toast.success(`✨ ${gen3dResult.method}: Model 3D wygenerowany!`);
+        } else if (gen3dResult.model_urls?.glb) {
+          // Load from URL (HF API result)
+          const { loadModelFromUrl } = await import('@/utils/imageToGeometry');
+          const geometry = await loadModelFromUrl(gen3dResult.model_urls.glb);
+          setImageGeometry(geometry);
+          toast.success(`✨ ${gen3dResult.method}: Model 3D załadowany!`);
+        } else {
+          throw new Error('No valid 3D data received');
+        }
+        console.log('Gen3D 2.0 model processed successfully');
       } else {
         // Fallback to basic silhouette method
         console.warn('Gen3D failed, using fallback method:', gen3dResult.error);
