@@ -16,7 +16,7 @@ import { ThemeSelector } from "@/components/ThemeSelector";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useTheme } from "next-themes";
 import { loadModelFile, Model3MFInfo } from "@/utils/modelLoader";
-import { imageToGeometry, loadImageData } from "@/utils/imageToGeometry";
+import { imageToGeometry, imageToGen3D, loadImageData } from "@/utils/imageToGeometry";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { User, LogIn } from "lucide-react";
@@ -132,23 +132,61 @@ const Index = () => {
       // Load image data
       const imageData = await loadImageData(file);
       
-      // Convert to 3D geometry using voxel approach with reduced thickness
-      const geometry = imageToGeometry(imageData, {
-        mode: 'silhouette',
-        extrudeDepth: 0.5,  // Much thinner - 1/3 of previous thickness
-        bevelEnabled: false  // Keep disabled for performance
+      // Use Gen3D 2.0 engine for AI-powered 3D generation
+      toast.info('🤖 Generowanie z silnikiem Gen3D 2.0...');
+      const gen3dResult = await imageToGen3D(imageData, { 
+        mode: 'gen3d',
+        topology: 'triangle',
+        target_polycount: 30000,
+        enable_pbr: true,
+        should_texture: true
       });
       
-      setImageGeometry(geometry);
+      if (gen3dResult.success && gen3dResult.model_urls?.glb) {
+        // Load the generated 3D model
+        const { loadModelFromUrl } = await import('@/utils/imageToGeometry');
+        const geometry = await loadModelFromUrl(gen3dResult.model_urls.glb);
+        setImageGeometry(geometry);
+        toast.success('✨ Gen3D 2.0: Model 3D wygenerowany!');
+        console.log('Gen3D 2.0 model loaded successfully');
+      } else {
+        // Fallback to basic silhouette method
+        console.warn('Gen3D failed, using fallback method:', gen3dResult.error);
+        toast.warning('Gen3D niedostępne, używam podstawowej metody...');
+        const geometry = imageToGeometry(imageData, {
+          mode: 'silhouette',
+          extrudeDepth: 0.5,
+          bevelEnabled: false
+        });
+        setImageGeometry(geometry);
+        toast.success(t('imageGenerated'));
+      }
+      
       setFileName(file.name);
       setModelData(null); // Clear 3D model data
       setAvailableModels([]);
       setSelectedModelIndex(0);
-      
-      toast.success(t('imageGenerated'));
     } catch (error) {
       console.error("Error processing image:", error);
-      toast.error(t('imageError'));
+      // Fallback to basic method on error
+      try {
+        toast.warning('Błąd Gen3D, przełączam na podstawową metodę...');
+        const imageData = await loadImageData(file);
+        const geometry = imageToGeometry(imageData, {
+          mode: 'silhouette',
+          extrudeDepth: 0.5,
+          bevelEnabled: false
+        });
+        setImageGeometry(geometry);
+        setFileName(file.name);
+        setModelData(null);
+        setAvailableModels([]);
+        setSelectedModelIndex(0);
+        toast.success('Model 3D utworzony metodą podstawową');
+      } catch (fallbackError) {
+        console.error('Fallback method also failed:', fallbackError);
+        toast.error(t('imageError'));
+      }
     }
   };
 

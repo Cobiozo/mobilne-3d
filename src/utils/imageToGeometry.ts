@@ -1,15 +1,38 @@
 import * as THREE from 'three';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ImageToGeometryOptions {
   width?: number;
   height?: number;
   heightScale?: number;
   smoothing?: boolean;
-  mode?: 'heightmap' | 'extrude' | 'silhouette';
+  mode?: 'heightmap' | 'extrude' | 'silhouette' | 'gen3d';
   extrudeDepth?: number;
   bevelEnabled?: boolean;
   bevelThickness?: number;
   bevelSize?: number;
+  // Gen3D 2.0 specific options
+  topology?: 'triangle' | 'quad';
+  target_polycount?: number;
+  symmetry_mode?: 'off' | 'auto' | 'on';
+  should_remesh?: boolean;
+  should_texture?: boolean;
+  enable_pbr?: boolean;
+  is_a_t_pose?: boolean;
+}
+
+export interface Gen3DResult {
+  success: boolean;
+  taskId?: string;
+  model_urls?: {
+    glb?: string;
+    fbx?: string;
+    obj?: string;
+    mtl?: string;
+  };
+  thumbnail_url?: string;
+  video_url?: string;
+  error?: string;
 }
 
 export const imageToGeometry = (
@@ -28,7 +51,10 @@ export const imageToGeometry = (
     bevelSize = 0.02
   } = options;
 
-  if (mode === 'silhouette') {
+  if (mode === 'gen3d') {
+    // Gen3D 2.0 mode uses the edge function for AI-powered 3D generation
+    throw new Error('Gen3D 2.0 mode requires async processing via imageToGen3D function');
+  } else if (mode === 'silhouette') {
     return createProperlySilhouetteGeometry(imageData, {
       extrudeDepth,
       bevelEnabled,
@@ -51,6 +77,53 @@ export const imageToGeometry = (
       heightScale,
       smoothing
     });
+  }
+};
+
+// New Gen3D 2.0 function for AI-powered image to 3D conversion
+export const imageToGen3D = async (
+  imageData: ImageData, 
+  options: ImageToGeometryOptions = {}
+): Promise<Gen3DResult> => {
+  try {
+    // Convert ImageData to base64
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d')!;
+    canvas.width = imageData.width;
+    canvas.height = imageData.height;
+    ctx.putImageData(imageData, 0, 0);
+    
+    const base64 = canvas.toDataURL('image/png').split(',')[1];
+    
+    console.log('Sending image to Gen3D 2.0 engine...');
+    
+    const { data, error } = await supabase.functions.invoke('image-to-3d-gen3d', {
+      body: {
+        imageBase64: base64,
+        options: {
+          topology: options.topology || 'triangle',
+          target_polycount: options.target_polycount || 30000,
+          symmetry_mode: options.symmetry_mode || 'auto',
+          should_remesh: options.should_remesh !== false,
+          should_texture: options.should_texture !== false,
+          enable_pbr: options.enable_pbr || true,
+          is_a_t_pose: options.is_a_t_pose || false,
+        }
+      }
+    });
+
+    if (error) {
+      console.error('Gen3D Edge Function Error:', error);
+      return { success: false, error: error.message };
+    }
+
+    return data as Gen3DResult;
+  } catch (error) {
+    console.error('Error in Gen3D conversion:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    };
   }
 };
 
@@ -474,4 +547,38 @@ export const loadImageData = (file: File): Promise<ImageData> => {
     img.onerror = () => reject(new Error('Failed to load image'));
     img.src = URL.createObjectURL(file);
   });
+};
+
+// Utility to load 3D model from URL
+export const loadModelFromUrl = async (url: string): Promise<THREE.BufferGeometry> => {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch model: ${response.status}`);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    
+    // Import GLTFLoader dynamically
+    const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+    const loader = new GLTFLoader();
+    
+    return new Promise((resolve, reject) => {
+      loader.parse(arrayBuffer, '', (gltf) => {
+        // Extract geometry from the first mesh found
+        const mesh = gltf.scene.children.find(child => 
+          child instanceof THREE.Mesh
+        ) as THREE.Mesh;
+        
+        if (mesh && mesh.geometry) {
+          resolve(mesh.geometry);
+        } else {
+          reject(new Error('No valid geometry found in the model'));
+        }
+      }, reject);
+    });
+  } catch (error) {
+    console.error('Error loading model from URL:', error);
+    throw error;
+  }
 };
