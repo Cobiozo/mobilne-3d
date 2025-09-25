@@ -19,80 +19,26 @@ serve(async (req) => {
       throw new Error('No image data provided');
     }
 
-    console.log('Starting Gen3D 2.0 conversion using real models');
+    console.log('Starting Hunyuan3D-2.0 generation using real Tencent model');
     
-    // Try different Gen3D 2.0 compatible models
-    let result;
+    // Use real Hunyuan3D-2.0 from fal.ai
+    const result = await generateHunyuan3D(imageBase64, options);
     
-    try {
-      // Try TripoSR first (fastest)
-      console.log('Attempting TripoSR generation...');
-      result = await tryTripoSR(imageBase64, options);
-      if (result.success) {
-        return new Response(JSON.stringify({
-          success: true,
-          method: 'TripoSR (Gen3D 2.0)',
-          result: result.data,
-          format: 'glb'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    } catch (error) {
-      console.log('TripoSR failed, trying Stable-Fast-3D:', error);
+    if (result.success) {
+      return new Response(JSON.stringify({
+        success: true,
+        method: 'Hunyuan3D-2.0 (Tencent)',
+        result: result.data,
+        format: 'glb'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } else {
+      throw new Error(result.error || 'Hunyuan3D-2.0 generation failed');
     }
-
-    try {
-      // Try Stable-Fast-3D
-      console.log('Attempting Stable-Fast-3D generation...');
-      result = await tryStableFast3D(imageBase64, options);
-      if (result.success) {
-        return new Response(JSON.stringify({
-          success: true,
-          method: 'Stable-Fast-3D (Gen3D 2.0)',
-          result: result.data,
-          format: 'glb'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    } catch (error) {
-      console.log('Stable-Fast-3D failed, trying InstantMesh:', error);
-    }
-
-    try {
-      // Try InstantMesh
-      console.log('Attempting InstantMesh generation...');
-      result = await tryInstantMesh(imageBase64, options);
-      if (result.success) {
-        return new Response(JSON.stringify({
-          success: true,
-          method: 'InstantMesh (Gen3D 2.0)',
-          result: result.data,
-          format: 'glb'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    } catch (error) {
-      console.log('InstantMesh failed:', error);
-    }
-
-    // All external APIs failed, return enhanced parameters for client-side generation
-    console.log('All external APIs failed, using enhanced local algorithm');
-    const enhancedResult = await generateEnhancedLocal3D(imageBase64, options);
-    
-    return new Response(JSON.stringify({
-      success: true,
-      method: 'Enhanced Local Gen3D 2.0',
-      result: enhancedResult,
-      format: 'geometry'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
 
   } catch (error) {
-    console.error('Error in Gen3D conversion:', error);
+    console.error('Error in Hunyuan3D-2.0 conversion:', error);
     return new Response(JSON.stringify({ 
       success: false,
       error: error instanceof Error ? error.message : 'An error occurred'
@@ -103,122 +49,110 @@ serve(async (req) => {
   }
 });
 
-// Try TripoSR API
-async function tryTripoSR(imageBase64: string, options: any) {
-  const response = await fetch('https://api-inference.huggingface.co/models/stabilityai/TripoSR', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      inputs: imageBase64,
-      options: {
-        wait_for_model: true,
-        use_cache: false
-      }
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`TripoSR API error: ${response.status}`);
+// Generate 3D model using real Hunyuan3D-2.0 from fal.ai
+async function generateHunyuan3D(imageBase64: string, options: any) {
+  const FAL_AI_API_KEY = Deno.env.get('FAL_AI_API_KEY');
+  
+  if (!FAL_AI_API_KEY) {
+    throw new Error('FAL_AI_API_KEY is not configured');
   }
 
-  const arrayBuffer = await response.arrayBuffer();
-  const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-  
-  return {
-    success: true,
-    data: {
-      glb_data: base64Data,
-      model_type: 'TripoSR'
+  console.log('Using fal.ai Hunyuan3D-2.0 API for 3D generation');
+
+  try {
+    // Convert base64 to data URI for fal.ai
+    const imageDataUri = `data:image/png;base64,${imageBase64}`;
+
+    // Submit request to fal.ai Hunyuan3D-2.0 API
+    const response = await fetch('https://queue.fal.run/fal-ai/hunyuan3d/v2', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Key ${FAL_AI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        input: {
+          input_image_url: imageDataUri,
+          num_inference_steps: options.num_inference_steps || 50,
+          guidance_scale: options.guidance_scale || 7.5,
+          octree_resolution: options.octree_resolution || 256,
+          textured_mesh: options.textured_mesh || false
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Hunyuan3D-2.0 API error: ${response.status} - ${errorText}`);
     }
-  };
-}
 
-// Try Stable-Fast-3D API
-async function tryStableFast3D(imageBase64: string, options: any) {
-  const response = await fetch('https://api-inference.huggingface.co/models/stabilityai/stable-fast-3d', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      inputs: imageBase64,
-      options: {
-        wait_for_model: true,
-        use_cache: false
+    const submissionResult = await response.json();
+    const requestId = submissionResult.request_id;
+    
+    console.log('Hunyuan3D-2.0 request submitted, ID:', requestId);
+
+    // Poll for completion
+    let result;
+    let attempts = 0;
+    const maxAttempts = 60; // 5 minutes with 5-second intervals
+    
+    while (attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+      
+      const statusResponse = await fetch(`https://queue.fal.run/fal-ai/hunyuan3d/v2/requests/${requestId}`, {
+        headers: {
+          'Authorization': `Key ${FAL_AI_API_KEY}`,
+        }
+      });
+      
+      if (!statusResponse.ok) {
+        throw new Error(`Status check failed: ${statusResponse.status}`);
       }
-    })
-  });
+      
+      const statusResult = await statusResponse.json();
+      console.log('Hunyuan3D-2.0 status:', statusResult.status);
+      
+      if (statusResult.status === 'COMPLETED') {
+        result = statusResult;
+        break;
+      } else if (statusResult.status === 'FAILED') {
+        throw new Error(`Hunyuan3D-2.0 generation failed: ${statusResult.error}`);
+      }
+      
+      attempts++;
+    }
+    
+    if (!result) {
+      throw new Error('Hunyuan3D-2.0 generation timed out');
+    }
 
-  if (!response.ok) {
-    throw new Error(`Stable-Fast-3D API error: ${response.status}`);
+    // Download the GLB file and convert to base64
+    const glbUrl = result.data.model_mesh.url;
+    console.log('Downloading GLB from:', glbUrl);
+    
+    const glbResponse = await fetch(glbUrl);
+    if (!glbResponse.ok) {
+      throw new Error(`Failed to download GLB: ${glbResponse.status}`);
+    }
+    
+    const glbArrayBuffer = await glbResponse.arrayBuffer();
+    const glbBase64 = btoa(String.fromCharCode(...new Uint8Array(glbArrayBuffer)));
+    
+    return {
+      success: true,
+      data: {
+        glb_data: glbBase64,
+        model_type: 'Hunyuan3D-2.0',
+        seed: result.data.seed,
+        file_size: result.data.model_mesh.file_size
+      }
+    };
+
+  } catch (error) {
+    console.error('Hunyuan3D-2.0 generation error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Generation failed'
+    };
   }
-
-  const arrayBuffer = await response.arrayBuffer();
-  const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-  
-  return {
-    success: true,
-    data: {
-      glb_data: base64Data,
-      model_type: 'Stable-Fast-3D'
-    }
-  };
-}
-
-// Try InstantMesh API
-async function tryInstantMesh(imageBase64: string, options: any) {
-  const response = await fetch('https://api-inference.huggingface.co/models/TencentARC/InstantMesh', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      inputs: imageBase64,
-      options: {
-        wait_for_model: true,
-        use_cache: false
-      }
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`InstantMesh API error: ${response.status}`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-  
-  return {
-    success: true,
-    data: {
-      glb_data: base64Data,
-      model_type: 'InstantMesh'
-    }
-  };
-}
-
-// Enhanced local 3D generation algorithm (fallback)
-async function generateEnhancedLocal3D(imageBase64: string, options: any) {
-  console.log('Generating enhanced local 3D model with Gen3D 2.0 principles...');
-  
-  return {
-    algorithm: 'enhanced_heightmap_extrusion',
-    parameters: {
-      depth_enhancement: true,
-      multi_layer_extrusion: true,
-      edge_detection: true,
-      smooth_normals: true,
-      adaptive_tessellation: true,
-      target_polycount: options.target_polycount || 30000,
-      quality_level: 'high',
-      gen3d_features: {
-        sparse_view_reconstruction: true,
-        multi_view_consistency: true,
-        texture_generation: true,
-        mesh_optimization: true
-      }
-    }
-  };
 }
