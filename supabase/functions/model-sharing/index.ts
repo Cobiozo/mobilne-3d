@@ -116,7 +116,7 @@ serve(async (req) => {
     console.error('Error in model-sharing function:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'An error occurred',
+        error: error instanceof Error ? error.message : 'An error occurred',
         success: false 
       }),
       {

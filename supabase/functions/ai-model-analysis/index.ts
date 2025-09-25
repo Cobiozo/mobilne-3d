@@ -102,7 +102,7 @@ serve(async (req) => {
     console.error('Error in ai-model-analysis function:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'An error occurred',
+        error: error instanceof Error ? error.message : 'An error occurred',
         success: false 
       }),
       {
