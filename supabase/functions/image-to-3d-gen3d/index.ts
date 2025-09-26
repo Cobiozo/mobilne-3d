@@ -19,26 +19,26 @@ serve(async (req) => {
       throw new Error('No image data provided');
     }
 
-    console.log('Starting Hunyuan3D-2.0 generation using real Tencent model');
+    console.log('Starting Stable3DGen (Trellis) generation using fal.ai');
     
-    // Use real Hunyuan3D-2.0 from fal.ai
-    const result = await generateHunyuan3D(imageBase64, options);
+    // Use Stable3DGen (Trellis) from fal.ai
+    const result = await generateStable3DGen(imageBase64, options);
     
     if (result.success) {
       return new Response(JSON.stringify({
         success: true,
-        method: 'Hunyuan3D-2.0 (Tencent)',
+        method: 'Stable3DGen (Trellis)',
         result: result.data,
         format: 'glb'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } else {
-      throw new Error(result.error || 'Hunyuan3D-2.0 generation failed');
+      throw new Error(result.error || 'Stable3DGen generation failed');
     }
 
   } catch (error) {
-    console.error('Error in Hunyuan3D-2.0 conversion:', error);
+    console.error('Error in Stable3DGen conversion:', error);
     return new Response(JSON.stringify({ 
       success: false,
       error: error instanceof Error ? error.message : 'An error occurred'
@@ -49,47 +49,43 @@ serve(async (req) => {
   }
 });
 
-// Generate 3D model using real Hunyuan3D-2.0 from fal.ai
-async function generateHunyuan3D(imageBase64: string, options: any) {
+// Generate 3D model using Stable3DGen (Trellis) from fal.ai
+async function generateStable3DGen(imageBase64: string, options: any) {
   const FAL_AI_API_KEY = Deno.env.get('FAL_AI_API_KEY');
   
   if (!FAL_AI_API_KEY) {
     throw new Error('FAL_AI_API_KEY is not configured');
   }
 
-  console.log('Using fal.ai Hunyuan3D-2.0 API for 3D generation');
+  console.log('Using fal.ai Trellis API for 3D generation');
 
   try {
     // Convert base64 to data URI for fal.ai
     const imageDataUri = `data:image/png;base64,${imageBase64}`;
 
-    // Submit request to fal.ai Hunyuan3D-2.0 API
-    const response = await fetch('https://queue.fal.run/fal-ai/hunyuan3d/v2', {
+    // Submit request to fal.ai Trellis API
+    const response = await fetch('https://queue.fal.run/fal-ai/trellis', {
       method: 'POST',
       headers: {
         'Authorization': `Key ${FAL_AI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        input: {
-          input_image_url: imageDataUri,
-          num_inference_steps: options.num_inference_steps || 50,
-          guidance_scale: options.guidance_scale || 7.5,
-          octree_resolution: options.octree_resolution || 256,
-          textured_mesh: options.textured_mesh || false
-        }
+        image_url: imageDataUri,
+        format: "glb",
+        preprocess: true
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Hunyuan3D-2.0 API error: ${response.status} - ${errorText}`);
+      throw new Error(`Trellis API error: ${response.status} - ${errorText}`);
     }
 
     const submissionResult = await response.json();
     const requestId = submissionResult.request_id;
     
-    console.log('Hunyuan3D-2.0 request submitted, ID:', requestId);
+    console.log('Trellis request submitted, ID:', requestId);
 
     // Poll for completion
     let result;
@@ -99,7 +95,7 @@ async function generateHunyuan3D(imageBase64: string, options: any) {
     while (attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
       
-      const statusResponse = await fetch(`https://queue.fal.run/fal-ai/hunyuan3d/v2/requests/${requestId}`, {
+      const statusResponse = await fetch(`https://queue.fal.run/fal-ai/trellis/requests/${requestId}`, {
         headers: {
           'Authorization': `Key ${FAL_AI_API_KEY}`,
         }
@@ -110,24 +106,24 @@ async function generateHunyuan3D(imageBase64: string, options: any) {
       }
       
       const statusResult = await statusResponse.json();
-      console.log('Hunyuan3D-2.0 status:', statusResult.status);
+      console.log('Trellis status:', statusResult.status);
       
       if (statusResult.status === 'COMPLETED') {
         result = statusResult;
         break;
       } else if (statusResult.status === 'FAILED') {
-        throw new Error(`Hunyuan3D-2.0 generation failed: ${statusResult.error}`);
+        throw new Error(`Trellis generation failed: ${statusResult.error}`);
       }
       
       attempts++;
     }
     
     if (!result) {
-      throw new Error('Hunyuan3D-2.0 generation timed out');
+      throw new Error('Trellis generation timed out');
     }
 
     // Download the GLB file and convert to base64
-    const glbUrl = result.data.model_mesh.url;
+    const glbUrl = result.data.model.url;
     console.log('Downloading GLB from:', glbUrl);
     
     const glbResponse = await fetch(glbUrl);
@@ -142,14 +138,13 @@ async function generateHunyuan3D(imageBase64: string, options: any) {
       success: true,
       data: {
         glb_data: glbBase64,
-        model_type: 'Hunyuan3D-2.0',
-        seed: result.data.seed,
-        file_size: result.data.model_mesh.file_size
+        model_type: 'Stable3DGen (Trellis)',
+        file_size: result.data.model.file_size
       }
     };
 
   } catch (error) {
-    console.error('Hunyuan3D-2.0 generation error:', error);
+    console.error('Stable3DGen generation error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Generation failed'
