@@ -74,8 +74,8 @@ export const ImageUpload = ({ onFileSelect, className }: ImageUploadProps) => {
             {t('imageUploadSubtitle')}
           </p>
           <div className="bg-primary/10 rounded-lg p-2 mt-2">
-            <p className="text-xs text-primary font-medium">✨ Powered by Gen3D 2.0</p>
-            <p className="text-xs text-muted-foreground">AI-driven high-quality 3D model generation</p>
+            <p className="text-xs text-primary font-medium">✨ Powered by Stable3DGen</p>
+            <p className="text-xs text-muted-foreground">Advanced local 3D model generation</p>
           </div>
         </div>
       </div>
