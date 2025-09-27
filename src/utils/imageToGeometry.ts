@@ -11,17 +11,17 @@ export interface ImageToGeometryOptions {
   bevelEnabled?: boolean;
   bevelThickness?: number;
   bevelSize?: number;
-  // Gen3D 2.0 specific options
+  // PartCrafter specific options
   topology?: 'triangle' | 'quad';
   target_polycount?: number;
   symmetry_mode?: 'off' | 'auto' | 'on';
   should_remesh?: boolean;
   should_texture?: boolean;
   enable_pbr?: boolean;
-  is_a_t_pose?: boolean;
+  num_parts?: number;
 }
 
-export interface Gen3DResult {
+export interface PartCrafterResult {
   success: boolean;
   taskId?: string;
   model_urls?: {
@@ -54,8 +54,8 @@ export const imageToGeometry = (
   } = options;
 
   if (mode === 'gen3d') {
-    // Gen3D 2.0 mode uses the edge function for AI-powered 3D generation
-    throw new Error('Gen3D 2.0 mode requires async processing via imageToGen3D function');
+    // PartCrafter mode uses the edge function for AI-powered 3D generation
+    throw new Error('PartCrafter mode requires async processing via imageToGen3D function');
   } else if (mode === 'silhouette') {
     return createProperlySilhouetteGeometry(imageData, {
       extrudeDepth,
@@ -82,11 +82,11 @@ export const imageToGeometry = (
   }
 };
 
-// New Gen3D 2.0 function for AI-powered image to 3D conversion
+// PartCrafter function for AI-powered image to 3D conversion
 export const imageToGen3D = async (
   imageData: ImageData, 
   options: ImageToGeometryOptions = {}
-): Promise<Gen3DResult> => {
+): Promise<PartCrafterResult> => {
   try {
     // Convert ImageData to base64
     const canvas = document.createElement('canvas');
@@ -109,7 +109,7 @@ export const imageToGen3D = async (
           should_remesh: options.should_remesh !== false,
           should_texture: options.should_texture !== false,
           enable_pbr: options.enable_pbr || true,
-          is_a_t_pose: options.is_a_t_pose || false,
+          num_parts: options.num_parts || 3,
         }
       }
     });
@@ -127,16 +127,13 @@ export const imageToGen3D = async (
           const geometry = await loadGLBFromBase64(data.result);
           return { success: true, geometry, method: data.method };
         } catch (glbError) {
-          console.warn('Failed to load GLB, using enhanced PartCrafter local method');
-          return generateEnhancedLocalGeometry(imageData, data.result);
+          console.warn('Failed to load GLB data from PartCrafter');
+          throw new Error('PartCrafter GLB loading failed');
         }
-      } else if (data.format === 'geometry' && data.result) {
-        // Use enhanced local generation
-        return generateEnhancedLocalGeometry(imageData, data.result);
       }
     }
 
-    return data as Gen3DResult;
+    return data as PartCrafterResult;
   } catch (error) {
     console.error('Error in PartCrafter conversion:', error);
     return { 
@@ -146,22 +143,10 @@ export const imageToGen3D = async (
   }
 };
 
-// Enhanced local geometry generation (Gen3D 2.0 inspired)
-const generateEnhancedLocalGeometry = (imageData: ImageData, parameters: any): Gen3DResult => {
-  try {
-    console.log('Generating enhanced local 3D geometry with Gen3D 2.0 algorithm...');
-    
-    const geometry = createEnhancedGen3DGeometry(imageData, parameters);
-    
-    return {
-      success: true,
-      geometry,
-      method: 'Enhanced Local Gen3D 2.0'
-    };
-  } catch (error) {
-    console.error('Enhanced local generation failed:', error);
-    return { success: false, error: error.message };
-  }
+// Force PartCrafter usage - no fallback methods
+const forcePartCrafterOnly = () => {
+  console.log('Application configured to use PartCrafter exclusively');
+  return true;
 };
 
 const createProperlySilhouetteGeometry = (

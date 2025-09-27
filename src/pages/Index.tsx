@@ -17,7 +17,7 @@ import { ThemeSelector } from "@/components/ThemeSelector";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useTheme } from "next-themes";
 import { loadModelFile, Model3MFInfo } from "@/utils/modelLoader";
-import { imageToGeometry, loadImageData } from "@/utils/imageToGeometry";
+import { imageToGen3D, loadImageData } from "@/utils/imageToGeometry";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { User, LogIn } from "lucide-react";
@@ -132,7 +132,7 @@ const Index = () => {
     try {
       setIsGenerating(true);
       setGenerationProgress(0);
-      toast.info('🔄 Rozpoczynam generowanie z Stable3DGen...');
+      toast.info('🔄 Rozpoczynam generowanie z PartCrafter...');
       
       // Simulate progress
       const progressInterval = setInterval(() => {
@@ -143,49 +143,52 @@ const Index = () => {
           }
           return prev + Math.random() * 10;
         });
-      }, 200);
+      }, 500);
       
-      // Load image data
       setGenerationProgress(10);
       const imageData = await loadImageData(file);
       setGenerationProgress(30);
       
-      // Use only Stable3DGen algorithm (local enhanced generation)
-      toast.info('🚀 Przetwarzanie z algorytmem Stable3DGen...');
+      // Use PartCrafter for structured 3D mesh generation
+      toast.info('🚀 Przetwarzanie z PartCrafter: Structured 3D Mesh Generation...');
       setGenerationProgress(50);
       
-      // Generate geometry using enhanced local algorithm
-      const geometry = imageToGeometry(imageData, {
-        mode: 'silhouette',
-        extrudeDepth: 0.8,
-        bevelEnabled: true,
-        bevelSize: 0.02,
-        smoothing: true,
-        // Enhanced parameters for Stable3DGen-like quality
-        width: 128,
-        height: 128
+      // Generate 3D model using PartCrafter
+      const result = await imageToGen3D(imageData, {
+        topology: 'triangle',
+        num_parts: 3,
+        target_polycount: 30000,
+        should_remesh: true,
+        should_texture: true,
+        enable_pbr: true
       });
       
       setGenerationProgress(80);
-      setImageGeometry(geometry);
-      setGenerationProgress(100);
       
-      clearInterval(progressInterval);
-      setTimeout(() => {
-        setIsGenerating(false);
-        setGenerationProgress(0);
-      }, 500);
+      if (result.success && result.geometry) {
+        setImageGeometry(result.geometry);
+        setGenerationProgress(100);
+        clearInterval(progressInterval);
+        
+        setTimeout(() => {
+          setIsGenerating(false);
+          setGenerationProgress(0);
+        }, 500);
+        
+        toast.success(`✅ Model wygenerowany pomyślnie z ${result.method || 'PartCrafter'}!`);
+        setFileName(file.name);
+        setModelData(null);
+        setAvailableModels([]);
+        setSelectedModelIndex(0);
+      } else {
+        throw new Error(result.error || 'PartCrafter generation failed');
+      }
       
-      toast.success('✨ Stable3DGen: Model 3D wygenerowany pomyślnie!');
-      setFileName(file.name);
-      setModelData(null); // Clear 3D model data
-      setAvailableModels([]);
-      setSelectedModelIndex(0);
     } catch (error) {
-      console.error("Error processing image:", error);
+      console.error("Error generating 3D from image:", error);
       setIsGenerating(false);
       setGenerationProgress(0);
-      toast.error('❌ Błąd podczas generowania modelu 3D');
+      toast.error('❌ Błąd generowania 3D z obrazu: ' + (error instanceof Error ? error.message : 'Nieznany błąd'));
     }
   };
 
