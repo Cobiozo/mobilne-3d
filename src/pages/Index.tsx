@@ -7,7 +7,7 @@ import { ProgressLoader } from "@/components/ProgressLoader";
 import { ModelSelector } from "@/components/ModelSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Box, Layers3, Image } from "lucide-react";
+import { Box, Layers3, Image, ShoppingCart, MessageCircle } from "lucide-react";
 import { exportCanvasAs, captureCanvasFromThreeJS } from "@/utils/exportUtils";
 import { render2DView } from "@/utils/export2D";
 import { useApp } from "@/contexts/AppContext";
@@ -22,6 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { User, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import * as THREE from 'three';
 
 // Helper function to convert hex to HSL
@@ -68,6 +69,11 @@ const Index = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
 
+  // Standard colors for comparison
+  const standardColors = ['#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
+  
+  const isNonStandardColor = !standardColors.includes(modelColor.toUpperCase());
+
   // Auto-adjust color based on theme and apply site settings
   useEffect(() => {
     if (resolvedTheme === 'light') {
@@ -104,6 +110,11 @@ const Index = () => {
       setModelData(arrayBuffer);
       setFileName(file.name);
       
+      // Save model to database if user is logged in
+      if (user) {
+        await saveModelToDatabase(file, arrayBuffer);
+      }
+      
       // Load models using the unified loader
       try {
         const models = await loadModelFile(arrayBuffer, file.name);
@@ -125,6 +136,54 @@ const Index = () => {
     } catch (error) {
       console.error("Error loading file:", error);
       toast.error(t('uploadError'));
+    }
+  };
+
+  const saveModelToDatabase = async (file: File, arrayBuffer: ArrayBuffer) => {
+    try {
+      // Create a unique filename
+      const timestamp = Date.now();
+      const fileExtension = file.name.split('.').pop();
+      const uniqueFileName = `${timestamp}_${file.name}`;
+      
+      // Convert ArrayBuffer to File for upload
+      const fileToUpload = new File([arrayBuffer], uniqueFileName, { type: file.type });
+      
+      // Upload to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('models')
+        .upload(`user_uploads/${user!.id}/${uniqueFileName}`, fileToUpload);
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        return;
+      }
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('models')
+        .getPublicUrl(uploadData.path);
+
+      // Save model metadata to database
+      const { error: dbError } = await supabase
+        .from('models')
+        .insert({
+          user_id: user!.id,
+          name: file.name,
+          description: `Wczytany model 3D: ${file.name}`,
+          file_url: publicUrl,
+          file_type: fileExtension || 'unknown',
+          file_size: file.size,
+          is_public: false
+        });
+
+      if (dbError) {
+        console.error('Database error:', dbError);
+      } else {
+        toast.success('Model zapisany w "Moje modele 3D"');
+      }
+    } catch (error) {
+      console.error('Error saving model:', error);
     }
   };
 
@@ -449,21 +508,14 @@ const Index = () => {
               {!modelData && !imageGeometry && (
                 <div className="block xl:hidden">
                   <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d")} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
+                    <TabsList className="grid w-full grid-cols-1">
                       <TabsTrigger value="model3d" className="flex items-center gap-2">
                         <Layers3 className="w-4 h-4" />
                         {t('tabModel3D')}
                       </TabsTrigger>
-                      <TabsTrigger value="image2d" className="flex items-center gap-2">
-                        <Image className="w-4 h-4" />
-                        {t('tabImageTo3D')}
-                      </TabsTrigger>
                     </TabsList>
                     <TabsContent value="model3d" className="mt-4">
                       <FileUpload onFileSelect={handleFileSelect} />
-                    </TabsContent>
-                    <TabsContent value="image2d" className="mt-4">
-                      <ImageUpload onFileSelect={handleImageSelect} />
                     </TabsContent>
                   </Tabs>
                 </div>
@@ -492,27 +544,46 @@ const Index = () => {
           </div>
         </div>
 
+        {/* Action Buttons - Show when model is loaded */}
+        {(modelData || imageGeometry) && (
+          <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+            <Button 
+              onClick={() => toast.info('Funkcja dodawania do koszyka będzie wkrótce dostępna')}
+              className="flex items-center gap-2 min-w-[200px]"
+              size="lg"
+            >
+              <ShoppingCart className="w-5 h-5" />
+              Dodaj do koszyka
+            </Button>
+            
+            {isNonStandardColor && (
+              <Button 
+                variant="outline"
+                onClick={() => toast.info('Funkcja zapytania o dostępność będzie wkrótce dostępna')}
+                className="flex items-center gap-2 min-w-[200px]"
+                size="lg"
+              >
+                <MessageCircle className="w-5 h-5" />
+                Zapytaj o dostępność
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* Upload Area when model is loaded - Mobile only */}
         {(modelData || imageGeometry) && (
           <div className="mt-4 sm:mt-6 xl:hidden">
             <div className="text-center">
               <div className="max-w-md mx-auto">
                 <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d")} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-1">
                     <TabsTrigger value="model3d" className="flex items-center gap-2">
                       <Layers3 className="w-4 h-4" />
                       {t('tabModel3D')}
                     </TabsTrigger>
-                    <TabsTrigger value="image2d" className="flex items-center gap-2">
-                      <Image className="w-4 h-4" />
-                      {t('tabImageTo3D')}
-                    </TabsTrigger>
                   </TabsList>
                   <TabsContent value="model3d" className="mt-4">
                     <FileUpload onFileSelect={handleFileSelect} />
-                  </TabsContent>
-                  <TabsContent value="image2d" className="mt-4">
-                    <ImageUpload onFileSelect={handleImageSelect} />
                   </TabsContent>
                 </Tabs>
               </div>
@@ -526,21 +597,14 @@ const Index = () => {
             <div className="text-center">
               <div className="max-w-md mx-auto">
                 <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d")} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-1">
                     <TabsTrigger value="model3d" className="flex items-center gap-2">
                       <Layers3 className="w-4 h-4" />
                       {t('tabModel3D')}
                     </TabsTrigger>
-                    <TabsTrigger value="image2d" className="flex items-center gap-2">
-                      <Image className="w-4 h-4" />
-                      {t('tabImageTo3D')}
-                    </TabsTrigger>
                   </TabsList>
                   <TabsContent value="model3d" className="mt-4">
                     <FileUpload onFileSelect={handleFileSelect} />
-                  </TabsContent>
-                  <TabsContent value="image2d" className="mt-4">
-                    <ImageUpload onFileSelect={handleImageSelect} />
                   </TabsContent>
                 </Tabs>
               </div>
