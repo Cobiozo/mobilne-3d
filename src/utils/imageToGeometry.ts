@@ -97,7 +97,7 @@ export const imageToGen3D = async (
     
     const base64 = canvas.toDataURL('image/png').split(',')[1];
     
-    console.log('Sending image to Gen3D 2.0 engine...');
+    console.log('Sending image to Stable3DGen engine...');
     
     const { data, error } = await supabase.functions.invoke('image-to-3d-gen3d', {
       body: {
@@ -115,7 +115,7 @@ export const imageToGen3D = async (
     });
 
     if (error) {
-      console.error('Gen3D Edge Function Error:', error);
+      console.error('Stable3DGen Edge Function Error:', error);
       return { success: false, error: error.message };
     }
 
@@ -127,7 +127,7 @@ export const imageToGen3D = async (
           const geometry = await loadGLBFromBase64(data.result);
           return { success: true, geometry, method: data.method };
         } catch (glbError) {
-          console.warn('Failed to load GLB, falling back to enhanced local method');
+          console.warn('Failed to load GLB, using enhanced Stable3DGen local method');
           return generateEnhancedLocalGeometry(imageData, data.result);
         }
       } else if (data.format === 'geometry' && data.result) {
@@ -138,7 +138,7 @@ export const imageToGen3D = async (
 
     return data as Gen3DResult;
   } catch (error) {
-    console.error('Error in Gen3D conversion:', error);
+    console.error('Error in Stable3DGen conversion:', error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 
