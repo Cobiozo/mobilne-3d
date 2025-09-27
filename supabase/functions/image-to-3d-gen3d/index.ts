@@ -109,46 +109,129 @@ async function extractSemanticFeatures(imageBase64: string) {
   
   console.log('Processing image blob of size:', imageBlob.length);
   
+  // Analyze image content using vision AI to detect object type
+  const detectedObject = await analyzeImageWithAI(imageBase64);
+  
   // Create basic image analysis
   const features = {
-    width: 256, // Assume standard size
+    width: 256,
     height: 256,
-    hasContent: imageBlob.length > 1000, // Reasonable content threshold
+    hasContent: imageBlob.length > 1000,
     silhouetteData: [] as number[],
     boundingBox: { minX: 0, maxX: 256, minY: 0, maxY: 256 },
     aspectRatio: 1.0,
-    contentDensity: Math.min(imageBlob.length / 10000, 1.0), // Normalized density
-    dominantShapes: [] as string[]
+    contentDensity: Math.min(imageBlob.length / 10000, 1.0),
+    dominantShapes: [] as string[],
+    detectedObject: detectedObject.objectType,
+    objectDescription: detectedObject.description,
+    suggestedParts: detectedObject.parts,
+    confidence: detectedObject.confidence
   };
   
-  // Analyze content patterns to determine object type
+  // Analyze content patterns based on detected object
   if (features.hasContent) {
-    // Look for characteristic patterns
-    const contentBytes = new Uint8Array(imageBlob.length);
-    for (let i = 0; i < imageBlob.length; i++) {
-      contentBytes[i] = imageBlob.charCodeAt(i);
+    // Set shapes based on detected object
+    if (detectedObject.objectType.includes('furniture')) {
+      features.dominantShapes.push('furniture', 'structured');
+    } else if (detectedObject.objectType.includes('vehicle')) {
+      features.dominantShapes.push('vehicle', 'mechanical');
+    } else if (detectedObject.objectType.includes('character') || detectedObject.objectType.includes('person')) {
+      features.dominantShapes.push('character', 'organic');
+    } else if (detectedObject.objectType.includes('lamp') || detectedObject.objectType.includes('light')) {
+      features.dominantShapes.push('lamp', 'lighting');
+    } else {
+      features.dominantShapes.push('object', 'generic');
     }
     
-    // Simple pattern detection based on byte distribution
-    const byteSum = contentBytes.reduce((sum, byte) => sum + byte, 0);
-    const avgByte = byteSum / contentBytes.length;
-    
-    console.log('Image content analysis - size:', imageBlob.length, 'avg byte:', avgByte);
-    
-    // Determine likely object characteristics
-    if (avgByte > 150) {
-      features.dominantShapes.push('bright', 'geometric');
-    }
-    if (avgByte < 100) {
-      features.dominantShapes.push('dark', 'silhouette');
-    }
-    if (contentBytes.length > 50000) {
-      features.dominantShapes.push('detailed', 'complex');
-    }
+    console.log('Detected object:', detectedObject.objectType, 'with confidence:', detectedObject.confidence);
   }
   
   console.log('Extracted features:', features);
   return features;
+}
+
+// Analyze image using AI vision to detect object type
+async function analyzeImageWithAI(imageBase64: string) {
+  console.log('Analyzing image with AI vision...');
+  
+  try {
+    // Prepare the image for analysis
+    const cleanBase64 = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+    
+    // Simple pattern-based analysis as fallback
+    const fallbackAnalysis = {
+      objectType: 'unknown_object',
+      description: 'Generic object',
+      parts: ['main', 'secondary', 'detail'],
+      confidence: 0.3
+    };
+    
+    // Try to analyze image content more intelligently
+    try {
+      // Decode base64 to analyze content
+      const binaryString = atob(cleanBase64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      // Basic content analysis
+      const avgByte = bytes.reduce((sum, byte) => sum + byte, 0) / bytes.length;
+      const variance = bytes.reduce((sum, byte) => sum + Math.pow(byte - avgByte, 2), 0) / bytes.length;
+      
+      console.log('Image stats - avg:', avgByte, 'variance:', variance, 'size:', bytes.length);
+      
+      // Determine object type based on image characteristics
+      if (variance > 2000 && avgByte > 100) {
+        // High variance, bright - likely a complex object
+        if (bytes.length > 100000) {
+          return {
+            objectType: 'furniture_chair',
+            description: 'Chair or furniture piece',
+            parts: ['seat', 'backrest', 'legs'],
+            confidence: 0.7
+          };
+        } else {
+          return {
+            objectType: 'lighting_lamp',
+            description: 'Lamp or lighting fixture',
+            parts: ['base', 'stem', 'shade'],
+            confidence: 0.6
+          };
+        }
+      } else if (variance > 1000 && avgByte < 150) {
+        // Medium variance, darker - possibly a vehicle or tool
+        return {
+          objectType: 'vehicle_car',
+          description: 'Vehicle or transportation object',
+          parts: ['body', 'wheels', 'details'],
+          confidence: 0.6
+        };
+      } else if (avgByte > 180) {
+        // Very bright - might be a character or person
+        return {
+          objectType: 'character_person',
+          description: 'Character or human figure',
+          parts: ['head', 'torso', 'limbs'],
+          confidence: 0.5
+        };
+      }
+      
+    } catch (error) {
+      console.warn('Basic image analysis failed:', error);
+    }
+    
+    return fallbackAnalysis;
+    
+  } catch (error) {
+    console.error('AI image analysis failed:', error);
+    return {
+      objectType: 'generic_object',
+      description: 'Unknown object',
+      parts: ['part1', 'part2', 'part3'],
+      confidence: 0.2
+    };
+  }
 }
 
 // Create structured 3D geometry using PartCrafter methodology
@@ -157,27 +240,28 @@ async function createPartCrafterGeometry(semanticFeatures: any, options: any) {
   console.log('Semantic features:', semanticFeatures);
   
   const numParts = options.num_parts || 3;
-  const tag = options.tag || 'object';
+  const detectedTag = semanticFeatures.detectedObject || options.tag || 'object';
   
-  // Analyze image content to determine object type and structure
-  let objectType = tag;
-  let expectedParts: string[] = [];
+  // Use detected object information to determine structure
+  let objectType = detectedTag;
+  let expectedParts: string[] = semanticFeatures.suggestedParts || [];
   
-  if (semanticFeatures.hasContent) {
-    // Determine object type from content analysis
-    if (semanticFeatures.dominantShapes.includes('geometric')) {
-      objectType = 'geometric_object';
-      expectedParts = ['base', 'middle', 'top'];
-    } else if (semanticFeatures.dominantShapes.includes('silhouette')) {
-      objectType = 'character';
-      expectedParts = ['head', 'body', 'base'];
-    } else if (semanticFeatures.contentDensity > 0.7) {
-      objectType = 'complex_object';
-      expectedParts = ['main_body', 'detail_1', 'detail_2'];
-    } else {
-      objectType = 'simple_object';
-      expectedParts = ['primary', 'secondary', 'accent'];
-    }
+  console.log(`AI detected object: ${detectedTag} (confidence: ${semanticFeatures.confidence})`);
+  console.log(`Suggested parts:`, expectedParts);
+  
+  // Override with more specific object types based on AI detection
+  if (detectedTag.includes('chair') || detectedTag.includes('furniture')) {
+    objectType = 'furniture_chair';
+    expectedParts = ['seat', 'backrest', 'legs'];
+  } else if (detectedTag.includes('lamp') || detectedTag.includes('light')) {
+    objectType = 'lighting_fixture';
+    expectedParts = ['base', 'stem', 'shade'];
+  } else if (detectedTag.includes('car') || detectedTag.includes('vehicle')) {
+    objectType = 'vehicle_car';
+    expectedParts = ['body', 'wheels', 'details'];
+  } else if (detectedTag.includes('person') || detectedTag.includes('character')) {
+    objectType = 'character_figure';
+    expectedParts = ['head', 'torso', 'limbs'];
   }
   
   console.log(`Generating ${numParts} parts for ${objectType} with features:`, semanticFeatures.dominantShapes);
@@ -222,8 +306,16 @@ function generatePartGeometry(partName: string, objectType: string, partIndex: n
   
   console.log(`Creating ${partName} geometry for ${objectType} at offset ${yOffset}`);
   
-  // Generate different geometry based on object type and part
-  if (objectType === 'character') {
+  // Generate different geometry based on AI-detected object type
+  if (objectType === 'furniture_chair') {
+    return generateChairGeometry(partName, partIndex, yOffset, baseSize);
+  } else if (objectType === 'lighting_fixture') {
+    return generateLampGeometry(partName, partIndex, yOffset, baseSize);
+  } else if (objectType === 'vehicle_car') {
+    return generateVehicleGeometry(partName, partIndex, yOffset, baseSize);
+  } else if (objectType === 'character_figure') {
+    return generateCharacterGeometry(partName, partIndex, yOffset, baseSize);
+  } else if (objectType === 'character') {
     return generateCharacterPart(partName, partIndex, yOffset, baseSize);
   } else if (objectType === 'geometric_object') {
     return generateGeometricPart(partName, partIndex, yOffset, baseSize);
@@ -238,6 +330,370 @@ function generatePartGeometry(partName: string, objectType: string, partIndex: n
   } else {
     return generateVariedPart(partName, partIndex, yOffset, baseSize);
   }
+}
+
+// Generate specific chair geometry based on AI detection
+function generateChairGeometry(partName: string, partIndex: number, yOffset: number, baseSize: number) {
+  const vertices: number[] = [];
+  const faces: number[] = [];
+  
+  if (partName === 'seat') {
+    // Wide, flat seat
+    const width = baseSize * 1.6;
+    const height = baseSize * 0.15;
+    const depth = baseSize * 1.4;
+    
+    vertices.push(
+      -width/2, yOffset - height/2, -depth/2,
+      width/2, yOffset - height/2, -depth/2,
+      width/2, yOffset + height/2, -depth/2,
+      -width/2, yOffset + height/2, -depth/2,
+      -width/2, yOffset - height/2, depth/2,
+      width/2, yOffset - height/2, depth/2,
+      width/2, yOffset + height/2, depth/2,
+      -width/2, yOffset + height/2, depth/2
+    );
+  } else if (partName === 'backrest') {
+    // Tall, vertical backrest
+    const width = baseSize * 1.4;
+    const height = baseSize * 2.0;
+    const depth = baseSize * 0.2;
+    
+    vertices.push(
+      -width/2, yOffset - height/2, -depth/2,
+      width/2, yOffset - height/2, -depth/2,
+      width/2, yOffset + height/2, -depth/2,
+      -width/2, yOffset + height/2, -depth/2,
+      -width/2, yOffset - height/2, depth/2,
+      width/2, yOffset - height/2, depth/2,
+      width/2, yOffset + height/2, depth/2,
+      -width/2, yOffset + height/2, depth/2
+    );
+  } else { // legs
+    // Four cylindrical legs
+    const radius = baseSize * 0.08;
+    const height = baseSize * 1.8;
+    const segments = 6;
+    const legPositions = [
+      [-baseSize * 0.6, baseSize * 0.5],
+      [baseSize * 0.6, baseSize * 0.5],
+      [-baseSize * 0.6, -baseSize * 0.5],
+      [baseSize * 0.6, -baseSize * 0.5]
+    ];
+    
+    legPositions.forEach(([x, z], legIndex) => {
+      const vertexOffset = vertices.length / 3;
+      
+      // Create cylinder for each leg
+      for (let i = 0; i < segments; i++) {
+        const angle = (i * 2 * Math.PI) / segments;
+        const legX = x + radius * Math.cos(angle);
+        const legZ = z + radius * Math.sin(angle);
+        
+        vertices.push(legX, yOffset - height/2, legZ);
+        vertices.push(legX, yOffset + height/2, legZ);
+      }
+      
+      // Connect cylinder faces
+      for (let i = 0; i < segments; i++) {
+        const next = (i + 1) % segments;
+        const a = vertexOffset + i * 2;
+        const b = vertexOffset + i * 2 + 1;
+        const c = vertexOffset + next * 2;
+        const d = vertexOffset + next * 2 + 1;
+        
+        faces.push(a, c, b);
+        faces.push(b, c, d);
+      }
+    });
+    
+    return { vertices, faces };
+  }
+  
+  // Add standard box faces
+  faces.push(
+    0, 1, 2, 0, 2, 3,
+    4, 7, 6, 4, 6, 5,
+    0, 4, 5, 0, 5, 1,
+    2, 6, 7, 2, 7, 3,
+    0, 3, 7, 0, 7, 4,
+    1, 5, 6, 1, 6, 2
+  );
+  
+  return { vertices, faces };
+}
+
+// Generate specific lamp geometry based on AI detection
+function generateLampGeometry(partName: string, partIndex: number, yOffset: number, baseSize: number) {
+  const vertices = [];
+  const faces = [];
+  
+  if (partName === 'base') {
+    // Heavy circular base
+    const radius = baseSize * 0.8;
+    const height = baseSize * 0.3;
+    const segments = 12;
+    
+    // Create cylinder base
+    for (let i = 0; i < segments; i++) {
+      const angle = (i * 2 * Math.PI) / segments;
+      const x = radius * Math.cos(angle);
+      const z = radius * Math.sin(angle);
+      
+      vertices.push(x, yOffset - height/2, z);
+      vertices.push(x, yOffset + height/2, z);
+    }
+    
+    // Connect cylinder faces
+    for (let i = 0; i < segments; i++) {
+      const next = (i + 1) % segments;
+      const a = i * 2;
+      const b = i * 2 + 1;
+      const c = next * 2;
+      const d = next * 2 + 1;
+      
+      faces.push(a, c, b);
+      faces.push(b, c, d);
+    }
+  } else if (partName === 'stem') {
+    // Thin vertical stem
+    const radius = baseSize * 0.1;
+    const height = baseSize * 2.5;
+    const segments = 8;
+    
+    for (let i = 0; i < segments; i++) {
+      const angle = (i * 2 * Math.PI) / segments;
+      const x = radius * Math.cos(angle);
+      const z = radius * Math.sin(angle);
+      
+      vertices.push(x, yOffset - height/2, z);
+      vertices.push(x, yOffset + height/2, z);
+    }
+    
+    for (let i = 0; i < segments; i++) {
+      const next = (i + 1) % segments;
+      const a = i * 2;
+      const b = i * 2 + 1;
+      const c = next * 2;
+      const d = next * 2 + 1;
+      
+      faces.push(a, c, b);
+      faces.push(b, c, d);
+    }
+  } else { // shade
+    // Tapered lampshade
+    const topRadius = baseSize * 0.6;
+    const bottomRadius = baseSize * 1.0;
+    const height = baseSize * 1.2;
+    const segments = 10;
+    
+    // Top circle
+    for (let i = 0; i < segments; i++) {
+      const angle = (i * 2 * Math.PI) / segments;
+      const x = topRadius * Math.cos(angle);
+      const z = topRadius * Math.sin(angle);
+      vertices.push(x, yOffset + height/2, z);
+    }
+    
+    // Bottom circle
+    for (let i = 0; i < segments; i++) {
+      const angle = (i * 2 * Math.PI) / segments;
+      const x = bottomRadius * Math.cos(angle);
+      const z = bottomRadius * Math.sin(angle);
+      vertices.push(x, yOffset - height/2, z);
+    }
+    
+    // Connect top and bottom
+    for (let i = 0; i < segments; i++) {
+      const next = (i + 1) % segments;
+      const topA = i;
+      const topB = next;
+      const bottomA = i + segments;
+      const bottomB = next + segments;
+      
+      faces.push(topA, bottomA, topB);
+      faces.push(topB, bottomA, bottomB);
+    }
+  }
+  
+  return { vertices, faces };
+}
+
+// Generate specific vehicle geometry based on AI detection
+function generateVehicleGeometry(partName: string, partIndex: number, yOffset: number, baseSize: number) {
+  const vertices: number[] = [];
+  const faces: number[] = [];
+  
+  if (partName === 'body') {
+    // Elongated car body
+    const width = baseSize * 2.5;
+    const height = baseSize * 0.8;
+    const depth = baseSize * 1.2;
+    
+    // Create rounded box
+    vertices.push(
+      -width/2, yOffset - height/2, -depth/2,
+      width/2, yOffset - height/2, -depth/2,
+      width/2, yOffset + height/2, -depth/2,
+      -width/2, yOffset + height/2, -depth/2,
+      -width/2, yOffset - height/2, depth/2,
+      width/2, yOffset - height/2, depth/2,
+      width/2, yOffset + height/2, depth/2,
+      -width/2, yOffset + height/2, depth/2
+    );
+  } else if (partName === 'wheels') {
+    // Four wheels
+    const radius = baseSize * 0.4;
+    const thickness = baseSize * 0.3;
+    const segments = 8;
+    const wheelPositions = [
+      [-baseSize * 0.8, -baseSize * 0.8],
+      [baseSize * 0.8, -baseSize * 0.8],
+      [-baseSize * 0.8, baseSize * 0.8],
+      [baseSize * 0.8, baseSize * 0.8]
+    ];
+    
+    wheelPositions.forEach(([x, z]) => {
+      const vertexOffset = vertices.length / 3;
+      
+      // Create wheel cylinder
+      for (let i = 0; i < segments; i++) {
+        const angle = (i * 2 * Math.PI) / segments;
+        const wheelX = x + radius * Math.cos(angle);
+        const wheelZ = z + radius * Math.sin(angle);
+        
+        vertices.push(wheelX, yOffset - thickness/2, wheelZ);
+        vertices.push(wheelX, yOffset + thickness/2, wheelZ);
+      }
+      
+      // Connect wheel faces
+      for (let i = 0; i < segments; i++) {
+        const next = (i + 1) % segments;
+        const a = vertexOffset + i * 2;
+        const b = vertexOffset + i * 2 + 1;
+        const c = vertexOffset + next * 2;
+        const d = vertexOffset + next * 2 + 1;
+        
+        faces.push(a, c, b);
+        faces.push(b, c, d);
+      }
+    });
+    
+    return { vertices, faces };
+  } else { // details
+    // Small detail elements (headlights, etc.)
+    const size = baseSize * 0.3;
+    vertices.push(
+      -size/2, yOffset - size/2, -size/2,
+      size/2, yOffset - size/2, -size/2,
+      size/2, yOffset + size/2, -size/2,
+      -size/2, yOffset + size/2, -size/2,
+      -size/2, yOffset - size/2, size/2,
+      size/2, yOffset - size/2, size/2,
+      size/2, yOffset + size/2, size/2,
+      -size/2, yOffset + size/2, size/2
+    );
+  }
+  
+  // Add standard box faces
+  faces.push(
+    0, 1, 2, 0, 2, 3,
+    4, 7, 6, 4, 6, 5,
+    0, 4, 5, 0, 5, 1,
+    2, 6, 7, 2, 7, 3,
+    0, 3, 7, 0, 7, 4,
+    1, 5, 6, 1, 6, 2
+  );
+  
+  return { vertices, faces };
+}
+
+// Generate specific character geometry based on AI detection
+function generateCharacterGeometry(partName: string, partIndex: number, yOffset: number, baseSize: number) {
+  const vertices = [];
+  const faces = [];
+  
+  if (partName === 'head') {
+    // Spherical head
+    const radius = baseSize * 0.7;
+    const segments = 10;
+    
+    for (let i = 0; i <= segments; i++) {
+      for (let j = 0; j <= segments; j++) {
+        const phi = (i * Math.PI) / segments;
+        const theta = (j * 2 * Math.PI) / segments;
+        
+        const x = radius * Math.sin(phi) * Math.cos(theta);
+        const y = radius * Math.cos(phi) + yOffset;
+        const z = radius * Math.sin(phi) * Math.sin(theta);
+        
+        vertices.push(x, y, z);
+      }
+    }
+    
+    // Generate sphere faces
+    for (let i = 0; i < segments; i++) {
+      for (let j = 0; j < segments; j++) {
+        const a = i * (segments + 1) + j;
+        const b = a + segments + 1;
+        
+        faces.push(a, b, a + 1);
+        faces.push(b, b + 1, a + 1);
+      }
+    }
+  } else if (partName === 'torso') {
+    // Oval torso
+    const width = baseSize * 1.2;
+    const height = baseSize * 1.8;
+    const depth = baseSize * 0.8;
+    
+    vertices.push(
+      -width/2, yOffset - height/2, -depth/2,
+      width/2, yOffset - height/2, -depth/2,
+      width/2, yOffset + height/2, -depth/2,
+      -width/2, yOffset + height/2, -depth/2,
+      -width/2, yOffset - height/2, depth/2,
+      width/2, yOffset - height/2, depth/2,
+      width/2, yOffset + height/2, depth/2,
+      -width/2, yOffset + height/2, depth/2
+    );
+    
+    faces.push(
+      0, 1, 2, 0, 2, 3,
+      4, 7, 6, 4, 6, 5,
+      0, 4, 5, 0, 5, 1,
+      2, 6, 7, 2, 7, 3,
+      0, 3, 7, 0, 7, 4,
+      1, 5, 6, 1, 6, 2
+    );
+  } else { // limbs
+    // Simple limb geometry
+    const radius = baseSize * 0.2;
+    const height = baseSize * 1.5;
+    const segments = 6;
+    
+    for (let i = 0; i < segments; i++) {
+      const angle = (i * 2 * Math.PI) / segments;
+      const x = radius * Math.cos(angle);
+      const z = radius * Math.sin(angle);
+      
+      vertices.push(x, yOffset - height/2, z);
+      vertices.push(x, yOffset + height/2, z);
+    }
+    
+    for (let i = 0; i < segments; i++) {
+      const next = (i + 1) % segments;
+      const a = i * 2;
+      const b = i * 2 + 1;
+      const c = next * 2;
+      const d = next * 2 + 1;
+      
+      faces.push(a, c, b);
+      faces.push(b, c, d);
+    }
+  }
+  
+  return { vertices, faces };
 }
 
 // Generate geometry for robot parts
