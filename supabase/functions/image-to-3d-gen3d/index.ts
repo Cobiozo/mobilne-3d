@@ -307,22 +307,23 @@ async function geometryToGLB(geometry: any) {
     const jsonString = JSON.stringify(glbData, null, 0);
     console.log('GLB JSON size:', jsonString.length, 'characters');
     
-    // Use proper base64 encoding
-    const encoder = new TextEncoder();
-    const data = encoder.encode(jsonString);
-    
-    // Use built-in btoa for clean base64 encoding
-    let result = '';
-    const chunkSize = 1024;
-    
-    for (let i = 0; i < data.length; i += chunkSize) {
-      const chunk = data.slice(i, i + chunkSize);
-      const chunkStr = String.fromCharCode(...chunk);
-      result += btoa(chunkStr);
+    // Use simple base64 encoding without chunking
+    try {
+      const result = btoa(jsonString);
+      console.log('Base64 encoded GLB size:', result.length, 'characters');
+      return result;
+    } catch (error) {
+      console.error('Base64 encoding failed, trying alternative method:', error);
+      
+      // Alternative encoding for very large data
+      const encoder = new TextEncoder();
+      const data = encoder.encode(jsonString);
+      const binaryString = String.fromCharCode(...data);
+      const result = btoa(binaryString);
+      
+      console.log('Alternative base64 encoded GLB size:', result.length, 'characters');
+      return result;
     }
-    
-    console.log('Base64 encoded GLB size:', result.length, 'characters');
-    return result;
     
   } catch (error) {
     console.error('Error in GLB conversion:', error);

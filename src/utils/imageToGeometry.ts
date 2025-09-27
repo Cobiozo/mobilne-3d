@@ -633,31 +633,15 @@ export const loadGLBFromBase64 = async (base64Data: string): Promise<THREE.Buffe
   try {
     console.log('Loading PartCrafter GLB data...');
     
-    // PartCrafter returns JSON-encoded data with chunked base64 encoding
+    // PartCrafter returns JSON-encoded data with base64 encoding
     // Decode the base64 data properly
     let jsonString = '';
     try {
-      // Try direct decode first
+      // Try direct decode
       jsonString = atob(base64Data);
     } catch (directError) {
-      console.warn('Direct base64 decode failed, trying chunked decode');
-      
-      // Try chunked decode - split into smaller chunks and decode
-      const chunkSize = 1024;
-      let decodedChunks = [];
-      
-      for (let i = 0; i < base64Data.length; i += chunkSize) {
-        const chunk = base64Data.slice(i, i + chunkSize);
-        try {
-          const decodedChunk = atob(chunk);
-          decodedChunks.push(decodedChunk);
-        } catch (chunkError) {
-          console.warn(`Failed to decode chunk at position ${i}:`, chunkError);
-          // Skip invalid chunks
-        }
-      }
-      
-      jsonString = decodedChunks.join('');
+      console.error('Base64 decode failed:', directError);
+      throw new Error('Failed to decode PartCrafter base64 data');
     }
     
     if (!jsonString) {
