@@ -65,13 +65,13 @@ async function generatePartCrafter3D(imageBase64: string, options: any) {
     console.log('Processing image with PartCrafter compositional approach...');
     
     // Convert base64 to image data for actual processing
-    const imageBlob = new Uint8Array(imageBase64.length);
-    for (let i = 0; i < imageBase64.length; i++) {
-      imageBlob[i] = imageBase64.charCodeAt(i);
-    }
+    console.log('Converting base64 image data for analysis...');
+    
+    // Pass the base64 string directly for processing
+    const imageData = imageBase64;
 
     // Extract semantic features for part-based generation
-    const semanticFeatures = await extractSemanticFeatures(imageBlob);
+    const semanticFeatures = await extractSemanticFeatures(imageData);
     
     // Generate structured 3D parts using PartCrafter methodology
     const partGeometry = await createPartCrafterGeometry(semanticFeatures, options);
@@ -100,12 +100,12 @@ async function generatePartCrafter3D(imageBase64: string, options: any) {
 }
 
 // Extract semantic features for PartCrafter approach
-async function extractSemanticFeatures(imageData: Uint8Array) {
+async function extractSemanticFeatures(imageBase64: string) {
   console.log('Extracting semantic features for compositional generation');
   
   // Decode base64 image data properly
-  const base64Data = String.fromCharCode.apply(null, Array.from(imageData));
-  const imageBlob = atob(base64Data.split(',')[1] || base64Data);
+  console.log('Analyzing base64 image data...');
+  const imageBlob = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
   
   console.log('Processing image blob of size:', imageBlob.length);
   
