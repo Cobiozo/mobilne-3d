@@ -100,49 +100,46 @@ export const imageToGen3D = async (
     
     const base64 = canvas.toDataURL('image/png').split(',')[1];
     
-    console.log('Sending image to PartCrafter engine...');
+    console.log('Sending image to Stable3DGen Hi3DGen engine...');
     
     const { data, error } = await supabase.functions.invoke('image-to-3d-gen3d', {
       body: {
         imageBase64: base64,
         options: {
-          tag: 'object', // PartCrafter semantic tag
-          num_parts: 3,  // Number of parts to generate
-          resolution: 32, // Reduced for performance
-          rmbg: true,    // Remove background like PartCrafter
-          // Legacy options for backward compatibility
-          topology: options.topology || 'triangle',
-          target_polycount: options.target_polycount || 30000,
-          symmetry_mode: options.symmetry_mode || 'auto',
-          should_remesh: options.should_remesh !== false,
-          should_texture: options.should_texture !== false,
-          enable_pbr: options.enable_pbr || true
+          // Stable3DGen Hi3DGen options
+          resolution: 1024,
+          ss_guidance_strength: 3.0,  // Stage 1 guidance
+          ss_sampling_steps: 50,      // Stage 1 steps
+          slat_guidance_strength: 3.0, // Stage 2 guidance
+          slat_sampling_steps: 6,     // Stage 2 steps
+          seed: -1,                   // Random seed
+          format: 'glb'               // Output format
         }
       }
     });
 
     if (error) {
-      console.error('PartCrafter Edge Function Error:', error);
+      console.error('Stable3DGen Edge Function Error:', error);
       return { success: false, error: error.message };
     }
 
-    console.log('PartCrafter response:', data);
+    console.log('Stable3DGen response:', data);
 
     // Handle different response types
     if (data.success && data.result) {
       if (data.format === 'glb' && data.result.glb_data) {
-        // Convert PartCrafter GLB data to geometry
+        // Convert Stable3DGen GLB data to geometry
         try {
           const geometry = await loadGLBFromBase64(data.result.glb_data);
           return { 
             success: true, 
             geometry, 
-            method: data.method || 'PartCrafter',
+            method: data.method || 'Stable3DGen',
             algorithm: data.result.algorithm
           };
         } catch (glbError) {
-          console.warn('Failed to load GLB data from PartCrafter:', glbError);
-          throw new Error('PartCrafter GLB loading failed');
+          console.warn('Failed to load GLB data from Stable3DGen:', glbError);
+          throw new Error('Stable3DGen GLB loading failed');
         }
       } else if (data.result.glb_data) {
         // Direct GLB data access
@@ -632,20 +629,18 @@ export const loadModelFromUrl = async (url: string): Promise<THREE.BufferGeometr
   }
 };
 
-// Load GLB from base64 data (PartCrafter format)
+// Load GLB from base64 data (Stable3DGen Hi3DGen format)
 export const loadGLBFromBase64 = async (base64Data: string): Promise<THREE.BufferGeometry> => {
   try {
-    console.log('Loading PartCrafter GLB data...');
+    console.log('Loading Stable3DGen GLB data...');
     
-    // PartCrafter returns JSON-encoded data with base64 encoding
-    // Decode the base64 data properly
+    // Stable3DGen returns JSON-encoded data with base64 encoding
     let jsonString = '';
     try {
-      // Try direct decode
       jsonString = atob(base64Data);
     } catch (directError) {
       console.error('Base64 decode failed:', directError);
-      throw new Error('Failed to decode PartCrafter base64 data');
+      throw new Error('Failed to decode Stable3DGen base64 data');
     }
     
     if (!jsonString) {
@@ -656,20 +651,20 @@ export const loadGLBFromBase64 = async (base64Data: string): Promise<THREE.Buffe
     
     // Parse the JSON data
     const glbData = JSON.parse(jsonString);
-    console.log('Parsed PartCrafter data:', glbData);
+    console.log('Parsed Stable3DGen data:', glbData);
     
-    // Extract mesh data from PartCrafter extensions
-    if (glbData.extensions && glbData.extensions.PartCrafter) {
-      const meshData = glbData.extensions.PartCrafter;
+    // Extract mesh data from Hi3DGen extensions
+    if (glbData.extensions && glbData.extensions.Hi3DGen) {
+      const meshData = glbData.extensions.Hi3DGen;
       
       if (meshData.vertices && meshData.faces && meshData.vertices.length > 0) {
-        console.log('Creating geometry from PartCrafter mesh data:', {
+        console.log('Creating geometry from Hi3DGen mesh data:', {
           vertexCount: meshData.vertexCount,
           verticesLength: meshData.vertices.length,
           facesLength: meshData.faces.length
         });
         
-        // Create BufferGeometry from PartCrafter data
+        // Create BufferGeometry from Hi3DGen data
         const geometry = new THREE.BufferGeometry();
         
         // Ensure we have valid vertex data
@@ -677,36 +672,67 @@ export const loadGLBFromBase64 = async (base64Data: string): Promise<THREE.Buffe
         
         geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
         
+        // Add normals if available
+        if (meshData.normals && meshData.normals.length > 0) {
+          const normals = new Float32Array(meshData.normals);
+          geometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+        }
+        
         if (meshData.faces && meshData.faces.length > 0) {
           const faces = new Uint32Array(meshData.faces);
           geometry.setIndex(new THREE.BufferAttribute(faces, 1));
         }
         
         // Compute normals and bounding sphere
-        geometry.computeVertexNormals();
+        if (!meshData.normals) {
+          geometry.computeVertexNormals();
+        }
         geometry.computeBoundingSphere();
         
-        console.log('PartCrafter geometry created successfully:', {
+        console.log('Hi3DGen geometry created successfully:', {
           vertices: vertices.length / 3,
-          faces: meshData.faces.length / 3
+          faces: meshData.faces.length / 3,
+          objectType: meshData.objectType || 'unknown',
+          pipeline: meshData.pipeline || 'Hi3DGen'
         });
         
         return geometry;
       } else {
-        console.warn('PartCrafter mesh data missing or empty vertices/faces');
+        console.warn('Hi3DGen mesh data missing or empty vertices/faces');
+      }
+    } 
+    // Fallback: check for PartCrafter format for backward compatibility
+    else if (glbData.extensions && glbData.extensions.PartCrafter) {
+      console.log('Fallback: using PartCrafter format parser');
+      const meshData = glbData.extensions.PartCrafter;
+      
+      if (meshData.vertices && meshData.faces && meshData.vertices.length > 0) {
+        const geometry = new THREE.BufferGeometry();
+        const vertices = new Float32Array(meshData.vertices);
+        geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+        
+        if (meshData.faces && meshData.faces.length > 0) {
+          const faces = new Uint32Array(meshData.faces);
+          geometry.setIndex(new THREE.BufferAttribute(faces, 1));
+        }
+        
+        geometry.computeVertexNormals();
+        geometry.computeBoundingSphere();
+        
+        return geometry;
       }
     } else {
-      console.warn('PartCrafter extensions not found in GLB data');
+      console.warn('Hi3DGen extensions not found in GLB data');
     }
     
     // Fallback: create simple geometry if data is incomplete
-    console.warn('PartCrafter data incomplete, creating fallback geometry');
-    return createPartCrafterFallbackGeometry();
+    console.warn('Stable3DGen data incomplete, creating fallback geometry');
+    return createStable3DGenFallbackGeometry();
     
   } catch (error) {
-    console.error('Error parsing PartCrafter GLB data:', error);
+    console.error('Error parsing Stable3DGen GLB data:', error);
     console.log('Creating fallback geometry due to parsing error');
-    return createPartCrafterFallbackGeometry();
+    return createStable3DGenFallbackGeometry();
   }
 };
 
@@ -715,6 +741,14 @@ const createPartCrafterFallbackGeometry = (): THREE.BufferGeometry => {
   // Create a simple but recognizable geometric shape different from sphere
   const geometry = new THREE.BoxGeometry(1.5, 0.5, 1.5);
   console.log('Created PartCrafter fallback box geometry');
+  return geometry;
+};
+
+// Create fallback geometry for Stable3DGen Hi3DGen
+const createStable3DGenFallbackGeometry = (): THREE.BufferGeometry => {
+  // Create a simple tetrahedron as fallback to distinguish from PartCrafter
+  const geometry = new THREE.TetrahedronGeometry(1.2);
+  console.log('Created Stable3DGen Hi3DGen fallback tetrahedron geometry');
   return geometry;
 };
 
