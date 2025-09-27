@@ -110,13 +110,18 @@ const Index = () => {
 
   const handleFileSelect = async (file: File) => {
     try {
+      console.log('handleFileSelect called with file:', file.name, 'User logged in:', !!user);
+      
       const arrayBuffer = await file.arrayBuffer();
       setModelData(arrayBuffer);
       setFileName(file.name);
       
       // Save model to database if user is logged in
       if (user) {
+        console.log('User is logged in, calling saveModelToDatabase');
         await saveModelToDatabase(file, arrayBuffer);
+      } else {
+        console.log('User not logged in, skipping saveModelToDatabase');
       }
       
       // Load models using the unified loader
@@ -145,14 +150,37 @@ const Index = () => {
 
   const saveModelToDatabase = async (file: File, arrayBuffer: ArrayBuffer) => {
     try {
+      console.log('Rozpoczynam zapisywanie modelu:', file.name, 'Użytkownik:', user?.id);
+      
+      // Check if model with the same name already exists for this user
+      const { data: existingModels, error: checkError } = await supabase
+        .from('models')
+        .select('name')
+        .eq('user_id', user!.id)
+        .eq('name', file.name);
+
+      if (checkError) {
+        console.error('Error checking for existing models:', checkError);
+        throw checkError;
+      }
+
+      if (existingModels && existingModels.length > 0) {
+        console.log('Model o tej nazwie już istnieje:', file.name);
+        toast.info(`Model "${file.name}" już istnieje w Twoich modelach`);
+        return;
+      }
+
       // Create a unique filename
       const timestamp = Date.now();
       const fileExtension = file.name.split('.').pop();
       const uniqueFileName = `${timestamp}_${file.name}`;
       
+      console.log('Tworzę unikalną nazwę pliku:', uniqueFileName);
+      
       // Convert ArrayBuffer to File for upload
       const fileToUpload = new File([arrayBuffer], uniqueFileName, { type: file.type });
       
+      console.log('Uploading to storage...');
       // Upload to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('models')
@@ -160,34 +188,47 @@ const Index = () => {
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
+        toast.error(`Błąd przesyłania pliku: ${uploadError.message}`);
         return;
       }
+
+      console.log('Upload successful:', uploadData);
 
       // Get the public URL
       const { data: { publicUrl } } = supabase.storage
         .from('models')
         .getPublicUrl(uploadData.path);
 
+      console.log('Public URL:', publicUrl);
+
       // Save model metadata to database
-      const { error: dbError } = await supabase
+      const modelData = {
+        user_id: user!.id,
+        name: file.name,
+        description: `Wczytany model 3D: ${file.name}`,
+        file_url: publicUrl,
+        file_type: fileExtension || 'unknown',
+        file_size: file.size,
+        is_public: false
+      };
+
+      console.log('Inserting model data:', modelData);
+
+      const { data: insertData, error: dbError } = await supabase
         .from('models')
-        .insert({
-          user_id: user!.id,
-          name: file.name,
-          description: `Wczytany model 3D: ${file.name}`,
-          file_url: publicUrl,
-          file_type: fileExtension || 'unknown',
-          file_size: file.size,
-          is_public: false
-        });
+        .insert(modelData)
+        .select();
 
       if (dbError) {
         console.error('Database error:', dbError);
+        toast.error(`Błąd zapisywania do bazy danych: ${dbError.message}`);
       } else {
+        console.log('Model saved successfully:', insertData);
         toast.success('Model zapisany w "Moje modele 3D"');
       }
     } catch (error) {
       console.error('Error saving model:', error);
+      toast.error(`Błąd zapisywania modelu: ${error instanceof Error ? error.message : 'Nieznany błąd'}`);
     }
   };
 
