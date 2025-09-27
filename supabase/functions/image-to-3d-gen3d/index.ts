@@ -403,148 +403,266 @@ async function convertToGLB(structuredLatent: any) {
 // Object-specific geometry generation functions
 
 function generateFurnitureGeometry(points: any[], vertices: number[], faces: number[]) {
-  console.log('Generating furniture-specific geometry');
+  console.log('Generating furniture-specific solid geometry');
   
-  // Create furniture-like structure with legs, seat, back
-  points.forEach((point: any, index: number) => {
-    // Add slight geometric structure to points
-    const structuralVariance = point.confidence * 0.05;
-    const baseVariance = 0.02;
-    
-    // Create more structured, angular geometry for furniture
-    const x = point.x + (Math.random() - 0.5) * structuralVariance;
-    const y = point.y + (Math.random() - 0.5) * baseVariance; // Less Y variation for stability
-    const z = point.z + (Math.random() - 0.5) * structuralVariance;
-    
-    vertices.push(x, y, z);
-  });
+  // Create a basic box shape for furniture
+  const size = 0.5;
   
-  // Generate faces with more structured patterns
-  const numVertices = vertices.length / 3;
-  for (let i = 0; i < numVertices - 2; i += 3) {
-    if (i + 2 < numVertices) {
-      faces.push(i, i + 1, i + 2);
-      // Add additional faces for more solid structure
-      if (i + 5 < numVertices) {
-        faces.push(i, i + 2, i + 3);
-        faces.push(i + 1, i + 4, i + 5);
-      }
-    }
-  }
+  // Box vertices (8 corners)
+  const boxVertices = [
+    -size, -size, -size,  // 0
+     size, -size, -size,  // 1
+     size,  size, -size,  // 2
+    -size,  size, -size,  // 3
+    -size, -size,  size,  // 4
+     size, -size,  size,  // 5
+     size,  size,  size,  // 6
+    -size,  size,  size   // 7
+  ];
+  
+  vertices.push(...boxVertices);
+  
+  // Box faces (12 triangles forming 6 faces)
+  const boxFaces = [
+    0, 1, 2,  0, 2, 3,  // front
+    4, 7, 6,  4, 6, 5,  // back
+    0, 4, 5,  0, 5, 1,  // bottom
+    2, 6, 7,  2, 7, 3,  // top
+    0, 3, 7,  0, 7, 4,  // left
+    1, 5, 6,  1, 6, 2   // right
+  ];
+  
+  faces.push(...boxFaces);
 }
 
 function generateVehicleGeometry(points: any[], vertices: number[], faces: number[]) {
-  console.log('Generating vehicle-specific geometry');
+  console.log('Generating vehicle-specific solid geometry');
   
-  points.forEach((point: any) => {
-    // Create streamlined, elongated shape for vehicles
-    const streamlineVariance = point.confidence * 0.03;
-    
-    // Stretch X-axis for vehicle length, compress Y for lower profile
-    const x = point.x * 1.5 + (Math.random() - 0.5) * streamlineVariance;
-    const y = point.y * 0.7 + (Math.random() - 0.5) * streamlineVariance * 0.5;
-    const z = point.z + (Math.random() - 0.5) * streamlineVariance;
-    
-    vertices.push(x, y, z);
-  });
+  // Create an elongated box for vehicle
+  const length = 0.8;
+  const width = 0.4;
+  const height = 0.3;
   
-  // Generate smooth, flowing faces for aerodynamic look
-  const numVertices = vertices.length / 3;
-  for (let i = 0; i < numVertices - 2; i += 2) {
-    if (i + 2 < numVertices) {
-      faces.push(i, i + 1, i + 2);
-    }
-  }
+  const vehicleVertices = [
+    -length, -width, -height,  // 0
+     length, -width, -height,  // 1
+     length,  width, -height,  // 2
+    -length,  width, -height,  // 3
+    -length, -width,  height,  // 4
+     length, -width,  height,  // 5
+     length,  width,  height,  // 6
+    -length,  width,  height   // 7
+  ];
+  
+  vertices.push(...vehicleVertices);
+  
+  const vehicleFaces = [
+    0, 1, 2,  0, 2, 3,
+    4, 7, 6,  4, 6, 5,
+    0, 4, 5,  0, 5, 1,
+    2, 6, 7,  2, 7, 3,
+    0, 3, 7,  0, 7, 4,
+    1, 5, 6,  1, 6, 2
+  ];
+  
+  faces.push(...vehicleFaces);
 }
 
 function generateCharacterGeometry(points: any[], vertices: number[], faces: number[]) {
-  console.log('Generating character-specific geometry');
+  console.log('Generating character-specific solid geometry');
   
-  points.forEach((point: any) => {
-    // Create organic, human-like proportions
-    const organicVariance = point.confidence * 0.08;
-    
-    // Emphasize Y-axis for vertical human form
-    const x = point.x * 0.8 + (Math.random() - 0.5) * organicVariance;
-    const y = point.y * 1.4 + (Math.random() - 0.5) * organicVariance * 0.7;
-    const z = point.z * 0.9 + (Math.random() - 0.5) * organicVariance;
-    
-    vertices.push(x, y, z);
-  });
+  // Create a cylinder-like shape for character
+  const radius = 0.3;
+  const height = 0.8;
+  const segments = 8;
   
-  // Generate organic-looking face patterns
-  const numVertices = vertices.length / 3;
-  for (let i = 0; i < numVertices - 2; i += 1) {
-    if (i + 2 < numVertices) {
-      faces.push(i, i + 1, i + 2);
-    }
+  // Bottom circle
+  for (let i = 0; i < segments; i++) {
+    const angle = (i / segments) * Math.PI * 2;
+    vertices.push(
+      Math.cos(angle) * radius,
+      -height / 2,
+      Math.sin(angle) * radius
+    );
+  }
+  
+  // Top circle
+  for (let i = 0; i < segments; i++) {
+    const angle = (i / segments) * Math.PI * 2;
+    vertices.push(
+      Math.cos(angle) * radius,
+      height / 2,
+      Math.sin(angle) * radius
+    );
+  }
+  
+  // Center points
+  vertices.push(0, -height / 2, 0); // bottom center
+  vertices.push(0, height / 2, 0);  // top center
+  
+  // Bottom faces
+  for (let i = 0; i < segments; i++) {
+    faces.push(segments * 2, i, (i + 1) % segments);
+  }
+  
+  // Top faces
+  for (let i = 0; i < segments; i++) {
+    faces.push(segments * 2 + 1, segments + (i + 1) % segments, segments + i);
+  }
+  
+  // Side faces
+  for (let i = 0; i < segments; i++) {
+    const next = (i + 1) % segments;
+    faces.push(i, segments + i, segments + next);
+    faces.push(i, segments + next, next);
   }
 }
 
 function generateToolGeometry(points: any[], vertices: number[], faces: number[]) {
-  console.log('Generating tool-specific geometry');
+  console.log('Generating tool-specific solid geometry');
   
-  points.forEach((point: any) => {
-    // Create compact, functional geometry
-    const functionalVariance = point.confidence * 0.04;
-    
-    const x = point.x * 0.9 + (Math.random() - 0.5) * functionalVariance;
-    const y = point.y * 1.1 + (Math.random() - 0.5) * functionalVariance;
-    const z = point.z * 0.8 + (Math.random() - 0.5) * functionalVariance;
-    
-    vertices.push(x, y, z);
-  });
+  // Create a handle + head shape
+  const handleLength = 0.6;
+  const handleRadius = 0.1;
+  const headSize = 0.3;
   
-  // Generate precise, tool-like faces
-  const numVertices = vertices.length / 3;
-  for (let i = 0; i < numVertices - 2; i += 3) {
-    if (i + 2 < numVertices) {
-      faces.push(i, i + 1, i + 2);
-    }
+  // Handle (cylinder)
+  const segments = 6;
+  for (let i = 0; i < segments; i++) {
+    const angle = (i / segments) * Math.PI * 2;
+    vertices.push(
+      Math.cos(angle) * handleRadius,
+      -handleLength,
+      Math.sin(angle) * handleRadius
+    );
   }
+  
+  for (let i = 0; i < segments; i++) {
+    const angle = (i / segments) * Math.PI * 2;
+    vertices.push(
+      Math.cos(angle) * handleRadius,
+      0,
+      Math.sin(angle) * handleRadius
+    );
+  }
+  
+  // Tool head (box)
+  const headVertices = [
+    -headSize, 0, -headSize,
+     headSize, 0, -headSize,
+     headSize, headSize, -headSize,
+    -headSize, headSize, -headSize,
+    -headSize, 0,  headSize,
+     headSize, 0,  headSize,
+     headSize, headSize,  headSize,
+    -headSize, headSize,  headSize
+  ];
+  
+  vertices.push(...headVertices);
+  
+  // Handle faces
+  for (let i = 0; i < segments; i++) {
+    const next = (i + 1) % segments;
+    faces.push(i, segments + i, segments + next);
+    faces.push(i, segments + next, next);
+  }
+  
+  // Head faces
+  const offset = segments * 2;
+  const headFaces = [
+    0, 1, 2,  0, 2, 3,
+    4, 7, 6,  4, 6, 5,
+    0, 4, 5,  0, 5, 1,
+    2, 6, 7,  2, 7, 3,
+    0, 3, 7,  0, 7, 4,
+    1, 5, 6,  1, 6, 2
+  ];
+  
+  headFaces.forEach(index => faces.push(index + offset));
 }
 
 function generateDecorationGeometry(points: any[], vertices: number[], faces: number[]) {
-  console.log('Generating decoration-specific geometry');
+  console.log('Generating decoration-specific solid geometry');
   
-  points.forEach((point: any) => {
-    // Create ornamental, decorative shapes
-    const decorativeVariance = point.confidence * 0.12;
-    
-    const x = point.x + Math.sin(point.y * 3) * 0.1 + (Math.random() - 0.5) * decorativeVariance;
-    const y = point.y + Math.cos(point.x * 3) * 0.1 + (Math.random() - 0.5) * decorativeVariance;
-    const z = point.z + Math.sin(point.x * point.y * 5) * 0.05 + (Math.random() - 0.5) * decorativeVariance;
-    
-    vertices.push(x, y, z);
-  });
+  // Create a star-like shape
+  const outerRadius = 0.5;
+  const innerRadius = 0.25;
+  const points_count = 6;
+  const height = 0.1;
   
-  // Generate decorative face patterns
-  const numVertices = vertices.length / 3;
-  for (let i = 0; i < numVertices - 2; i += 2) {
-    if (i + 2 < numVertices) {
-      faces.push(i, i + 1, i + 2);
-    }
+  // Bottom star
+  for (let i = 0; i < points_count * 2; i++) {
+    const angle = (i / (points_count * 2)) * Math.PI * 2;
+    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+    vertices.push(
+      Math.cos(angle) * radius,
+      -height / 2,
+      Math.sin(angle) * radius
+    );
+  }
+  
+  // Top star
+  for (let i = 0; i < points_count * 2; i++) {
+    const angle = (i / (points_count * 2)) * Math.PI * 2;
+    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+    vertices.push(
+      Math.cos(angle) * radius,
+      height / 2,
+      Math.sin(angle) * radius
+    );
+  }
+  
+  // Center points
+  vertices.push(0, -height / 2, 0);
+  vertices.push(0, height / 2, 0);
+  
+  const numPoints = points_count * 2;
+  
+  // Bottom faces
+  for (let i = 0; i < numPoints; i++) {
+    faces.push(numPoints * 2, i, (i + 1) % numPoints);
+  }
+  
+  // Top faces
+  for (let i = 0; i < numPoints; i++) {
+    faces.push(numPoints * 2 + 1, numPoints + (i + 1) % numPoints, numPoints + i);
+  }
+  
+  // Side faces
+  for (let i = 0; i < numPoints; i++) {
+    const next = (i + 1) % numPoints;
+    faces.push(i, numPoints + i, numPoints + next);
+    faces.push(i, numPoints + next, next);
   }
 }
 
 function generateGenericGeometry(points: any[], vertices: number[], faces: number[]) {
-  console.log('Generating generic geometry');
+  console.log('Generating generic solid geometry');
   
-  // Fallback to basic point-to-vertex conversion
-  points.forEach((point: any) => {
-    const variance = point.confidence * 0.1;
-    vertices.push(
-      point.x + (Math.random() - 0.5) * variance,
-      point.y + (Math.random() - 0.5) * variance,
-      point.z + (Math.random() - 0.5) * variance
-    );
-  });
+  // Create a simple pyramid
+  const size = 0.5;
   
-  // Generate basic triangular faces
-  const numVertices = vertices.length / 3;
-  for (let i = 0; i < numVertices - 2; i += 3) {
-    if (i + 2 < numVertices) {
-      faces.push(i, i + 1, i + 2);
-    }
-  }
+  // Pyramid vertices
+  const pyramidVertices = [
+    0, size, 0,        // top
+    -size, -size, -size, // base corners
+     size, -size, -size,
+     size, -size,  size,
+    -size, -size,  size
+  ];
+  
+  vertices.push(...pyramidVertices);
+  
+  // Pyramid faces
+  const pyramidFaces = [
+    // base
+    1, 2, 3,  1, 3, 4,
+    // sides
+    0, 1, 2,
+    0, 2, 3,
+    0, 3, 4,
+    0, 4, 1
+  ];
+  
+  faces.push(...pyramidFaces);
 }
