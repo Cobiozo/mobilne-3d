@@ -5,6 +5,7 @@ import { ModelViewer } from "@/components/ModelViewer";
 import { ControlPanel } from "@/components/ControlPanel";
 import { ProgressLoader } from "@/components/ProgressLoader";
 import { ModelSelector } from "@/components/ModelSelector";
+import { ShoppingCartComponent, CartItem } from "@/components/ShoppingCart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Box, Layers3, Image, ShoppingCart, MessageCircle } from "lucide-react";
@@ -73,6 +74,9 @@ const Index = () => {
   const standardColors = ['#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF'];
   
   const isNonStandardColor = !standardColors.includes(modelColor.toUpperCase());
+
+  // Shopping cart state
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   // Auto-adjust color based on theme and apply site settings
   useEffect(() => {
@@ -249,6 +253,69 @@ const Index = () => {
       setGenerationProgress(0);
       toast.error('❌ Błąd generowania 3D z obrazu: ' + (error instanceof Error ? error.message : 'Nieznany błąd'));
     }
+  };
+
+  // Shopping cart functions
+  const handleAddToCart = () => {
+    if (!fileName) {
+      toast.error('Brak załadowanego modelu');
+      return;
+    }
+
+    const newItem: CartItem = {
+      id: `${Date.now()}-${Math.random()}`,
+      name: fileName,
+      color: modelColor,
+      quantity: 1,
+      price: 0 // Default price, can be updated later
+    };
+
+    setCartItems(prev => {
+      // Check if item with same name and color already exists
+      const existingIndex = prev.findIndex(
+        item => item.name === newItem.name && item.color === newItem.color
+      );
+
+      if (existingIndex >= 0) {
+        // Update quantity if item exists
+        const updated = [...prev];
+        updated[existingIndex].quantity += 1;
+        toast.success(`Zwiększono ilość "${newItem.name}" w koszyku`);
+        return updated;
+      } else {
+        // Add new item
+        toast.success(`Dodano "${newItem.name}" do koszyka`);
+        return [...prev, newItem];
+      }
+    });
+  };
+
+  const handleUpdateCartQuantity = (id: string, quantity: number) => {
+    if (quantity <= 0) {
+      handleRemoveFromCart(id);
+      return;
+    }
+
+    setCartItems(prev =>
+      prev.map(item =>
+        item.id === id ? { ...item, quantity } : item
+      )
+    );
+  };
+
+  const handleRemoveFromCart = (id: string) => {
+    setCartItems(prev => {
+      const item = prev.find(item => item.id === id);
+      if (item) {
+        toast.success(`Usunięto "${item.name}" z koszyka`);
+      }
+      return prev.filter(item => item.id !== id);
+    });
+  };
+
+  const handleClearCart = () => {
+    setCartItems([]);
+    toast.success('Wyczyszczono koszyk');
   };
 
   const handleReset = () => {
@@ -438,6 +505,14 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* Shopping Cart */}
+              <ShoppingCartComponent
+                items={cartItems}
+                onUpdateQuantity={handleUpdateCartQuantity}
+                onRemoveItem={handleRemoveFromCart}
+                onClearCart={handleClearCart}
+              />
+              
               {/* Authentication */}
               {!loading && (
                 <div className="flex items-center gap-2">
@@ -503,7 +578,7 @@ const Index = () => {
                     </Button>
                   ) : (
                     <Button 
-                      onClick={() => toast.info('Funkcja dodawania do koszyka będzie wkrótce dostępna')}
+                      onClick={handleAddToCart}
                       className="flex items-center gap-2 w-full"
                       size="lg"
                     >
