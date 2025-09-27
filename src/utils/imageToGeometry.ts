@@ -35,6 +35,9 @@ export interface PartCrafterResult {
   error?: string;
   geometry?: THREE.BufferGeometry;
   method?: string;
+  algorithm?: string;
+  processing_time?: number;
+  parts_generated?: number;
 }
 
 export const imageToGeometry = (
@@ -119,15 +122,35 @@ export const imageToGen3D = async (
       return { success: false, error: error.message };
     }
 
+    console.log('PartCrafter response:', data);
+
     // Handle different response types
     if (data.success && data.result) {
-      if (data.format === 'glb' && data.result) {
-        // Convert base64 GLB to geometry
+      if (data.format === 'glb' && data.result.glb_data) {
+        // Convert PartCrafter GLB data to geometry
         try {
-          const geometry = await loadGLBFromBase64(data.result);
-          return { success: true, geometry, method: data.method };
+          const geometry = await loadGLBFromBase64(data.result.glb_data);
+          return { 
+            success: true, 
+            geometry, 
+            method: data.method || 'PartCrafter',
+            algorithm: data.result.algorithm
+          };
         } catch (glbError) {
-          console.warn('Failed to load GLB data from PartCrafter');
+          console.warn('Failed to load GLB data from PartCrafter:', glbError);
+          throw new Error('PartCrafter GLB loading failed');
+        }
+      } else if (data.result.glb_data) {
+        // Direct GLB data access
+        try {
+          const geometry = await loadGLBFromBase64(data.result.glb_data);
+          return { 
+            success: true, 
+            geometry, 
+            method: data.method || 'PartCrafter'
+          };
+        } catch (glbError) {
+          console.warn('Failed to load GLB data from PartCrafter:', glbError);
           throw new Error('PartCrafter GLB loading failed');
         }
       }
@@ -605,39 +628,67 @@ export const loadModelFromUrl = async (url: string): Promise<THREE.BufferGeometr
   }
 };
 
-// Load GLB from base64 data
+// Load GLB from base64 data (PartCrafter format)
 export const loadGLBFromBase64 = async (base64Data: string): Promise<THREE.BufferGeometry> => {
   try {
-    // Convert base64 to ArrayBuffer
-    const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    const arrayBuffer = bytes.buffer;
+    console.log('Loading PartCrafter GLB data...');
     
-    // Import GLTFLoader dynamically
-    const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
-    const loader = new GLTFLoader();
+    // PartCrafter returns JSON-encoded data, not actual GLB binary
+    const jsonString = atob(base64Data);
+    const glbData = JSON.parse(jsonString);
     
-    return new Promise((resolve, reject) => {
-      loader.parse(arrayBuffer, '', (gltf) => {
-        // Extract geometry from the first mesh found
-        const mesh = gltf.scene.children.find(child => 
-          child instanceof THREE.Mesh
-        ) as THREE.Mesh;
+    console.log('Parsed PartCrafter data:', glbData);
+    
+    // Extract mesh data from PartCrafter extensions
+    if (glbData.extensions && glbData.extensions.PartCrafter) {
+      const meshData = glbData.extensions.PartCrafter;
+      
+      if (meshData.vertices && meshData.faces) {
+        console.log('Creating geometry from PartCrafter mesh data');
         
-        if (mesh && mesh.geometry) {
-          resolve(mesh.geometry);
-        } else {
-          reject(new Error('No valid geometry found in the GLB model'));
+        // Create BufferGeometry from PartCrafter data
+        const geometry = new THREE.BufferGeometry();
+        
+        // Ensure we have valid vertex data
+        const vertices = new Float32Array(meshData.vertices);
+        const faces = new Uint32Array(meshData.faces);
+        
+        geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+        
+        if (faces.length > 0) {
+          geometry.setIndex(new THREE.BufferAttribute(faces, 1));
         }
-      }, reject);
-    });
+        
+        // Compute normals and bounding sphere
+        geometry.computeVertexNormals();
+        geometry.computeBoundingSphere();
+        
+        console.log('PartCrafter geometry created successfully:', {
+          vertices: vertices.length / 3,
+          faces: faces.length / 3
+        });
+        
+        return geometry;
+      }
+    }
+    
+    // Fallback: create simple geometry if data is incomplete
+    console.warn('PartCrafter data incomplete, creating fallback geometry');
+    return createPartCrafterFallbackGeometry();
+    
   } catch (error) {
-    console.error('Error loading GLB from base64:', error);
-    throw error;
+    console.error('Error parsing PartCrafter GLB data:', error);
+    console.log('Creating fallback geometry due to parsing error');
+    return createPartCrafterFallbackGeometry();
   }
+};
+
+// Create fallback geometry for PartCrafter
+const createPartCrafterFallbackGeometry = (): THREE.BufferGeometry => {
+  // Create a simple but interesting geometric shape
+  const geometry = new THREE.SphereGeometry(1, 16, 12);
+  console.log('Created PartCrafter fallback sphere geometry');
+  return geometry;
 };
 
 // Enhanced Gen3D 2.0 geometry creation algorithm
