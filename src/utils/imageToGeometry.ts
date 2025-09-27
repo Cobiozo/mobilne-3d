@@ -106,13 +106,17 @@ export const imageToGen3D = async (
       body: {
         imageBase64: base64,
         options: {
+          tag: 'object', // PartCrafter semantic tag
+          num_parts: 3,  // Number of parts to generate
+          resolution: 32, // Reduced for performance
+          rmbg: true,    // Remove background like PartCrafter
+          // Legacy options for backward compatibility
           topology: options.topology || 'triangle',
           target_polycount: options.target_polycount || 30000,
           symmetry_mode: options.symmetry_mode || 'auto',
           should_remesh: options.should_remesh !== false,
           should_texture: options.should_texture !== false,
-          enable_pbr: options.enable_pbr || true,
-          num_parts: options.num_parts || 3,
+          enable_pbr: options.enable_pbr || true
         }
       }
     });

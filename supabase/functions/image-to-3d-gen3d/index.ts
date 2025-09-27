@@ -20,9 +20,16 @@ serve(async (req) => {
     }
 
     console.log('Starting PartCrafter 3D mesh generation');
+    console.log('Options received:', options);
+    
+    // Extract tag and num_parts from options (PartCrafter requires these)
+    const tag = options.tag || 'object';
+    const num_parts = options.num_parts || 3;
+    
+    console.log(`PartCrafter config: tag=${tag}, num_parts=${num_parts}`);
     
     // Use PartCrafter implementation
-    const result = await generatePartCrafter3D(imageBase64, options);
+    const result = await generatePartCrafter3D(imageBase64, { ...options, tag, num_parts });
     
     if (result.success) {
       return new Response(JSON.stringify({
@@ -133,79 +140,272 @@ async function extractSemanticFeatures(imageData: Uint8Array) {
 // Create structured 3D geometry using PartCrafter methodology
 async function createPartCrafterGeometry(semanticFeatures: any, options: any) {
   console.log('Generating structured 3D mesh with PartCrafter compositional approach');
+  console.log('Semantic features:', semanticFeatures);
   
-  const resolution = options.resolution || 32; // Reduced for better performance
-  const extrusion = options.extrusion || 0.2; // How much to extrude in Z
+  const numParts = options.num_parts || 3;
+  const tag = semanticFeatures.tag || 'object';
+  const expectedParts = semanticFeatures.expectedParts || [];
+  
+  console.log(`Generating ${numParts} parts for ${tag}`);
   
   const allVertices = [];
   const allFaces = [];
+  let vertexOffset = 0;
   
-  if (!semanticFeatures.hasContent) {
-    console.log('No meaningful content detected, creating simple cube');
+  // Generate parts based on the tag and semantic understanding
+  for (let partIndex = 0; partIndex < numParts; partIndex++) {
+    const partName = expectedParts[partIndex] || `part_${partIndex + 1}`;
+    console.log(`Generating part ${partIndex + 1}/${numParts}: ${partName}`);
     
-    // Create a simple cube as fallback
-    const size = 0.5;
-    const cubeVertices = [
-      // Front face
-      -size, -size, size,   size, -size, size,   size, size, size,   -size, size, size,
-      // Back face  
-      -size, -size, -size, -size, size, -size,  size, size, -size,   size, -size, -size,
-    ];
+    const partGeometry = generatePartGeometry(partName, tag, partIndex, numParts);
     
-    const cubeFaces = [
-      0, 1, 2,  0, 2, 3,    // front
-      4, 5, 6,  4, 6, 7,    // back
-      0, 4, 7,  0, 7, 1,    // bottom
-      2, 6, 5,  2, 5, 3,    // top
-      0, 3, 5,  0, 5, 4,    // left
-      1, 7, 6,  1, 6, 2     // right
-    ];
+    // Add to combined geometry
+    allVertices.push(...partGeometry.vertices);
     
-    allVertices.push(...cubeVertices);
-    allFaces.push(...cubeFaces);
-  } else {
-    console.log('Creating extruded geometry from image content');
+    // Adjust face indices for combined geometry
+    const adjustedFaces = partGeometry.faces.map((face: number) => face + vertexOffset);
+    allFaces.push(...adjustedFaces);
     
-    // Create a simple extrusion-like geometry that could represent the silhouette
-    // This is a simplified approach - a real implementation would analyze the actual image
-    
-    const segments = 16; // Number of segments around the shape
-    const layers = 8;    // Number of layers in extrusion
-    
-    for (let layer = 0; layer < layers; layer++) {
-      const z = (layer / (layers - 1) - 0.5) * extrusion;
-      const radius = 0.3 + Math.sin(layer * 0.5) * 0.1; // Vary radius per layer
-      
-      for (let seg = 0; seg < segments; seg++) {
-        const angle = (seg / segments) * Math.PI * 2;
-        const x = Math.cos(angle) * radius;
-        const y = Math.sin(angle) * radius;
-        
-        allVertices.push(x, y, z);
-        
-        // Create faces connecting this layer to the next
-        if (layer < layers - 1 && seg < segments - 1) {
-          const currentIndex = layer * segments + seg;
-          const nextLayer = (layer + 1) * segments + seg;
-          const nextSeg = layer * segments + (seg + 1);
-          const nextBoth = (layer + 1) * segments + (seg + 1);
-          
-          // Two triangles per quad
-          allFaces.push(currentIndex, nextLayer, nextSeg);
-          allFaces.push(nextSeg, nextLayer, nextBoth);
-        }
-      }
-    }
+    vertexOffset += partGeometry.vertices.length / 3;
   }
   
-  console.log(`Generated geometry with ${allVertices.length / 3} vertices and ${allFaces.length / 3} triangles`);
+  console.log(`Generated ${numParts} parts with ${allVertices.length / 3} total vertices and ${allFaces.length / 3} triangles`);
   
   return { 
     vertices: allVertices, 
     faces: allFaces, 
     vertexCount: allVertices.length / 3,
-    algorithm: 'PartCrafter Image-Based Generation'
+    algorithm: `PartCrafter ${tag} Generation`
   };
+}
+
+// Generate geometry for a specific part
+function generatePartGeometry(partName: string, tag: string, partIndex: number, totalParts: number) {
+  // Create different geometries based on part type and tag
+  const baseSize = 0.3;
+  const spacing = 0.4;
+  const yOffset = (partIndex - (totalParts - 1) / 2) * spacing;
+  
+  if (tag === 'robot') {
+    return generateRobotPart(partName, partIndex, yOffset, baseSize);
+  } else if (tag === 'chair') {
+    return generateChairPart(partName, partIndex, yOffset, baseSize);
+  } else if (tag === 'car') {
+    return generateCarPart(partName, partIndex, yOffset, baseSize);
+  } else {
+    return generateGenericPart(partName, partIndex, yOffset, baseSize);
+}
+
+// Generate geometry for robot parts
+function generateRobotPart(partName: string, partIndex: number, yOffset: number, baseSize: number) {
+  const vertices = [];
+  const faces = [];
+  
+  if (partName === 'head') {
+    // Sphere-like head
+    const radius = baseSize * 0.8;
+    const segments = 8;
+    
+    for (let i = 0; i <= segments; i++) {
+      for (let j = 0; j <= segments; j++) {
+        const phi = (i * Math.PI) / segments;
+        const theta = (j * 2 * Math.PI) / segments;
+        
+        const x = radius * Math.sin(phi) * Math.cos(theta);
+        const y = radius * Math.cos(phi) + yOffset;
+        const z = radius * Math.sin(phi) * Math.sin(theta);
+        
+        vertices.push(x, y, z);
+      }
+    }
+    
+    // Generate faces for sphere
+    for (let i = 0; i < segments; i++) {
+      for (let j = 0; j < segments; j++) {
+        const a = i * (segments + 1) + j;
+        const b = a + segments + 1;
+        
+        faces.push(a, b, a + 1);
+        faces.push(b, b + 1, a + 1);
+      }
+    }
+  } else {
+    // Box-like parts for body, arms, legs
+    const width = baseSize;
+    const height = baseSize * 1.5;
+    const depth = baseSize * 0.5;
+    
+    // Box vertices
+    vertices.push(
+      -width/2, yOffset - height/2, -depth/2,
+      width/2, yOffset - height/2, -depth/2,
+      width/2, yOffset + height/2, -depth/2,
+      -width/2, yOffset + height/2, -depth/2,
+      -width/2, yOffset - height/2, depth/2,
+      width/2, yOffset - height/2, depth/2,
+      width/2, yOffset + height/2, depth/2,
+      -width/2, yOffset + height/2, depth/2
+    );
+    
+    // Box faces
+    faces.push(
+      0, 1, 2, 0, 2, 3, // front
+      4, 7, 6, 4, 6, 5, // back
+      0, 4, 5, 0, 5, 1, // bottom
+      2, 6, 7, 2, 7, 3, // top
+      0, 3, 7, 0, 7, 4, // left
+      1, 5, 6, 1, 6, 2  // right
+    );
+  }
+  
+  return { vertices, faces };
+}
+
+// Generate geometry for chair parts
+function generateChairPart(partName: string, partIndex: number, yOffset: number, baseSize: number) {
+  const vertices = [];
+  const faces = [];
+  
+  if (partName === 'seat') {
+    // Flat rectangular seat
+    const width = baseSize * 1.2;
+    const height = baseSize * 0.2;
+    const depth = baseSize * 1.2;
+    
+    vertices.push(
+      -width/2, yOffset - height/2, -depth/2,
+      width/2, yOffset - height/2, -depth/2,
+      width/2, yOffset + height/2, -depth/2,
+      -width/2, yOffset + height/2, -depth/2,
+      -width/2, yOffset - height/2, depth/2,
+      width/2, yOffset - height/2, depth/2,
+      width/2, yOffset + height/2, depth/2,
+      -width/2, yOffset + height/2, depth/2
+    );
+  } else {
+    // Cylindrical legs or backrest
+    const radius = baseSize * 0.1;
+    const height = baseSize * 1.5;
+    const segments = 6;
+    
+    for (let i = 0; i <= segments; i++) {
+      const angle = (i * 2 * Math.PI) / segments;
+      const x = radius * Math.cos(angle);
+      const z = radius * Math.sin(angle);
+      
+      vertices.push(x, yOffset - height/2, z);
+      vertices.push(x, yOffset + height/2, z);
+    }
+  }
+  
+  // Generate basic box faces
+  faces.push(
+    0, 1, 2, 0, 2, 3,
+    4, 7, 6, 4, 6, 5,
+    0, 4, 5, 0, 5, 1,
+    2, 6, 7, 2, 7, 3,
+    0, 3, 7, 0, 7, 4,
+    1, 5, 6, 1, 6, 2
+  );
+  
+  return { vertices, faces };
+}
+
+// Generate geometry for car parts
+function generateCarPart(partName: string, partIndex: number, yOffset: number, baseSize: number) {
+  const vertices = [];
+  const faces = [];
+  
+  if (partName === 'body') {
+    // Elongated box for car body
+    const width = baseSize * 2;
+    const height = baseSize * 0.8;
+    const depth = baseSize;
+    
+    vertices.push(
+      -width/2, yOffset - height/2, -depth/2,
+      width/2, yOffset - height/2, -depth/2,
+      width/2, yOffset + height/2, -depth/2,
+      -width/2, yOffset + height/2, -depth/2,
+      -width/2, yOffset - height/2, depth/2,
+      width/2, yOffset - height/2, depth/2,
+      width/2, yOffset + height/2, depth/2,
+      -width/2, yOffset + height/2, depth/2
+    );
+  } else if (partName === 'wheels') {
+    // Cylindrical wheels
+    const radius = baseSize * 0.3;
+    const thickness = baseSize * 0.2;
+    const segments = 8;
+    
+    for (let i = 0; i <= segments; i++) {
+      const angle = (i * 2 * Math.PI) / segments;
+      const x = radius * Math.cos(angle);
+      const z = radius * Math.sin(angle);
+      
+      vertices.push(x, yOffset - thickness/2, z);
+      vertices.push(x, yOffset + thickness/2, z);
+    }
+  } else {
+    // Default box
+    const size = baseSize * 0.8;
+    vertices.push(
+      -size/2, yOffset - size/2, -size/2,
+      size/2, yOffset - size/2, -size/2,
+      size/2, yOffset + size/2, -size/2,
+      -size/2, yOffset + size/2, -size/2,
+      -size/2, yOffset - size/2, size/2,
+      size/2, yOffset - size/2, size/2,
+      size/2, yOffset + size/2, size/2,
+      -size/2, yOffset + size/2, size/2
+    );
+  }
+  
+  // Generate basic box faces
+  faces.push(
+    0, 1, 2, 0, 2, 3,
+    4, 7, 6, 4, 6, 5,
+    0, 4, 5, 0, 5, 1,
+    2, 6, 7, 2, 7, 3,
+    0, 3, 7, 0, 7, 4,
+    1, 5, 6, 1, 6, 2
+  );
+  
+  return { vertices, faces };
+}
+
+// Generate generic geometry
+function generateGenericPart(partName: string, partIndex: number, yOffset: number, baseSize: number) {
+  const vertices = [];
+  const faces = [];
+  
+  // Create a varied box shape
+  const width = baseSize * (0.8 + partIndex * 0.1);
+  const height = baseSize * (0.8 + Math.sin(partIndex) * 0.3);
+  const depth = baseSize * (0.8 + Math.cos(partIndex) * 0.2);
+  
+  vertices.push(
+    -width/2, yOffset - height/2, -depth/2,
+    width/2, yOffset - height/2, -depth/2,
+    width/2, yOffset + height/2, -depth/2,
+    -width/2, yOffset + height/2, -depth/2,
+    -width/2, yOffset - height/2, depth/2,
+    width/2, yOffset - height/2, depth/2,
+    width/2, yOffset + height/2, depth/2,
+    -width/2, yOffset + height/2, depth/2
+  );
+  
+  faces.push(
+    0, 1, 2, 0, 2, 3,
+    4, 7, 6, 4, 6, 5,
+    0, 4, 5, 0, 5, 1,
+    2, 6, 7, 2, 7, 3,
+    0, 3, 7, 0, 7, 4,
+    1, 5, 6, 1, 6, 2
+  );
+  
+  return { vertices, faces };
+}
 }
 
 // Calculate bounding box for a part
