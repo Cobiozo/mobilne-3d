@@ -149,8 +149,15 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
                   >
                     Wyczyść koszyk
                   </Button>
-                  <Button className="flex-1">
-                    Przejdź do kasy
+                  <Button 
+                    className="flex-1"
+                    onClick={() => {
+                      // Save cart to localStorage and navigate to checkout
+                      localStorage.setItem('cartItems', JSON.stringify(items));
+                      window.location.href = '/checkout';
+                    }}
+                  >
+                    Przejdź do płatności
                   </Button>
                 </div>
               </div>

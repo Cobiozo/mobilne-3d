@@ -119,9 +119,15 @@ const Index = () => {
       // Save model to database if user is logged in
       if (user) {
         console.log('User is logged in, calling saveModelToDatabase');
-        await saveModelToDatabase(file, arrayBuffer);
+        try {
+          await saveModelToDatabase(file, arrayBuffer);
+        } catch (error) {
+          console.error('Error in saveModelToDatabase:', error);
+          toast.error('Błąd podczas zapisywania modelu do bazy danych');
+        }
       } else {
         console.log('User not logged in, skipping saveModelToDatabase');
+        toast.info('Zaloguj się, aby automatycznie zapisywać modele');
       }
       
       // Load models using the unified loader
