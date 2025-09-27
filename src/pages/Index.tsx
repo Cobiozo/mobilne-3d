@@ -187,10 +187,23 @@ const Index = () => {
       const fileToUpload = new File([arrayBuffer], uniqueFileName, { type: file.type });
       
       console.log('Uploading to storage...');
-      // Upload to Supabase storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      // Upload to Supabase storage with timeout
+      const uploadPath = `${user!.id}/${uniqueFileName}`;  // Zmieniony format ścieżki
+      console.log('Upload path:', uploadPath);
+      
+      const uploadPromise = supabase.storage
         .from('models')
-        .upload(`user_uploads/${user!.id}/${uniqueFileName}`, fileToUpload);
+        .upload(uploadPath, fileToUpload);
+
+      // Add timeout for upload
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Upload timeout after 30 seconds')), 30000)
+      );
+
+      const { data: uploadData, error: uploadError } = await Promise.race([
+        uploadPromise,
+        timeoutPromise
+      ]) as any;
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
@@ -230,7 +243,7 @@ const Index = () => {
         toast.error(`Błąd zapisywania do bazy danych: ${dbError.message}`);
       } else {
         console.log('Model saved successfully:', insertData);
-        toast.success('Model zapisany w "Moje modele 3D"');
+        toast.success(`Model "${file.name}" zapisany w "Moje modele 3D"`);
       }
     } catch (error) {
       console.error('Error saving model:', error);

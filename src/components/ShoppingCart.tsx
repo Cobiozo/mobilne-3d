@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
+import { toast } from "sonner";
 
 export interface CartItem {
   id: string;
@@ -152,9 +153,15 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
                   <Button 
                     className="flex-1"
                     onClick={() => {
+                      if (items.length === 0) {
+                        toast.error('Koszyk jest pusty');
+                        return;
+                      }
                       // Save cart to localStorage and navigate to checkout
                       localStorage.setItem('cartItems', JSON.stringify(items));
-                      window.location.href = '/checkout';
+                      console.log('Zapisano koszyk do localStorage:', items);
+                      // Navigate to checkout
+                      window.location.assign('/checkout');
                     }}
                   >
                     Przejdź do płatności
