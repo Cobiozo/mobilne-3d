@@ -633,29 +633,64 @@ export const loadGLBFromBase64 = async (base64Data: string): Promise<THREE.Buffe
   try {
     console.log('Loading PartCrafter GLB data...');
     
-    // PartCrafter returns JSON-encoded data, not actual GLB binary
-    const jsonString = atob(base64Data);
-    const glbData = JSON.parse(jsonString);
+    // PartCrafter returns JSON-encoded data with chunked base64 encoding
+    // Decode the base64 data properly
+    let jsonString = '';
+    try {
+      // Try direct decode first
+      jsonString = atob(base64Data);
+    } catch (directError) {
+      console.warn('Direct base64 decode failed, trying chunked decode');
+      
+      // Try chunked decode - split into smaller chunks and decode
+      const chunkSize = 1024;
+      let decodedChunks = [];
+      
+      for (let i = 0; i < base64Data.length; i += chunkSize) {
+        const chunk = base64Data.slice(i, i + chunkSize);
+        try {
+          const decodedChunk = atob(chunk);
+          decodedChunks.push(decodedChunk);
+        } catch (chunkError) {
+          console.warn(`Failed to decode chunk at position ${i}:`, chunkError);
+          // Skip invalid chunks
+        }
+      }
+      
+      jsonString = decodedChunks.join('');
+    }
     
+    if (!jsonString) {
+      throw new Error('Failed to decode base64 data');
+    }
+    
+    console.log('Decoded JSON string length:', jsonString.length);
+    
+    // Parse the JSON data
+    const glbData = JSON.parse(jsonString);
     console.log('Parsed PartCrafter data:', glbData);
     
     // Extract mesh data from PartCrafter extensions
     if (glbData.extensions && glbData.extensions.PartCrafter) {
       const meshData = glbData.extensions.PartCrafter;
       
-      if (meshData.vertices && meshData.faces) {
-        console.log('Creating geometry from PartCrafter mesh data');
+      if (meshData.vertices && meshData.faces && meshData.vertices.length > 0) {
+        console.log('Creating geometry from PartCrafter mesh data:', {
+          vertexCount: meshData.vertexCount,
+          verticesLength: meshData.vertices.length,
+          facesLength: meshData.faces.length
+        });
         
         // Create BufferGeometry from PartCrafter data
         const geometry = new THREE.BufferGeometry();
         
         // Ensure we have valid vertex data
         const vertices = new Float32Array(meshData.vertices);
-        const faces = new Uint32Array(meshData.faces);
         
         geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
         
-        if (faces.length > 0) {
+        if (meshData.faces && meshData.faces.length > 0) {
+          const faces = new Uint32Array(meshData.faces);
           geometry.setIndex(new THREE.BufferAttribute(faces, 1));
         }
         
@@ -665,11 +700,15 @@ export const loadGLBFromBase64 = async (base64Data: string): Promise<THREE.Buffe
         
         console.log('PartCrafter geometry created successfully:', {
           vertices: vertices.length / 3,
-          faces: faces.length / 3
+          faces: meshData.faces.length / 3
         });
         
         return geometry;
+      } else {
+        console.warn('PartCrafter mesh data missing or empty vertices/faces');
       }
+    } else {
+      console.warn('PartCrafter extensions not found in GLB data');
     }
     
     // Fallback: create simple geometry if data is incomplete
@@ -685,9 +724,9 @@ export const loadGLBFromBase64 = async (base64Data: string): Promise<THREE.Buffe
 
 // Create fallback geometry for PartCrafter
 const createPartCrafterFallbackGeometry = (): THREE.BufferGeometry => {
-  // Create a simple but interesting geometric shape
-  const geometry = new THREE.SphereGeometry(1, 16, 12);
-  console.log('Created PartCrafter fallback sphere geometry');
+  // Create a simple but recognizable geometric shape different from sphere
+  const geometry = new THREE.BoxGeometry(1.5, 0.5, 1.5);
+  console.log('Created PartCrafter fallback box geometry');
   return geometry;
 };
 
