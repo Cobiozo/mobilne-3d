@@ -488,6 +488,32 @@ const Index = () => {
           {/* Control Panel - Full width on mobile, sidebar on desktop */}
           <div className="xl:col-span-1 order-2 xl:order-1">
             <div className="space-y-4">
+              {/* Action Buttons - Show when model is loaded */}
+              {(modelData || imageGeometry) && (
+                <div className="flex flex-col gap-3">
+                  {isNonStandardColor ? (
+                    <Button 
+                      variant="outline"
+                      onClick={() => toast.info('Funkcja zapytania o dostępność będzie wkrótce dostępna')}
+                      className="flex items-center gap-2 w-full"
+                      size="lg"
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                      Zapytaj o dostępność
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={() => toast.info('Funkcja dodawania do koszyka będzie wkrótce dostępna')}
+                      className="flex items-center gap-2 w-full"
+                      size="lg"
+                    >
+                      <ShoppingCart className="w-5 h-5" />
+                      Dodaj do koszyka
+                    </Button>
+                  )}
+                </div>
+              )}
+              
               <ControlPanel
                 modelColor={modelColor}
                 onColorChange={setModelColor}
@@ -544,31 +570,6 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Action Buttons - Show when model is loaded */}
-        {(modelData || imageGeometry) && (
-          <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-            <Button 
-              onClick={() => toast.info('Funkcja dodawania do koszyka będzie wkrótce dostępna')}
-              className="flex items-center gap-2 min-w-[200px]"
-              size="lg"
-            >
-              <ShoppingCart className="w-5 h-5" />
-              Dodaj do koszyka
-            </Button>
-            
-            {isNonStandardColor && (
-              <Button 
-                variant="outline"
-                onClick={() => toast.info('Funkcja zapytania o dostępność będzie wkrótce dostępna')}
-                className="flex items-center gap-2 min-w-[200px]"
-                size="lg"
-              >
-                <MessageCircle className="w-5 h-5" />
-                Zapytaj o dostępność
-              </Button>
-            )}
-          </div>
-        )}
 
         {/* Upload Area when model is loaded - Mobile only */}
         {(modelData || imageGeometry) && (
