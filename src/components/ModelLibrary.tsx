@@ -180,7 +180,16 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      const fileUrl = supabase.storage
+                        .from('models')
+                        .getPublicUrl(model.file_url.split('/').pop() || '').data.publicUrl;
+                      window.open(fileUrl, '_blank');
+                    }}
+                  >
                     <Eye className="w-4 h-4 mr-1" />
                     {getText('view', language)}
                   </Button>

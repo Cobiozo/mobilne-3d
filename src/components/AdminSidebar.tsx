@@ -110,6 +110,14 @@ export function AdminSidebar({ currentTab, onTabChange }: AdminSidebarProps) {
       onTabChange(section);
       navigate(`/dashboard?tab=${section}`);
     }
+    
+    // Auto-collapse sidebar on mobile after navigation
+    if (window.innerWidth < 768) {
+      const sidebarTrigger = document.querySelector('[data-sidebar="trigger"]') as HTMLElement;
+      if (sidebarTrigger) {
+        sidebarTrigger.click();
+      }
+    }
   };
 
   const isActive = (section: string) => currentTab === section;
