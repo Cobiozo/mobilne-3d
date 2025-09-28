@@ -45,10 +45,16 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
     
     setIsLoading(true);
     try {
+      // Extract the file path from the full URL
+      const urlParts = model.file_url.split('/storage/v1/object/public/models/');
+      const filePath = urlParts[1]; // This will be: user_id/filename.stl
+      
+      console.log('Loading model from path:', filePath);
+      
       // Get the file from Supabase storage
       const { data, error } = await supabase.storage
         .from('models')
-        .download(model.file_url);
+        .download(filePath);
 
       if (error) {
         console.error('Error downloading model:', error);
