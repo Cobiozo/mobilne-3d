@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ModelUpload } from '@/components/ModelUpload';
+import { ModelPreviewDialog } from '@/components/ModelPreviewDialog';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
@@ -29,6 +30,8 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
   const [models, setModels] = useState<Model[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
   const { toast } = useToast();
   const { language } = useApp();
 
@@ -184,10 +187,8 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                     size="sm" 
                     variant="outline"
                     onClick={() => {
-                      const fileUrl = supabase.storage
-                        .from('models')
-                        .getPublicUrl(model.file_url.split('/').pop() || '').data.publicUrl;
-                      window.open(fileUrl, '_blank');
+                      setSelectedModel(model);
+                      setShowPreview(true);
                     }}
                   >
                     <Eye className="w-4 h-4 mr-1" />
@@ -227,6 +228,15 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
           ))}
         </div>
       )}
+      
+      <ModelPreviewDialog
+        model={selectedModel}
+        isOpen={showPreview}
+        onClose={() => {
+          setShowPreview(false);
+          setSelectedModel(null);
+        }}
+      />
     </div>
   );
 };
