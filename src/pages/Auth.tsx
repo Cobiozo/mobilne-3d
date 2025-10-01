@@ -14,9 +14,12 @@ import { Check, X } from 'lucide-react';
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { user, loading, signUp, signIn, signInWithGoogle } = useAuth();
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const { user, loading, signUp, signIn, signInWithGoogle, resetPassword } = useAuth();
   const { language } = useApp();
   const navigate = useNavigate();
 
@@ -50,6 +53,9 @@ const Auth = () => {
     if (!isPasswordValid) {
       return;
     }
+    if (password !== confirmPassword) {
+      return; // Error will be shown in UI
+    }
     setIsLoading(true);
     await signUp(email, password, displayName);
     setIsLoading(false);
@@ -67,6 +73,58 @@ const Auth = () => {
     await signInWithGoogle();
     setIsLoading(false);
   };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    await resetPassword(resetEmail);
+    setIsLoading(false);
+    setShowForgotPassword(false);
+  };
+
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">
+              Resetuj hasło
+            </CardTitle>
+            <CardDescription>
+              Podaj swój email, a wyślemy Ci link do resetowania hasła
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="reset-email">Email</Label>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? <LoadingSpinner /> : 'Wyślij link resetujący'}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => setShowForgotPassword(false)}
+                >
+                  Powrót do logowania
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -113,6 +171,16 @@ const Auth = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="px-0 text-sm"
+                    onClick={() => setShowForgotPassword(true)}
+                  >
+                    Zapomniałem hasła
+                  </Button>
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? <LoadingSpinner /> : getText('signIn', language)}
@@ -212,10 +280,35 @@ const Auth = () => {
                     </div>
                   )}
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">
+                    Powtórz hasło
+                  </Label>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className={confirmPassword && password !== confirmPassword ? 'border-destructive' : ''}
+                  />
+                  {confirmPassword && password !== confirmPassword && (
+                    <p className="text-sm text-destructive flex items-center gap-1">
+                      <X className="h-4 w-4" />
+                      Hasła nie są identyczne
+                    </p>
+                  )}
+                  {confirmPassword && password === confirmPassword && (
+                    <p className="text-sm text-green-600 flex items-center gap-1">
+                      <Check className="h-4 w-4" />
+                      Hasła są zgodne
+                    </p>
+                  )}
+                </div>
                 <Button 
                   type="submit" 
                   className="w-full" 
-                  disabled={isLoading || !isPasswordValid}
+                  disabled={isLoading || !isPasswordValid || password !== confirmPassword}
                 >
                   {isLoading ? <LoadingSpinner /> : getText('signUp', language)}
                 </Button>

@@ -109,6 +109,27 @@ export const useAuth = () => {
     return { error };
   };
 
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth`,
+    });
+
+    if (error) {
+      toast({
+        title: "Błąd resetowania hasła",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Sprawdź email",
+        description: "Wysłaliśmy link do resetowania hasła na Twój email",
+      });
+    }
+
+    return { error };
+  };
+
   return {
     user,
     session,
@@ -117,5 +138,6 @@ export const useAuth = () => {
     signIn,
     signInWithGoogle,
     signOut,
+    resetPassword,
   };
 };
