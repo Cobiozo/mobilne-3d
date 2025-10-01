@@ -7,6 +7,7 @@ import { ProgressLoader } from "@/components/ProgressLoader";
 import { ModelSelector } from "@/components/ModelSelector";
 import { ShoppingCartComponent, CartItem } from "@/components/ShoppingCart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Box, Layers3, Image, ShoppingCart, MessageCircle } from "lucide-react";
 import { exportCanvasAs, captureCanvasFromThreeJS } from "@/utils/exportUtils";
@@ -69,6 +70,7 @@ const Index = () => {
   const [selectedModelIndex, setSelectedModelIndex] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [showAddedToCart, setShowAddedToCart] = useState(false);
 
   // Standard colors for comparison - synchronized with ControlPanel PRESET_COLORS
   const standardColors = [
@@ -417,11 +419,11 @@ const Index = () => {
           // Update quantity if item exists
           const updated = [...prev];
           updated[existingIndex].quantity += 1;
-          toast.success(`Zwiększono ilość "${newItem.name}" w koszyku`);
+          setShowAddedToCart(true);
           return updated;
         } else {
           // Add new item
-          toast.success(`Dodano "${newItem.name}" do koszyka`);
+          setShowAddedToCart(true);
           return [...prev, newItem];
         }
       });
@@ -630,6 +632,40 @@ const Index = () => {
   };
 
   return (
+    <>
+      <AlertDialog open={showAddedToCart} onOpenChange={setShowAddedToCart}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>✓ Dodano do koszyka</AlertDialogTitle>
+            <AlertDialogDescription>
+              Produkt został dodany do koszyka. Co chcesz zrobić teraz?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              onClick={() => setShowAddedToCart(false)}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              Kupuj dalej
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowAddedToCart(false);
+                // Open cart - trigger click on cart button
+                setTimeout(() => {
+                  const cartButton = document.querySelector('[data-cart-trigger]') as HTMLButtonElement;
+                  if (cartButton) cartButton.click();
+                }, 100);
+              }}
+              className="w-full sm:w-auto"
+            >
+              Idź do koszyka
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     <div className="min-h-screen bg-gradient-secondary">
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm">
@@ -830,6 +866,7 @@ const Index = () => {
         )}
       </main>
     </div>
+    </>
   );
 };
 
