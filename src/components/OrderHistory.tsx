@@ -16,6 +16,17 @@ interface Order {
   material: string | null;
   delivery_method: string | null;
   estimated_delivery: string | null;
+  order_items?: OrderItem[];
+}
+
+interface OrderItem {
+  id: string;
+  model_id: string;
+  quantity: number;
+  unit_price: number;
+  color: string;
+  material: string;
+  thumbnail: string | null;
 }
 
 export const OrderHistory = () => {
@@ -35,7 +46,25 @@ export const OrderHistory = () => {
 
       const { data, error } = await supabase
         .from('orders')
-        .select('id, order_number, status, total_price, created_at, material, delivery_method, estimated_delivery')
+        .select(`
+          id, 
+          order_number, 
+          status, 
+          total_price, 
+          created_at, 
+          material, 
+          delivery_method, 
+          estimated_delivery,
+          order_items (
+            id,
+            model_id,
+            quantity,
+            unit_price,
+            color,
+            material,
+            thumbnail
+          )
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -114,6 +143,30 @@ export const OrderHistory = () => {
                     {getStatusLabel(order.status)}
                   </Badge>
                 </div>
+
+                {/* Order Items with thumbnails */}
+                {order.order_items && order.order_items.length > 0 && (
+                  <div className="mb-3 flex gap-2 overflow-x-auto pb-2">
+                    {order.order_items.map((item) => (
+                      <div key={item.id} className="flex-shrink-0">
+                        {item.thumbnail ? (
+                          <img 
+                            src={item.thumbnail} 
+                            alt="Model"
+                            className="w-16 h-16 object-cover rounded border border-border"
+                          />
+                        ) : (
+                          <div 
+                            className="w-16 h-16 rounded border border-border flex items-center justify-center"
+                            style={{ backgroundColor: item.color }}
+                          >
+                            <span className="text-xs">3D</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
