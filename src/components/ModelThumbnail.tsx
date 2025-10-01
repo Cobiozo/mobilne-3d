@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { Package } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ModelThumbnailProps {
   fileUrl: string;
@@ -21,45 +22,73 @@ export const ModelThumbnail = ({ fileUrl, color = '#FFFFFF', className = '' }: M
   } | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    let isMounted = true;
 
-    const container = containerRef.current;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    const loadAndRenderModel = async () => {
+      if (!containerRef.current) return;
 
-    // Setup scene
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf5f5f5);
+      const container = containerRef.current;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
 
-    // Setup camera
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-    camera.position.set(0, 0, 100);
+      // Setup scene
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf5f5f5);
 
-    // Setup renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    container.appendChild(renderer.domElement);
+      // Setup camera
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+      camera.position.set(0, 0, 100);
 
-    // Add lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
+      // Setup renderer
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      container.appendChild(renderer.domElement);
 
-    const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight1.position.set(1, 1, 1);
-    scene.add(directionalLight1);
+      // Add lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
 
-    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
-    directionalLight2.position.set(-1, -1, -1);
-    scene.add(directionalLight2);
+      const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight1.position.set(1, 1, 1);
+      scene.add(directionalLight1);
 
-    sceneRef.current = { scene, camera, renderer };
+      const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+      directionalLight2.position.set(-1, -1, -1);
+      scene.add(directionalLight2);
 
-    // Load model
-    const loader = new STLLoader();
-    loader.load(
-      fileUrl,
-      (geometry) => {
+      if (isMounted) {
+        sceneRef.current = { scene, camera, renderer };
+      }
+
+      try {
+        // Extract file path from URL
+        let filePath = '';
+        if (fileUrl.includes('/storage/v1/object/public/models/')) {
+          const urlParts = fileUrl.split('/storage/v1/object/public/models/');
+          filePath = urlParts[1];
+        } else if (fileUrl.includes('/models/')) {
+          const urlParts = fileUrl.split('/models/');
+          filePath = urlParts[1];
+        } else {
+          filePath = fileUrl;
+        }
+
+        // Download file from Supabase Storage
+        const { data: fileData, error: downloadError } = await supabase.storage
+          .from('models')
+          .download(filePath);
+
+        if (downloadError) throw downloadError;
+
+        const arrayBuffer = await fileData.arrayBuffer();
+
+        // Load model geometry
+        const loader = new STLLoader();
+        const geometry = loader.parse(arrayBuffer);
+
+        if (!isMounted) return;
+
         // Center geometry
         geometry.computeBoundingBox();
         const boundingBox = geometry.boundingBox!;
@@ -93,18 +122,24 @@ export const ModelThumbnail = ({ fileUrl, color = '#FFFFFF', className = '' }: M
 
         // Render
         renderer.render(scene, camera);
-        setIsLoading(false);
-      },
-      undefined,
-      (error) => {
+        
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      } catch (error) {
         console.error('Error loading model for thumbnail:', error);
-        setError(true);
-        setIsLoading(false);
+        if (isMounted) {
+          setError(true);
+          setIsLoading(false);
+        }
       }
-    );
+    };
+
+    loadAndRenderModel();
 
     // Cleanup
     return () => {
+      isMounted = false;
       if (sceneRef.current) {
         sceneRef.current.renderer.dispose();
         if (sceneRef.current.mesh) {
@@ -116,8 +151,8 @@ export const ModelThumbnail = ({ fileUrl, color = '#FFFFFF', className = '' }: M
           }
         }
       }
-      if (container.firstChild) {
-        container.removeChild(container.firstChild);
+      if (containerRef.current?.firstChild) {
+        containerRef.current.removeChild(containerRef.current.firstChild);
       }
     };
   }, [fileUrl]);
