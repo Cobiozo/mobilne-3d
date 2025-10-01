@@ -131,7 +131,7 @@ export function AdminSidebar({ currentTab, onTabChange }: AdminSidebarProps) {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className={state === "collapsed" ? "sr-only" : "px-4 py-2 text-sm font-semibold"}>
-            {getText('adminDashboard', language)}
+            Panel administratora
           </SidebarGroupLabel>
           
           <SidebarGroupContent>

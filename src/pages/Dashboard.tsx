@@ -241,7 +241,7 @@ const Dashboard = () => {
                   <SidebarTrigger />
                   <div className="hidden sm:block">
                     <h1 className="text-xl font-bold">
-                      {getText('adminDashboard', language)}
+                      Panel administratora
                     </h1>
                     <Badge variant="secondary" className="hidden sm:inline-flex">Admin</Badge>
                   </div>
