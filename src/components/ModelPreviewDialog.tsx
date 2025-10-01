@@ -44,12 +44,26 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
     if (!model) return;
     
     setIsLoading(true);
+    setModelData(null); // Reset previous model data
+    
     try {
-      // Extract the file path from the full URL
-      const urlParts = model.file_url.split('/storage/v1/object/public/models/');
-      const filePath = urlParts[1]; // This will be: user_id/filename.stl
+      console.log('Full model URL:', model.file_url);
       
-      console.log('Loading model from path:', filePath);
+      // Extract the file path from the full URL
+      let filePath = '';
+      
+      if (model.file_url.includes('/storage/v1/object/public/models/')) {
+        const urlParts = model.file_url.split('/storage/v1/object/public/models/');
+        filePath = urlParts[1];
+      } else if (model.file_url.includes('/models/')) {
+        const urlParts = model.file_url.split('/models/');
+        filePath = urlParts[1];
+      } else {
+        // Assume it's already a path
+        filePath = model.file_url;
+      }
+      
+      console.log('Extracted file path:', filePath);
       
       // Get the file from Supabase storage
       const { data, error } = await supabase.storage
@@ -58,15 +72,16 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
 
       if (error) {
         console.error('Error downloading model:', error);
-        toast.error('Błąd pobierania modelu');
+        toast.error(`Błąd pobierania modelu: ${error.message}`);
         return;
       }
 
       const arrayBuffer = await data.arrayBuffer();
+      console.log('Model data loaded, size:', arrayBuffer.byteLength);
       setModelData(arrayBuffer);
     } catch (error) {
       console.error('Error loading model:', error);
-      toast.error('Błąd ładowania modelu');
+      toast.error(`Błąd ładowania modelu: ${error instanceof Error ? error.message : 'Nieznany błąd'}`);
     } finally {
       setIsLoading(false);
     }

@@ -53,7 +53,9 @@ const Checkout = () => {
   }, [navigate]);
 
   useEffect(() => {
+    console.log('Checkout auth check:', { loading, user: !!user });
     if (!loading && !user) {
+      console.log('Redirecting to auth - no user found');
       toast.error('Musisz być zalogowany, aby złożyć zamówienie');
       navigate('/auth');
     }
@@ -151,7 +153,18 @@ const Checkout = () => {
     }
   };
 
-  if (loading || !user) {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-secondary flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p>Ładowanie...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
     return null;
   }
 
