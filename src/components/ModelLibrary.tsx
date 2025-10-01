@@ -11,7 +11,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
-import { Eye, Download, Trash2, Globe, Lock, Plus, Package, ShoppingCart, Edit, Check, X, Coins } from 'lucide-react';
+import { Eye, Download, Trash2, Globe, Lock, Plus, Package, ShoppingCart, Edit, Check, X, Coins, Star } from 'lucide-react';
+import { ModelRating } from '@/components/ModelRating';
 import { CartItem } from '@/components/ShoppingCart';
 import { toast as sonnerToast } from 'sonner';
 import {
@@ -309,7 +310,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
           {models.map((model) => (
             <Card key={model.id}>
               <CardHeader>
@@ -346,8 +347,17 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                 {/* Model thumbnail preview */}
                 <ModelThumbnail 
                   fileUrl={model.file_url}
-                  className="w-full h-40 rounded-lg border overflow-hidden mb-4"
+                  className="w-full h-48 rounded-lg border overflow-hidden mb-4"
                 />
+                
+                {/* Rating component */}
+                <div className="mb-4">
+                  <ModelRating 
+                    modelId={model.id} 
+                    currentUserId={userId}
+                    compact={true}
+                  />
+                </div>
                 
                 {model.description && (
                   <p className="text-sm text-muted-foreground mb-4 line-clamp-2">

@@ -161,6 +161,33 @@ export type Database = {
         }
         Relationships: []
       }
+      coin_transactions: {
+        Row: {
+          amount: number
+          coins_spent: number
+          created_at: string
+          id: string
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          coins_spent: number
+          created_at?: string
+          id?: string
+          transaction_type?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          coins_spent?: number
+          created_at?: string
+          id?: string
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       customer_notes: {
         Row: {
           created_at: string
@@ -300,6 +327,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "model_orders_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      model_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          model_id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          model_id: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          model_id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "model_ratings_model_id_fkey"
             columns: ["model_id"]
             isOneToOne: false
             referencedRelation: "models"
@@ -727,6 +792,7 @@ export type Database = {
           id: string
           updated_at: string
           user_id: string
+          virtual_currency: number
         }
         Insert: {
           balance?: number
@@ -734,6 +800,7 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id: string
+          virtual_currency?: number
         }
         Update: {
           balance?: number
@@ -741,6 +808,7 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+          virtual_currency?: number
         }
         Relationships: []
       }
@@ -793,6 +861,10 @@ export type Database = {
           user_id_to_change: string
         }
         Returns: boolean
+      }
+      exchange_coins_to_currency: {
+        Args: { p_coins: number }
+        Returns: Json
       }
       generate_order_number: {
         Args: Record<PropertyKey, never>

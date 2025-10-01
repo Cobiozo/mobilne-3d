@@ -8,9 +8,10 @@ import { ModelThumbnail } from '@/components/ModelThumbnail';
 import { ModelViewer } from '@/components/ModelViewer';
 import { ControlPanel } from '@/components/ControlPanel';
 import { supabase } from '@/integrations/supabase/client';
-import { ShoppingCart, Palette, Package, Coins } from 'lucide-react';
+import { ShoppingCart, Palette, Package, Coins, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { CartItem } from '@/components/ShoppingCart';
+import { ModelRating } from '@/components/ModelRating';
 
 interface PublicModel {
   id: string;
@@ -362,14 +363,14 @@ export const PublicModels = () => {
       </Dialog>
 
       {/* Models Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {models.map((model) => (
           <Card key={model.id} className="overflow-hidden hover:shadow-lg transition-shadow">
             <CardHeader className="p-0 relative cursor-pointer" onClick={() => handleOpenPreview(model)}>
               <ModelThumbnail 
                 fileUrl={model.file_url}
                 color={selectedColors[model.id] || '#000000'}
-                className="w-full h-48"
+                className="w-full h-64"
               />
               <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
                 Kliknij aby zobaczyć
@@ -378,9 +379,9 @@ export const PublicModels = () => {
             <CardContent className="p-4">
               <div className="space-y-3">
                 <div>
-                  <CardTitle className="text-base line-clamp-1">{model.name}</CardTitle>
+                  <CardTitle className="text-lg line-clamp-1">{model.name}</CardTitle>
                   {model.description && (
-                    <CardDescription className="text-xs mt-1 line-clamp-2">
+                    <CardDescription className="text-sm mt-1 line-clamp-2">
                       {model.description}
                     </CardDescription>
                   )}
@@ -400,6 +401,14 @@ export const PublicModels = () => {
                       </span>
                     )}
                   </div>
+                </div>
+
+                {/* Rating component */}
+                <div className="border-t pt-3">
+                  <ModelRating 
+                    modelId={model.id}
+                    compact={true}
+                  />
                 </div>
 
                 {/* Color selector */}
