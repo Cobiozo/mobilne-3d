@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notes: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          id: string
+          is_pinned: boolean
+          priority: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          is_pinned?: boolean
+          priority?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          is_pinned?: boolean
+          priority?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           created_at: string
@@ -42,6 +87,45 @@ export type Database = {
           id?: string
           ip_address?: unknown | null
           session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          resource_id: string | null
+          resource_type: string
+          severity: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          resource_id?: string | null
+          resource_type: string
+          severity?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          resource_id?: string | null
+          resource_type?: string
+          severity?: string
           user_agent?: string | null
           user_id?: string | null
         }
@@ -444,6 +528,51 @@ export type Database = {
           setting_value?: Json
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      system_notifications: {
+        Row: {
+          action_label: string | null
+          action_url: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_read: boolean
+          message: string
+          target_users: string
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          action_label?: string | null
+          action_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean
+          message: string
+          target_users?: string
+          title: string
+          type?: string
+          user_id?: string | null
+        }
+        Update: {
+          action_label?: string | null
+          action_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string
+          target_users?: string
+          title?: string
+          type?: string
+          user_id?: string | null
         }
         Relationships: []
       }

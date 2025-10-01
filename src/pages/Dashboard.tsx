@@ -21,6 +21,9 @@ import { OrderHistory } from '@/components/OrderHistory';
 import { ShippingAddresses } from '@/components/ShippingAddresses';
 import { ChangePassword } from '@/components/ChangePassword';
 import { ShoppingCartComponent, CartItem } from '@/components/ShoppingCart';
+import { NotesManagement } from '@/components/NotesManagement';
+import { NotificationsManagement } from '@/components/NotificationsManagement';
+import { SecuritySettings } from '@/components/SecuritySettings';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { User, LogOut, Upload, Settings, Home, Package, MapPin, Lock } from 'lucide-react';
 
@@ -171,7 +174,7 @@ const Dashboard = () => {
       }
     }
 
-    // Admin dashboard
+  // Admin dashboard
     switch (currentTab) {
       case 'overview':
         return <AdminOverview onTabChange={handleTabChange} />;
@@ -181,6 +184,12 @@ const Dashboard = () => {
         return <OrdersManagement />;
       case 'models':
         return <ModelLibrary userId={user.id} />;
+      case 'notes':
+        return <NotesManagement />;
+      case 'notifications':
+        return <NotificationsManagement />;
+      case 'security':
+        return <SecuritySettings />;
       case 'personalization':
         return <SitePersonalization />;
       case 'site-settings':
