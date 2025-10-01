@@ -188,24 +188,25 @@ const Checkout = () => {
     const originalSize = itemOriginalSizes[item.id] || { x: 100, y: 100, z: 100 };
     const material = itemMaterials[item.id] || 'PLA';
     
-    // Calculate volume in mm³ for original size at 100% scale
-    const originalVolumeMm3 = originalSize.x * originalSize.y * originalSize.z;
+    // Get reference volume from first item in cart (user's current model)
+    const firstItemId = cartItems[0]?.id;
+    const referenceOriginalSize = itemOriginalSizes[firstItemId] || { x: 100, y: 100, z: 100 };
+    const referenceVolumeMm3 = referenceOriginalSize.x * referenceOriginalSize.y * referenceOriginalSize.z;
     
     // Calculate volume in mm³ for current size
     const currentVolumeMm3 = size.x * size.y * size.z;
     
-    // Reference: User's model at 100% scale with PLA = 39 zł
-    // We use the first item's original volume as reference
-    const referenceVolumeMm3 = originalVolumeMm3;
-    const referencePricePLA = 39.0; // Base price for 100% scale PLA
+    // Reference: First model at 100% scale with PLA = 39 zł
+    const referencePricePLA = 39.0;
     
-    // Calculate price based on volume ratio
+    // Calculate price based on volume ratio compared to reference model
     const volumeRatio = currentVolumeMm3 / referenceVolumeMm3;
     
     // Apply material multiplier
     const materialMultiplier = getMaterialMultiplier(material);
     
     // Calculate final price: base price * volume ratio * material multiplier * quantity
+    // Smaller models will be cheaper, larger models will be more expensive
     const pricePerUnit = referencePricePLA * volumeRatio * materialMultiplier;
     
     return pricePerUnit * item.quantity;
