@@ -135,7 +135,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
           <Badge variant="outline">
             {models.length} {getText('models', language)}
           </Badge>
-          <Button onClick={() => setShowUpload(true)}>
+          <Button type="button" onClick={() => setShowUpload(true)}>
             <Plus className="w-4 h-4 mr-2" />
             {getText('uploadModel', language)}
           </Button>
@@ -151,7 +151,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
             <p className="text-muted-foreground text-center mb-4">
               {getText('uploadFirstModel', language)}
             </p>
-            <Button onClick={() => setShowUpload(true)}>
+            <Button type="button" onClick={() => setShowUpload(true)}>
               <Plus className="w-4 h-4 mr-2" />
               {getText('uploadModel', language)}
             </Button>
@@ -192,6 +192,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                 )}
                 <div className="flex flex-wrap gap-2">
                   <Button 
+                    type="button"
                     size="sm" 
                     variant="outline"
                     onClick={() => {
@@ -203,6 +204,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                     {getText('view', language)}
                   </Button>
                   <Button
+                    type="button"
                     size="sm"
                     variant="outline"
                     onClick={() => togglePublic(model.id, model.is_public)}
@@ -220,6 +222,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                     )}
                   </Button>
                   <Button
+                    type="button"
                     size="sm"
                     variant="destructive"
                     onClick={() => deleteModel(model.id)}
