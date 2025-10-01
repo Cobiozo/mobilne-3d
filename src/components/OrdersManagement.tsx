@@ -417,7 +417,13 @@ export const OrdersManagement = () => {
 
                 <div>
                   <h4 className="font-medium">Klient</h4>
-                  <p className="text-sm text-muted-foreground">{selectedOrder.customer_name}</p>
+                  {selectedOrder.customer_first_name && selectedOrder.customer_last_name ? (
+                    <p className="text-sm text-muted-foreground">
+                      {selectedOrder.customer_first_name} {selectedOrder.customer_last_name}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">{selectedOrder.customer_name}</p>
+                  )}
                   {selectedOrder.customer_email && (
                     <p className="text-xs text-muted-foreground">{selectedOrder.customer_email}</p>
                   )}
@@ -426,43 +432,53 @@ export const OrdersManagement = () => {
                   )}
                 </div>
 
-                {/* Shipping Information */}
-                {(selectedOrder.shipping_address || selectedOrder.delivery_method) && (
-                  <div className="pt-4 border-t">
-                    <h4 className="font-medium mb-2">Dane do wysyłki</h4>
-                    <div className="space-y-1 text-sm">
-                      {selectedOrder.shipping_address && (
+                {/* Shipping Information - Always show section */}
+                <div className="pt-4 border-t">
+                  <h4 className="font-medium mb-2">Dane do wysyłki</h4>
+                  <div className="space-y-1 text-sm">
+                    {selectedOrder.shipping_address ? (
+                      <>
                         <p className="text-muted-foreground">
                           <span className="font-medium">Adres:</span> {selectedOrder.shipping_address}
                         </p>
-                      )}
-                      {selectedOrder.shipping_city && selectedOrder.shipping_postal_code && (
-                        <p className="text-muted-foreground">
-                          {selectedOrder.shipping_postal_code} {selectedOrder.shipping_city}
-                        </p>
-                      )}
-                      {selectedOrder.shipping_country && (
-                        <p className="text-muted-foreground">
-                          <span className="font-medium">Kraj:</span> {selectedOrder.shipping_country}
-                        </p>
-                      )}
-                      {selectedOrder.delivery_method && (
-                        <p className="text-muted-foreground">
-                          <span className="font-medium">Dostawa:</span>{' '}
-                          {selectedOrder.delivery_method === 'inpost-courier' 
-                            ? 'Kurier InPost' 
-                            : 'Paczkomaty InPost'}
-                        </p>
-                      )}
-                      {selectedOrder.payment_method && (
-                        <p className="text-muted-foreground">
-                          <span className="font-medium">Płatność:</span>{' '}
-                          {selectedOrder.payment_method.toUpperCase()}
-                        </p>
-                      )}
-                    </div>
+                        {selectedOrder.shipping_city && selectedOrder.shipping_postal_code && (
+                          <p className="text-muted-foreground">
+                            {selectedOrder.shipping_postal_code} {selectedOrder.shipping_city}
+                          </p>
+                        )}
+                        {selectedOrder.shipping_country && (
+                          <p className="text-muted-foreground">
+                            <span className="font-medium">Kraj:</span> {selectedOrder.shipping_country}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">Brak danych adresowych</p>
+                    )}
+                    
+                    {selectedOrder.delivery_method ? (
+                      <p className="text-muted-foreground">
+                        <span className="font-medium">Dostawa:</span>{' '}
+                        {selectedOrder.delivery_method === 'inpost-courier' 
+                          ? 'Kurier InPost' 
+                          : selectedOrder.delivery_method === 'paczkomaty'
+                          ? 'Paczkomaty InPost'
+                          : selectedOrder.delivery_method}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">Metoda dostawy nie określona</p>
+                    )}
+                    
+                    {selectedOrder.payment_method ? (
+                      <p className="text-muted-foreground">
+                        <span className="font-medium">Płatność:</span>{' '}
+                        {selectedOrder.payment_method.toUpperCase()}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">Metoda płatności nie określona</p>
+                    )}
                   </div>
-                )}
+                </div>
 
                 <div>
                   <h4 className="font-medium">Model</h4>
