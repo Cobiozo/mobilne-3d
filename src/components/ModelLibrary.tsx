@@ -10,7 +10,9 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
-import { Eye, Download, Trash2, Globe, Lock, Plus, Package } from 'lucide-react';
+import { Eye, Download, Trash2, Globe, Lock, Plus, Package, ShoppingCart } from 'lucide-react';
+import { CartItem } from '@/components/ShoppingCart';
+import { toast as sonnerToast } from 'sonner';
 
 interface Model {
   id: string;
@@ -33,6 +35,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
   const [showUpload, setShowUpload] = useState(false);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const { toast } = useToast();
   const { language } = useApp();
 
@@ -118,6 +121,83 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
         title: getText('success', language),
         description: getText('modelVisibilityUpdated', language),
       });
+    }
+  };
+
+  const handleAddToCart = async (model: Model) => {
+    setAddingToCart(model.id);
+    
+    try {
+      // Download model file to get dimensions
+      let filePath = '';
+      if (model.file_url.includes('/storage/v1/object/public/models/')) {
+        const urlParts = model.file_url.split('/storage/v1/object/public/models/');
+        filePath = urlParts[1];
+      } else if (model.file_url.includes('/models/')) {
+        const urlParts = model.file_url.split('/models/');
+        filePath = urlParts[1];
+      } else {
+        filePath = model.file_url;
+      }
+
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('models')
+        .download(filePath);
+
+      if (downloadError || !fileData) {
+        throw new Error('Nie udało się pobrać pliku modelu');
+      }
+
+      const arrayBuffer = await fileData.arrayBuffer();
+      
+      // Get dimensions
+      const { getModelDimensions } = await import('@/utils/modelLoader');
+      const dimensions = getModelDimensions(arrayBuffer);
+
+      // Create cart item with default settings (black color)
+      const newItem: CartItem = {
+        id: model.id,
+        name: model.name,
+        color: '#000000', // Default black color
+        quantity: 1,
+        dimensions: dimensions
+      };
+
+      // Load existing cart
+      const savedCart = localStorage.getItem('cartItems');
+      let cartItems: CartItem[] = [];
+      
+      if (savedCart) {
+        try {
+          cartItems = JSON.parse(savedCart);
+        } catch (error) {
+          console.error('Error parsing cart:', error);
+        }
+      }
+
+      // Check if item already exists
+      const existingIndex = cartItems.findIndex(
+        item => item.id === newItem.id && item.color === newItem.color
+      );
+
+      if (existingIndex >= 0) {
+        // Increase quantity
+        cartItems[existingIndex].quantity += 1;
+        sonnerToast.success(`Zwiększono ilość "${newItem.name}" w koszyku`);
+      } else {
+        // Add new item
+        cartItems.push(newItem);
+        sonnerToast.success(`Dodano "${newItem.name}" do koszyka`);
+      }
+
+      // Save to localStorage
+      localStorage.setItem('cartItems', JSON.stringify(cartItems));
+      
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      sonnerToast.error('Nie udało się dodać modelu do koszyka');
+    } finally {
+      setAddingToCart(null);
     }
   };
 
@@ -213,6 +293,25 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                   >
                     <Eye className="w-4 h-4 mr-1" />
                     {getText('view', language)}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="default"
+                    onClick={() => handleAddToCart(model)}
+                    disabled={addingToCart === model.id}
+                  >
+                    {addingToCart === model.id ? (
+                      <>
+                        <div className="w-4 h-4 mr-1 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        Dodawanie...
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="w-4 h-4 mr-1" />
+                        Do koszyka
+                      </>
+                    )}
                   </Button>
                   <Button
                     type="button"
