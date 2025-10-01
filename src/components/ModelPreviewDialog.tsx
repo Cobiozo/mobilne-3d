@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
 import { CartItem, ShoppingCartComponent } from '@/components/ShoppingCart';
+import { captureCanvasFromThreeJS } from '@/utils/exportUtils';
 
 interface Model {
   id: string;
@@ -119,13 +120,27 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
       
       console.log('Adding to cart with dimensions:', dimensions);
 
+      // Capture model thumbnail from canvas
+      let thumbnailUrl: string | undefined;
+      try {
+        const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+        if (canvas) {
+          const capturedCanvas = captureCanvasFromThreeJS(canvas);
+          thumbnailUrl = capturedCanvas.toDataURL('image/png');
+          console.log('Generated thumbnail for cart');
+        }
+      } catch (error) {
+        console.warn('Could not capture model thumbnail:', error);
+      }
+
       const cartItem: CartItem = {
         id: model.id,
         name: model.name,
         color: modelColor,
         quantity: 1,
         price: 39.99, // Base price - will be calculated in checkout based on actual dimensions
-        dimensions: dimensions // Add dimensions to cart item
+        dimensions: dimensions, // Add dimensions to cart item
+        image: thumbnailUrl // Add thumbnail image
       };
 
       setCartItems(prev => {

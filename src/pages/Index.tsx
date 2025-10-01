@@ -359,6 +359,19 @@ const Index = () => {
       
       console.log('Model dimensions for cart:', dimensions);
 
+      // Capture model thumbnail from canvas
+      let thumbnailUrl: string | undefined;
+      try {
+        const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+        if (canvas) {
+          const capturedCanvas = captureCanvasFromThreeJS(canvas);
+          thumbnailUrl = capturedCanvas.toDataURL('image/png');
+          console.log('Generated thumbnail for cart');
+        }
+      } catch (error) {
+        console.warn('Could not capture model thumbnail:', error);
+      }
+
       // Find model in database by name if user is logged in
       let modelId = `${Date.now()}-${Math.random()}`;
       
@@ -384,7 +397,8 @@ const Index = () => {
         color: modelColor,
         quantity: 1,
         price: 39.99, // Base price - will be calculated in checkout based on dimensions
-        dimensions: dimensions // Add dimensions to cart item
+        dimensions: dimensions, // Add dimensions to cart item
+        image: thumbnailUrl // Add thumbnail image
       };
 
       setCartItems(prev => {
