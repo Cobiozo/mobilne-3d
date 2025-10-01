@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -24,6 +25,7 @@ interface ShoppingCartProps {
 
 export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, onClearCart }: ShoppingCartProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
   
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = items.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
@@ -161,7 +163,8 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
                       localStorage.setItem('cartItems', JSON.stringify(items));
                       console.log('Zapisano koszyk do localStorage:', items);
                       // Navigate to checkout
-                      window.location.assign('/checkout');
+                      navigate('/checkout');
+                      setIsOpen(false);
                     }}
                   >
                     Przejdź do płatności
