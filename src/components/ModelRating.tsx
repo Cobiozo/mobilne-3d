@@ -137,12 +137,59 @@ export const ModelRating = ({ modelId, currentUserId, compact = false }: ModelRa
 
   if (compact) {
     return (
-      <div className="flex items-center gap-2 text-sm">
-        {renderStars(averageRating)}
-        <span className="text-muted-foreground">
-          {averageRating > 0 ? averageRating.toFixed(1) : 'Brak ocen'} 
-          {totalRatings > 0 && ` (${totalRatings})`}
-        </span>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-sm">
+          {renderStars(averageRating)}
+          <span className="text-muted-foreground">
+            {averageRating > 0 ? averageRating.toFixed(1) : 'Brak ocen'} 
+            {totalRatings > 0 && ` (${totalRatings})`}
+          </span>
+        </div>
+        
+        {currentUserId && (
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                <Star className="w-3 h-3 mr-1" />
+                {userRating > 0 ? 'Edytuj' : 'Oceń'}
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Oceń ten model</DialogTitle>
+                <DialogDescription>
+                  Twoja ocena pomoże innym użytkownikom
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Twoja ocena</label>
+                  {renderStars(userRating, true)}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Komentarz (opcjonalnie)
+                  </label>
+                  <Textarea
+                    value={userComment}
+                    onChange={(e) => setUserComment(e.target.value)}
+                    placeholder="Napisz co sądzisz o tym modelu..."
+                    rows={4}
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Anuluj
+                  </Button>
+                  <Button onClick={handleRatingSubmit}>Zapisz ocenę</Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     );
   }
