@@ -13,7 +13,7 @@ import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Mail, Calendar, MessageSquare, Plus, Edit, Trash2 } from 'lucide-react';
+import { User, Mail, Calendar, MessageSquare, Plus, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
 interface Customer {
   id: string;
@@ -25,6 +25,8 @@ interface Customer {
   last_sign_in_at?: string;
   orders_count: number;
   total_spent: number;
+  email_confirmed_at?: string;
+  confirmed_at?: string;
 }
 
 interface Order {
@@ -124,7 +126,9 @@ export const CustomersManagement = () => {
           role: (userRole?.role || 'user') as 'admin' | 'user',
           last_sign_in_at: authUser.last_sign_in_at,
           orders_count: userOrders.length,
-          total_spent: totalSpent
+          total_spent: totalSpent,
+          email_confirmed_at: authUser.email_confirmed_at,
+          confirmed_at: authUser.confirmed_at
         };
       });
 
@@ -224,6 +228,45 @@ export const CustomersManagement = () => {
       toast({
         title: getText('error', language),
         description: 'Failed to add note',
+        variant: "destructive",
+      });
+    }
+  };
+
+  const confirmEmail = async (customer: Customer) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No active session');
+      }
+
+      const response = await fetch(`https://rzupsyhyoztaekcwmels.supabase.co/functions/v1/confirm-user-email`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: customer.id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to confirm email');
+      }
+
+      // Refresh customers list
+      await fetchCustomers();
+
+      toast({
+        title: getText('success', language),
+        description: 'Email został potwierdzony',
+      });
+    } catch (error: any) {
+      console.error('Error confirming email:', error);
+      toast({
+        title: getText('error', language),
+        description: error.message,
         variant: "destructive",
       });
     }
@@ -397,9 +440,32 @@ export const CustomersManagement = () => {
                       </div>
                       <div>
                         <Label>Email</Label>
-                        <p className="mt-1 p-2 bg-muted rounded">
-                          {selectedCustomer.email || 'Nie dostępny'}
-                        </p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <p className="p-2 bg-muted rounded flex-1">
+                            {selectedCustomer.email || 'Nie dostępny'}
+                          </p>
+                          {selectedCustomer.email_confirmed_at || selectedCustomer.confirmed_at ? (
+                            <Badge variant="default" className="flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" />
+                              Potwierdzony
+                            </Badge>
+                          ) : (
+                            <>
+                              <Badge variant="destructive" className="flex items-center gap-1">
+                                <XCircle className="w-3 h-3" />
+                                Niepotwierdzony
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => confirmEmail(selectedCustomer)}
+                              >
+                                <Mail className="w-4 h-4 mr-2" />
+                                Potwierdź email
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
