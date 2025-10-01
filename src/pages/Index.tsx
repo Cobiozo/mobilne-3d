@@ -71,14 +71,26 @@ const Index = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [showAddedToCart, setShowAddedToCart] = useState(false);
+  const [availableColors, setAvailableColors] = useState<string[]>([]);
 
-  // Standard colors for comparison - synchronized with ControlPanel PRESET_COLORS
-  const standardColors = [
-    '#4F8EF7', '#9B6BF2', '#22C55E', '#EF4444', '#F59E0B', '#8B5CF6',
-    '#06B6D4', '#EC4899', '#64748B', '#000000', '#FFFFFF', '#6B7280'
-  ];
+  // Load available colors from database
+  useEffect(() => {
+    const loadColors = async () => {
+      const { data, error } = await supabase
+        .from("available_colors")
+        .select("color_hex")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+
+      if (!error && data) {
+        setAvailableColors(data.map(c => c.color_hex));
+      }
+    };
+
+    loadColors();
+  }, []);
   
-  const isNonStandardColor = !standardColors.some(color => color.toLowerCase() === modelColor.toLowerCase());
+  const isNonStandardColor = !availableColors.some(color => color.toLowerCase() === modelColor.toLowerCase());
 
   // Shopping cart state
   const [cartItems, setCartItems] = useState<CartItem[]>([]);

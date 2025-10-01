@@ -9,6 +9,7 @@ import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
 import { FileText, Trash2 } from 'lucide-react';
 import { UsersManagement } from '@/components/UsersManagement';
+import { ColorsManagement } from '@/components/ColorsManagement';
 
 
 interface Model {
@@ -97,6 +98,9 @@ export const AdminPanel = () => {
       </div>
 
       <UsersManagement />
+
+      {/* Colors Management */}
+      <ColorsManagement />
 
       {/* Models Management */}
       <Card>

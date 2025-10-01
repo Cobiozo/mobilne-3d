@@ -47,6 +47,36 @@ export type Database = {
         }
         Relationships: []
       }
+      available_colors: {
+        Row: {
+          color_hex: string
+          color_name: string
+          created_at: string
+          id: string
+          is_active: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          color_hex: string
+          color_name: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          color_hex?: string
+          color_name?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customer_notes: {
         Row: {
           created_at: string

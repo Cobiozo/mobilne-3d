@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Palette, RotateCcw, ZoomIn, ZoomOut, Download, Info, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -6,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useApp } from "@/contexts/AppContext";
 import { useTranslation } from "@/lib/i18n";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ControlPanelProps {
   modelColor: string;
@@ -22,21 +24,6 @@ interface ControlPanelProps {
   isImageGenerated?: boolean;
 }
 
-const PRESET_COLORS = [
-  "#4F8EF7", // Blue
-  "#9B6BF2", // Purple  
-  "#22C55E", // Green
-  "#EF4444", // Red
-  "#F59E0B", // Orange
-  "#8B5CF6", // Violet
-  "#06B6D4", // Cyan
-  "#EC4899", // Pink
-  "#64748B", // Slate
-  "#000000", // Black
-  "#FFFFFF", // White
-  "#6B7280", // Gray
-];
-
 export const ControlPanel = ({ 
   modelColor, 
   onColorChange, 
@@ -51,6 +38,24 @@ export const ControlPanel = ({
 }: ControlPanelProps) => {
   const { language } = useApp();
   const { t } = useTranslation(language);
+  const [availableColors, setAvailableColors] = useState<Array<{ color_hex: string; color_name: string }>>([]);
+
+  useEffect(() => {
+    const loadColors = async () => {
+      const { data, error } = await supabase
+        .from("available_colors")
+        .select("color_hex, color_name")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+
+      if (!error && data) {
+        setAvailableColors(data);
+      }
+    };
+
+    loadColors();
+  }, []);
+
   return (
     <Card className="bg-viewer-panel shadow-panel border-border/50 backdrop-blur-sm">
       <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
@@ -151,17 +156,17 @@ export const ControlPanel = ({
 
           {/* Preset Colors - Responsive grid */}
           <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-6 gap-1 sm:gap-1.5">
-            {PRESET_COLORS.map((color) => (
+            {availableColors.map((color) => (
               <button
-                key={color}
-                onClick={() => onColorChange(color)}
+                key={color.color_hex}
+                onClick={() => onColorChange(color.color_hex)}
                 className={`w-5 h-5 sm:w-6 sm:h-6 rounded border-2 transition-all hover:scale-110 ${
-                  modelColor.toLowerCase() === color.toLowerCase() 
+                  modelColor.toLowerCase() === color.color_hex.toLowerCase() 
                     ? 'border-primary shadow-glow' 
                     : 'border-border hover:border-primary/50'
                 }`}
-                style={{ backgroundColor: color }}
-                title={color}
+                style={{ backgroundColor: color.color_hex }}
+                title={color.color_name}
               />
             ))}
           </div>
