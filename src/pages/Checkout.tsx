@@ -22,7 +22,9 @@ const Checkout = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [itemSizes, setItemSizes] = useState<{ [key: string]: { x: number; y: number; z: number } }>({});
+  const [itemOriginalSizes, setItemOriginalSizes] = useState<{ [key: string]: { x: number; y: number; z: number } }>({});
   const [itemMaterials, setItemMaterials] = useState<{ [key: string]: string }>({});
+  const [loadingDimensions, setLoadingDimensions] = useState(true);
   
   // Form data
   const [customerInfo, setCustomerInfo] = useState({
@@ -51,26 +53,101 @@ const Checkout = () => {
   };
 
   useEffect(() => {
-    // Get cart items from localStorage or URL params
-    const savedCart = localStorage.getItem('cartItems');
-    if (savedCart) {
-      const items = JSON.parse(savedCart);
-      setCartItems(items);
-      
-      // Initialize default sizes (100mm x 100mm x 100mm) and materials for each item
-      const defaultSizes: { [key: string]: { x: number; y: number; z: number } } = {};
-      const defaultMaterials: { [key: string]: string } = {};
-      items.forEach((item: CartItem) => {
-        defaultSizes[item.id] = { x: 100, y: 100, z: 100 };
-        defaultMaterials[item.id] = 'PLA';
-      });
-      setItemSizes(defaultSizes);
-      setItemMaterials(defaultMaterials);
-    } else {
-      // If no cart items, redirect back
-      toast.error('Brak elementów w koszyku');
-      navigate('/');
-    }
+    const loadModelDimensions = async () => {
+      const savedCart = localStorage.getItem('cartItems');
+      if (savedCart) {
+        const items = JSON.parse(savedCart);
+        setCartItems(items);
+        
+        setLoadingDimensions(true);
+        
+        const sizes: { [key: string]: { x: number; y: number; z: number } } = {};
+        const originalSizes: { [key: string]: { x: number; y: number; z: number } } = {};
+        const materials: { [key: string]: string } = {};
+        
+        // Load actual dimensions from each model
+        for (const item of items) {
+          try {
+            // Get model from database to get file URL
+            const { data: models } = await supabase
+              .from('models')
+              .select('file_url')
+              .eq('id', item.id)
+              .limit(1);
+            
+            if (models && models.length > 0) {
+              const model = models[0];
+              
+              // Extract file path
+              let filePath = '';
+              if (model.file_url.includes('/storage/v1/object/public/models/')) {
+                const urlParts = model.file_url.split('/storage/v1/object/public/models/');
+                filePath = urlParts[1];
+              } else if (model.file_url.includes('/models/')) {
+                const urlParts = model.file_url.split('/models/');
+                filePath = urlParts[1];
+              } else {
+                filePath = model.file_url;
+              }
+              
+              // Download model file
+              const { data: fileData, error } = await supabase.storage
+                .from('models')
+                .download(filePath);
+              
+              if (!error && fileData) {
+                const arrayBuffer = await fileData.arrayBuffer();
+                
+                // Import the function dynamically
+                const { getModelDimensions } = await import('@/utils/modelLoader');
+                const dimensions = getModelDimensions(arrayBuffer);
+                
+                // Store original dimensions
+                originalSizes[item.id] = { ...dimensions };
+                
+                // Check if dimensions exceed maximum and scale down if needed
+                const maxX = 390;
+                const maxY = 390;
+                const maxZ = 380;
+                
+                const scaleX = dimensions.x > maxX ? maxX / dimensions.x : 1;
+                const scaleY = dimensions.y > maxY ? maxY / dimensions.y : 1;
+                const scaleZ = dimensions.z > maxZ ? maxZ / dimensions.z : 1;
+                
+                const scale = Math.min(scaleX, scaleY, scaleZ);
+                
+                sizes[item.id] = {
+                  x: Math.round(dimensions.x * scale * 10) / 10,
+                  y: Math.round(dimensions.y * scale * 10) / 10,
+                  z: Math.round(dimensions.z * scale * 10) / 10
+                };
+                
+                if (scale < 1) {
+                  toast.info(`Model "${item.name}" został przeskalowany aby zmieścić się w maksymalnych wymiarach`);
+                }
+              }
+            }
+          } catch (error) {
+            console.error(`Error loading dimensions for ${item.name}:`, error);
+            // Fallback to default dimensions
+            sizes[item.id] = { x: 100, y: 100, z: 100 };
+            originalSizes[item.id] = { x: 100, y: 100, z: 100 };
+          }
+          
+          materials[item.id] = 'PLA';
+        }
+        
+        setItemSizes(sizes);
+        setItemOriginalSizes(originalSizes);
+        setItemMaterials(materials);
+        setLoadingDimensions(false);
+      } else {
+        toast.error('Brak elementów w koszyku');
+        navigate('/');
+      }
+    };
+    
+    loadModelDimensions();
   }, [navigate]);
 
   useEffect(() => {
@@ -248,7 +325,15 @@ const Checkout = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {cartItems.map((item) => {
+              {loadingDimensions ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                    <p className="text-sm text-muted-foreground">Wczytywanie wymiarów modeli...</p>
+                  </div>
+                </div>
+              ) : (
+                cartItems.map((item) => {
                 const size = itemSizes[item.id] || { x: 100, y: 100, z: 100 };
                 const material = itemMaterials[item.id] || 'PLA';
                 
@@ -270,71 +355,93 @@ const Checkout = () => {
 
                     {/* Size Controls */}
                     <div className="space-y-3">
-                      <Label className="text-sm font-medium">Wymiary modelu (mm)</Label>
+                      <Label className="text-sm font-medium">Skalowanie modelu</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Oryginalne wymiary: {itemOriginalSizes[item.id]?.x.toFixed(1) || '?'} × {itemOriginalSizes[item.id]?.y.toFixed(1) || '?'} × {itemOriginalSizes[item.id]?.z.toFixed(1) || '?'} mm
+                      </p>
+                      
+                      <div>
+                        <Label htmlFor={`scale-${item.id}`} className="text-sm">
+                          Skala (%)
+                        </Label>
+                        <Input
+                          id={`scale-${item.id}`}
+                          type="number"
+                          min="1"
+                          max="1000"
+                          value={Math.round((size.x / (itemOriginalSizes[item.id]?.x || 1)) * 100)}
+                          onChange={(e) => {
+                            const scalePercent = Math.max(1, Math.min(1000, parseInt(e.target.value) || 100));
+                            const scale = scalePercent / 100;
+                            const originalSize = itemOriginalSizes[item.id] || { x: 100, y: 100, z: 100 };
+                            
+                            let newX = originalSize.x * scale;
+                            let newY = originalSize.y * scale;
+                            let newZ = originalSize.z * scale;
+                            
+                            // Check if exceeds maximum and scale down proportionally
+                            const scaleX = newX > 390 ? 390 / newX : 1;
+                            const scaleY = newY > 390 ? 390 / newY : 1;
+                            const scaleZ = newZ > 380 ? 380 / newZ : 1;
+                            const maxScale = Math.min(scaleX, scaleY, scaleZ);
+                            
+                            if (maxScale < 1) {
+                              newX *= maxScale;
+                              newY *= maxScale;
+                              newZ *= maxScale;
+                              toast.warning('Wymiary zostały ograniczone do maksymalnych');
+                            }
+                            
+                            setItemSizes(prev => ({
+                              ...prev,
+                              [item.id]: {
+                                x: Math.round(newX * 10) / 10,
+                                y: Math.round(newY * 10) / 10,
+                                z: Math.round(newZ * 10) / 10
+                              }
+                            }));
+                          }}
+                          className="h-9"
+                        />
+                      </div>
+                      
                       <div className="grid grid-cols-3 gap-2">
                         <div>
-                          <Label htmlFor={`size-x-${item.id}`} className="text-xs text-muted-foreground">
-                            Szerokość (X)
+                          <Label className="text-xs text-muted-foreground">
+                            X (mm)
                           </Label>
                           <Input
-                            id={`size-x-${item.id}`}
                             type="number"
-                            min="1"
-                            max="390"
-                            value={size.x}
-                            onChange={(e) => {
-                              const value = Math.min(390, Math.max(1, parseInt(e.target.value) || 1));
-                              setItemSizes(prev => ({
-                                ...prev,
-                                [item.id]: { ...prev[item.id], x: value }
-                              }));
-                            }}
-                            className="h-9"
+                            value={size.x.toFixed(1)}
+                            disabled
+                            className="h-9 bg-muted"
                           />
                         </div>
                         <div>
-                          <Label htmlFor={`size-y-${item.id}`} className="text-xs text-muted-foreground">
-                            Głębokość (Y)
+                          <Label className="text-xs text-muted-foreground">
+                            Y (mm)
                           </Label>
                           <Input
-                            id={`size-y-${item.id}`}
                             type="number"
-                            min="1"
-                            max="390"
-                            value={size.y}
-                            onChange={(e) => {
-                              const value = Math.min(390, Math.max(1, parseInt(e.target.value) || 1));
-                              setItemSizes(prev => ({
-                                ...prev,
-                                [item.id]: { ...prev[item.id], y: value }
-                              }));
-                            }}
-                            className="h-9"
+                            value={size.y.toFixed(1)}
+                            disabled
+                            className="h-9 bg-muted"
                           />
                         </div>
                         <div>
-                          <Label htmlFor={`size-z-${item.id}`} className="text-xs text-muted-foreground">
-                            Wysokość (Z)
+                          <Label className="text-xs text-muted-foreground">
+                            Z (mm)
                           </Label>
                           <Input
-                            id={`size-z-${item.id}`}
                             type="number"
-                            min="1"
-                            max="380"
-                            value={size.z}
-                            onChange={(e) => {
-                              const value = Math.min(380, Math.max(1, parseInt(e.target.value) || 1));
-                              setItemSizes(prev => ({
-                                ...prev,
-                                [item.id]: { ...prev[item.id], z: value }
-                              }));
-                            }}
-                            className="h-9"
+                            value={size.z.toFixed(1)}
+                            disabled
+                            className="h-9 bg-muted"
                           />
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Max: 390mm (X,Y) × 380mm (Z)
+                        Max: 390mm (X,Y) × 380mm (Z) - proporcje są zachowane
                       </p>
                     </div>
 
@@ -372,7 +479,10 @@ const Checkout = () => {
                     </div>
                   </div>
                 );
-              })}
+              })
+              )}
+              
+              <Separator />
               
               <Separator />
               

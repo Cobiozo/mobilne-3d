@@ -206,3 +206,30 @@ function processGeometry(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
   
   return processedGeometry;
 }
+
+// Function to get real dimensions from model geometry in millimeters
+export function getModelDimensions(arrayBuffer: ArrayBuffer): { x: number; y: number; z: number } {
+  try {
+    const loader = new STLLoader();
+    const geometry = loader.parse(arrayBuffer);
+    
+    geometry.computeBoundingBox();
+    
+    if (geometry.boundingBox) {
+      const size = new THREE.Vector3();
+      geometry.boundingBox.getSize(size);
+      
+      // Return dimensions in millimeters (assuming the model is in mm)
+      return {
+        x: Math.round(size.x * 10) / 10, // Round to 1 decimal place
+        y: Math.round(size.y * 10) / 10,
+        z: Math.round(size.z * 10) / 10
+      };
+    }
+  } catch (error) {
+    console.error('Error reading model dimensions:', error);
+  }
+  
+  // Return default if failed
+  return { x: 100, y: 100, z: 100 };
+}
