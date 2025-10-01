@@ -184,21 +184,29 @@ const Checkout = () => {
   };
 
   const calculatePrice = (item: CartItem) => {
-    // Base price calculation based on volume
     const size = itemSizes[item.id] || { x: 100, y: 100, z: 100 };
+    const originalSize = itemOriginalSizes[item.id] || { x: 100, y: 100, z: 100 };
     const material = itemMaterials[item.id] || 'PLA';
     
-    // Calculate volume in cm³ (convert from mm)
-    const volumeCm3 = (size.x / 10) * (size.y / 10) * (size.z / 10);
+    // Calculate volume in mm³ for original size at 100% scale
+    const originalVolumeMm3 = originalSize.x * originalSize.y * originalSize.z;
     
-    // Base price: 0.50 zł per cm³
-    const basePricePerCm3 = 0.50;
+    // Calculate volume in mm³ for current size
+    const currentVolumeMm3 = size.x * size.y * size.z;
+    
+    // Reference: User's model at 100% scale with PLA = 39 zł
+    // We use the first item's original volume as reference
+    const referenceVolumeMm3 = originalVolumeMm3;
+    const referencePricePLA = 39.0; // Base price for 100% scale PLA
+    
+    // Calculate price based on volume ratio
+    const volumeRatio = currentVolumeMm3 / referenceVolumeMm3;
     
     // Apply material multiplier
     const materialMultiplier = getMaterialMultiplier(material);
     
-    // Calculate final price
-    const pricePerUnit = volumeCm3 * basePricePerCm3 * materialMultiplier;
+    // Calculate final price: base price * volume ratio * material multiplier * quantity
+    const pricePerUnit = referencePricePLA * volumeRatio * materialMultiplier;
     
     return pricePerUnit * item.quantity;
   };
