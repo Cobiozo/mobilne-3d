@@ -33,6 +33,7 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
   const [modelColor, setModelColor] = useState("#FFFFFF");
   const [isLoading, setIsLoading] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [showAddedToCart, setShowAddedToCart] = useState(false);
   const { language } = useApp();
 
   // Load cart from localStorage on mount
@@ -157,7 +158,7 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
         }
       });
 
-      toast.success('Dodano do koszyka');
+      setShowAddedToCart(true);
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('Błąd podczas dodawania do koszyka');
@@ -205,7 +206,7 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
                 fileName={model?.name}
               />
               
-              {modelData && (
+              {modelData && !showAddedToCart && (
                 <div className="mt-4 pt-4 border-t">
                   <Button 
                     onClick={handleAddToCart}
@@ -214,6 +215,38 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
                   >
                     <ShoppingCart className="w-4 h-4 mr-2" />
                     Dodaj do koszyka
+                  </Button>
+                </div>
+              )}
+
+              {showAddedToCart && (
+                <div className="mt-4 pt-4 border-t space-y-2">
+                  <p className="text-sm text-center text-green-600 font-medium mb-3">
+                    ✓ Dodano do koszyka
+                  </p>
+                  <Button 
+                    onClick={() => {
+                      setShowAddedToCart(false);
+                      onClose();
+                    }}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Kupuj dalej
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setShowAddedToCart(false);
+                      onClose();
+                      // Open cart - trigger click on cart button
+                      setTimeout(() => {
+                        const cartButton = document.querySelector('[data-cart-trigger]') as HTMLButtonElement;
+                        if (cartButton) cartButton.click();
+                      }, 100);
+                    }}
+                    className="w-full"
+                  >
+                    Idź do koszyka
                   </Button>
                 </div>
               )}

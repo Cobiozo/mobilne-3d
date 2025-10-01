@@ -58,7 +58,7 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative">
+        <Button variant="ghost" size="sm" className="relative" data-cart-trigger>
           <ShoppingCart className="w-4 h-4" />
           {totalItems > 0 && (
             <Badge 
