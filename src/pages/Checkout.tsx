@@ -23,7 +23,7 @@ const Checkout = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [itemSizes, setItemSizes] = useState<{ [key: string]: { x: number; y: number; z: number } }>({});
   const [itemOriginalSizes, setItemOriginalSizes] = useState<{ [key: string]: { x: number; y: number; z: number } }>({});
-  const [referenceModelId, setReferenceModelId] = useState<string | null>(null); // First model as price reference
+  const [referenceVolume, setReferenceVolume] = useState<number | null>(null); // Reference volume for pricing (first model at 100%)
   const [itemMaterials, setItemMaterials] = useState<{ [key: string]: string }>({});
   const [loadingDimensions, setLoadingDimensions] = useState(true);
   
@@ -142,10 +142,14 @@ const Checkout = () => {
         setItemOriginalSizes(originalSizes);
         setItemMaterials(materials);
         
-        // Set first item as reference for pricing
-        if (items.length > 0 && !referenceModelId) {
-          setReferenceModelId(items[0].id);
-          console.log('Reference model set to:', items[0].id, 'with dimensions:', originalSizes[items[0].id]);
+        // Set first item's ORIGINAL volume as reference for pricing (at 100% scale)
+        if (items.length > 0 && !referenceVolume) {
+          const firstItemOriginalSize = originalSizes[items[0].id];
+          if (firstItemOriginalSize) {
+            const refVol = firstItemOriginalSize.x * firstItemOriginalSize.y * firstItemOriginalSize.z;
+            setReferenceVolume(refVol);
+            console.log('Reference volume set to:', refVol, 'mm³ from model:', items[0].name, 'dimensions:', firstItemOriginalSize);
+          }
         }
         
         setLoadingDimensions(false);
@@ -195,20 +199,16 @@ const Checkout = () => {
     const size = itemSizes[item.id] || { x: 100, y: 100, z: 100 };
     const material = itemMaterials[item.id] || 'PLA';
     
-    // Use the first model added to cart as the reference point
-    const refId = referenceModelId || cartItems[0]?.id;
-    const referenceOriginalSize = itemOriginalSizes[refId] || { x: 100, y: 100, z: 100 };
+    // Use the stored reference volume (first model's original dimensions at 100%)
+    const referenceVolumeMm3 = referenceVolume || 1000000; // Fallback to 100x100x100
     
-    // Reference volume at 100% scale (original size of reference model)
-    const referenceVolumeMm3 = referenceOriginalSize.x * referenceOriginalSize.y * referenceOriginalSize.z;
-    
-    // Calculate volume in mm³ for current item's CURRENT size (after scaling)
+    // Calculate volume in mm³ for current item's CURRENT size (after user scaling)
     const currentVolumeMm3 = size.x * size.y * size.z;
     
-    // Reference: First model at 100% scale (original size) with PLA = 39 zł
+    // Reference: First model at its original size (100% scale) with PLA = 39 zł
     const referencePricePLA = 39.0;
     
-    // Calculate price based on volume ratio compared to reference model
+    // Calculate price based on volume ratio
     // If current volume is smaller than reference, price will be < 39 zł
     // If current volume is larger than reference, price will be > 39 zł
     const volumeRatio = currentVolumeMm3 / referenceVolumeMm3;
@@ -225,7 +225,8 @@ const Checkout = () => {
       volumeRatio: volumeRatio.toFixed(3),
       material,
       materialMultiplier,
-      price: pricePerUnit.toFixed(2)
+      basePrice: (referencePricePLA * volumeRatio).toFixed(2),
+      finalPrice: pricePerUnit.toFixed(2)
     });
     
     return pricePerUnit * item.quantity;
