@@ -15,7 +15,7 @@ import { ArrowLeft, CreditCard, Truck, Package } from "lucide-react";
 import { CartItem } from "@/components/ShoppingCart";
 
 const Checkout = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -53,11 +53,11 @@ const Checkout = () => {
   }, [navigate]);
 
   useEffect(() => {
-    if (!user) {
+    if (!loading && !user) {
       toast.error('Musisz być zalogowany, aby złożyć zamówienie');
       navigate('/auth');
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
   const getColorName = (color: string) => {
     const colorNames: { [key: string]: string } = {
@@ -151,7 +151,7 @@ const Checkout = () => {
     }
   };
 
-  if (!user) {
+  if (loading || !user) {
     return null;
   }
 
