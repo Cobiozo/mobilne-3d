@@ -21,6 +21,8 @@ const Checkout = () => {
   const [searchParams] = useSearchParams();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [itemSizes, setItemSizes] = useState<{ [key: string]: { x: number; y: number; z: number } }>({});
+  const [itemMaterials, setItemMaterials] = useState<{ [key: string]: string }>({});
   
   // Form data
   const [customerInfo, setCustomerInfo] = useState({
@@ -54,6 +56,16 @@ const Checkout = () => {
     if (savedCart) {
       const items = JSON.parse(savedCart);
       setCartItems(items);
+      
+      // Initialize default sizes (100mm x 100mm x 100mm) and materials for each item
+      const defaultSizes: { [key: string]: { x: number; y: number; z: number } } = {};
+      const defaultMaterials: { [key: string]: string } = {};
+      items.forEach((item: CartItem) => {
+        defaultSizes[item.id] = { x: 100, y: 100, z: 100 };
+        defaultMaterials[item.id] = 'PLA';
+      });
+      setItemSizes(defaultSizes);
+      setItemMaterials(defaultMaterials);
     } else {
       // If no cart items, redirect back
       toast.error('Brak elementów w koszyku');
@@ -84,11 +96,34 @@ const Checkout = () => {
     return colorNames[color.toUpperCase()] || `Niestandardowy (${color})`;
   };
 
+  const getMaterialMultiplier = (material: string) => {
+    const multipliers: { [key: string]: number } = {
+      'PLA': 1.0,
+      'ABS': 2.0,      // +100%
+      'PETG': 1.15,    // +15%
+      'TPU': 1.30      // +30%
+    };
+    return multipliers[material] || 1.0;
+  };
+
   const calculatePrice = (item: CartItem) => {
-    // Basic pricing logic - can be enhanced
-    const basePricePerGram = 0.20; // 20 groszy per gram
-    const estimatedWeight = 50; // Default estimated weight in grams
-    return basePricePerGram * estimatedWeight * item.quantity;
+    // Base price calculation based on volume
+    const size = itemSizes[item.id] || { x: 100, y: 100, z: 100 };
+    const material = itemMaterials[item.id] || 'PLA';
+    
+    // Calculate volume in cm³ (convert from mm)
+    const volumeCm3 = (size.x / 10) * (size.y / 10) * (size.z / 10);
+    
+    // Base price: 0.50 zł per cm³
+    const basePricePerCm3 = 0.50;
+    
+    // Apply material multiplier
+    const materialMultiplier = getMaterialMultiplier(material);
+    
+    // Calculate final price
+    const pricePerUnit = volumeCm3 * basePricePerCm3 * materialMultiplier;
+    
+    return pricePerUnit * item.quantity;
   };
 
   const totalPrice = cartItems.reduce((sum, item) => sum + calculatePrice(item), 0);
@@ -116,6 +151,8 @@ const Checkout = () => {
 
         const modelId = models[0].id;
         const itemPrice = calculatePrice(item);
+        const size = itemSizes[item.id];
+        const material = itemMaterials[item.id];
 
         // Create order
         const { data: order, error: orderError } = await supabase
@@ -125,8 +162,8 @@ const Checkout = () => {
             model_id: modelId,
             quantity: item.quantity,
             total_price: itemPrice,
-            material: orderInfo.material,
-            special_instructions: `Dostawa: ${deliveryMethod === 'inpost-courier' ? 'Kurier InPost' : 'Paczkomaty InPost'}\nPłatność: ${paymentMethod}\n${orderInfo.instructions}`,
+            material: material,
+            special_instructions: `Dostawa: ${deliveryMethod === 'inpost-courier' ? 'Kurier InPost' : 'Paczkomaty InPost'}\nPłatność: ${paymentMethod}\nWymiary: ${size.x}mm x ${size.y}mm x ${size.z}mm\n${orderInfo.instructions}`,
             status: 'pending',
             order_number: `ORD-${Date.now()}`
           })
@@ -144,7 +181,8 @@ const Checkout = () => {
             quantity: item.quantity,
             unit_price: itemPrice / item.quantity,
             color: item.color,
-            material: orderInfo.material
+            material: material,
+            size_scale: Math.max(size.x, size.y, size.z) / 100 // Store relative scale
           });
 
         if (itemError) throw itemError;
@@ -210,24 +248,131 @@ const Checkout = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {cartItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 p-3 border rounded-lg">
-                  <div 
-                    className="w-8 h-8 rounded border border-border"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  
-                  <div className="flex-1">
-                    <h4 className="font-medium">{item.name}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {getColorName(item.color)} • Ilość: {item.quantity}
-                    </p>
-                    <p className="text-sm font-medium">
-                      {calculatePrice(item).toFixed(2)} zł
-                    </p>
+              {cartItems.map((item) => {
+                const size = itemSizes[item.id] || { x: 100, y: 100, z: 100 };
+                const material = itemMaterials[item.id] || 'PLA';
+                
+                return (
+                  <div key={item.id} className="p-4 border rounded-lg space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="w-8 h-8 rounded border border-border"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      
+                      <div className="flex-1">
+                        <h4 className="font-medium">{item.name}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {getColorName(item.color)} • Ilość: {item.quantity}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Size Controls */}
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Wymiary modelu (mm)</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <Label htmlFor={`size-x-${item.id}`} className="text-xs text-muted-foreground">
+                            Szerokość (X)
+                          </Label>
+                          <Input
+                            id={`size-x-${item.id}`}
+                            type="number"
+                            min="1"
+                            max="390"
+                            value={size.x}
+                            onChange={(e) => {
+                              const value = Math.min(390, Math.max(1, parseInt(e.target.value) || 1));
+                              setItemSizes(prev => ({
+                                ...prev,
+                                [item.id]: { ...prev[item.id], x: value }
+                              }));
+                            }}
+                            className="h-9"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`size-y-${item.id}`} className="text-xs text-muted-foreground">
+                            Głębokość (Y)
+                          </Label>
+                          <Input
+                            id={`size-y-${item.id}`}
+                            type="number"
+                            min="1"
+                            max="390"
+                            value={size.y}
+                            onChange={(e) => {
+                              const value = Math.min(390, Math.max(1, parseInt(e.target.value) || 1));
+                              setItemSizes(prev => ({
+                                ...prev,
+                                [item.id]: { ...prev[item.id], y: value }
+                              }));
+                            }}
+                            className="h-9"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`size-z-${item.id}`} className="text-xs text-muted-foreground">
+                            Wysokość (Z)
+                          </Label>
+                          <Input
+                            id={`size-z-${item.id}`}
+                            type="number"
+                            min="1"
+                            max="380"
+                            value={size.z}
+                            onChange={(e) => {
+                              const value = Math.min(380, Math.max(1, parseInt(e.target.value) || 1));
+                              setItemSizes(prev => ({
+                                ...prev,
+                                [item.id]: { ...prev[item.id], z: value }
+                              }));
+                            }}
+                            className="h-9"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Max: 390mm (X,Y) × 380mm (Z)
+                      </p>
+                    </div>
+
+                    {/* Material Selection */}
+                    <div>
+                      <Label htmlFor={`material-${item.id}`} className="text-sm font-medium">Materiał</Label>
+                      <Select 
+                        value={material}
+                        onValueChange={(value) => {
+                          setItemMaterials(prev => ({
+                            ...prev,
+                            [item.id]: value
+                          }));
+                        }}
+                      >
+                        <SelectTrigger id={`material-${item.id}`}>
+                          <SelectValue placeholder="Wybierz materiał" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PLA">PLA (Standard) - cena bazowa</SelectItem>
+                          <SelectItem value="ABS">ABS (Wytrzymały) - +100%</SelectItem>
+                          <SelectItem value="PETG">PETG (Przezroczysty) - +15%</SelectItem>
+                          <SelectItem value="TPU">TPU (Elastyczny) - +30%</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Cena:</span>
+                      <span className="text-lg font-semibold">
+                        {calculatePrice(item).toFixed(2)} zł
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               
               <Separator />
               
@@ -337,29 +482,11 @@ const Checkout = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Truck className="w-5 h-5" />
-                  Opcje zamówienia
+                  <Package className="w-5 h-5" />
+                  Dodatkowe opcje
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="material">Materiał</Label>
-                  <Select 
-                    value={orderInfo.material} 
-                    onValueChange={(value) => setOrderInfo(prev => ({ ...prev, material: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Wybierz materiał" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PLA">PLA (Standard)</SelectItem>
-                      <SelectItem value="ABS">ABS (Wytrzymały)</SelectItem>
-                      <SelectItem value="PETG">PETG (Przezroczysty)</SelectItem>
-                      <SelectItem value="TPU">TPU (Elastyczny)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
                 <div>
                   <Label htmlFor="instructions">Uwagi specjalne</Label>
                   <Textarea
