@@ -27,6 +27,16 @@ interface Customer {
   total_spent: number;
 }
 
+interface Order {
+  id: string;
+  order_number: string;
+  status: string;
+  total_price: number;
+  created_at: string;
+  material: string | null;
+  delivery_method: string | null;
+}
+
 interface CustomerNote {
   id: string;
   note: string;
@@ -40,6 +50,7 @@ export const CustomersManagement = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerNotes, setCustomerNotes] = useState<CustomerNote[]>([]);
+  const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [newNote, setNewNote] = useState('');
   const [newNoteType, setNewNoteType] = useState<'general' | 'support' | 'billing' | 'technical'>('general');
   const [isLoading, setIsLoading] = useState(true);
@@ -55,59 +66,59 @@ export const CustomersManagement = () => {
   useEffect(() => {
     if (selectedCustomer) {
       fetchCustomerNotes(selectedCustomer.id);
+      fetchCustomerOrders(selectedCustomer.id);
     }
   }, [selectedCustomer]);
 
   const fetchCustomers = async () => {
     setIsLoading(true);
     try {
-      // Fetch profiles with user roles
-      const { data: profilesData, error: profilesError } = await supabase
+      // Fetch all users from auth with admin API
+      const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
+
+      if (authError) throw authError;
+
+      // Fetch profiles
+      const { data: profilesData } = await supabase
         .from('profiles')
-        .select(`
-          user_id,
-          display_name,
-          bio
-        `);
+        .select('user_id, display_name, bio');
 
       // Fetch user roles
-      const { data: rolesData, error: rolesError } = await supabase
+      const { data: rolesData } = await supabase
         .from('user_roles')
         .select('user_id, role');
 
       // Fetch order statistics
-      const { data: ordersData, error: ordersError } = await supabase
+      const { data: ordersData } = await supabase
         .from('orders')
         .select('user_id, total_price');
 
-      if (profilesError || rolesError) {
-        throw new Error('Failed to fetch customer data');
-      }
-
       // Combine data
-      const formattedCustomers = profilesData?.map(profile => {
-        const userRole = rolesData?.find(role => role.user_id === profile.user_id);
-        const userOrders = ordersData?.filter(order => order.user_id === profile.user_id) || [];
+      const formattedCustomers = authUsers.map(authUser => {
+        const profile = profilesData?.find(p => p.user_id === authUser.id);
+        const userRole = rolesData?.find(role => role.user_id === authUser.id);
+        const userOrders = ordersData?.filter(order => order.user_id === authUser.id) || [];
         const totalSpent = userOrders.reduce((sum, order) => sum + (parseFloat(order.total_price?.toString() || '0') || 0), 0);
 
         return {
-          id: profile.user_id,
-          email: '', // We don't have direct access to auth.users email
-          created_at: new Date().toISOString(),
-          display_name: profile.display_name,
-          bio: profile.bio,
+          id: authUser.id,
+          email: authUser.email || '',
+          created_at: authUser.created_at,
+          display_name: profile?.display_name || null,
+          bio: profile?.bio || null,
           role: (userRole?.role || 'user') as 'admin' | 'user',
+          last_sign_in_at: authUser.last_sign_in_at,
           orders_count: userOrders.length,
           total_spent: totalSpent
         };
-      }) || [];
+      });
 
       setCustomers(formattedCustomers);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching customers:', error);
       toast({
         title: getText('error', language),
-        description: 'Failed to load customers',
+        description: 'Błąd ładowania klientów: ' + error.message,
         variant: "destructive",
       });
     } finally {
@@ -143,6 +154,30 @@ export const CustomersManagement = () => {
       setCustomerNotes(formattedNotes);
     } catch (error) {
       console.error('Error fetching customer notes:', error);
+    }
+  };
+
+  const fetchCustomerOrders = async (customerId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          order_number,
+          status,
+          total_price,
+          created_at,
+          material,
+          delivery_method
+        `)
+        .eq('user_id', customerId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setCustomerOrders(data || []);
+    } catch (error) {
+      console.error('Error fetching customer orders:', error);
     }
   };
 
@@ -462,11 +497,69 @@ export const CustomersManagement = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle>Historia zamówień</CardTitle>
+                    <CardDescription>
+                      Wszystkie zamówienia klienta
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-center text-muted-foreground py-4">
-                      Historia zamówień zostanie wkrótce dodana
-                    </p>
+                    {customerOrders.length > 0 ? (
+                      <div className="space-y-3">
+                        {customerOrders.map((order) => (
+                          <div key={order.id} className="p-4 border rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <p className="font-medium">{order.order_number}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {new Date(order.created_at).toLocaleDateString('pl-PL', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </p>
+                              </div>
+                              <Badge variant={
+                                order.status === 'completed' ? 'default' :
+                                order.status === 'pending' ? 'secondary' :
+                                order.status === 'cancelled' ? 'destructive' : 'outline'
+                              }>
+                                {order.status === 'pending' ? 'Oczekujące' :
+                                 order.status === 'processing' ? 'W realizacji' :
+                                 order.status === 'shipped' ? 'Wysłane' :
+                                 order.status === 'completed' ? 'Zrealizowane' :
+                                 order.status === 'cancelled' ? 'Anulowane' : order.status}
+                              </Badge>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 mt-3">
+                              <div>
+                                <p className="text-sm text-muted-foreground">Kwota</p>
+                                <p className="font-medium">{parseFloat(order.total_price.toString()).toFixed(2)} zł</p>
+                              </div>
+                              {order.material && (
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Materiał</p>
+                                  <p className="font-medium">{order.material}</p>
+                                </div>
+                              )}
+                              {order.delivery_method && (
+                                <div>
+                                  <p className="text-sm text-muted-foreground">Dostawa</p>
+                                  <p className="font-medium">{order.delivery_method}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">
+                          Brak zamówień dla tego klienta
+                        </p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
