@@ -39,6 +39,16 @@ interface Order {
   model_name: string;
   special_instructions: string | null;
   order_items?: OrderItem[];
+  customer_first_name?: string | null;
+  customer_last_name?: string | null;
+  customer_email?: string | null;
+  customer_phone?: string | null;
+  shipping_address?: string | null;
+  shipping_city?: string | null;
+  shipping_postal_code?: string | null;
+  shipping_country?: string | null;
+  delivery_method?: string | null;
+  payment_method?: string | null;
 }
 
 const statusLabels = {
@@ -94,24 +104,28 @@ export const OrdersManagement = () => {
           estimated_delivery,
           special_instructions,
           created_at,
-          updated_at
+          updated_at,
+          customer_first_name,
+          customer_last_name,
+          customer_email,
+          customer_phone,
+          shipping_address,
+          shipping_city,
+          shipping_postal_code,
+          shipping_country,
+          delivery_method,
+          payment_method
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       const formattedOrders = data?.map(order => ({
-        id: order.id,
-        order_number: order.order_number,
+        ...order,
         status: order.status as 'pending' | 'processing' | 'completed' | 'cancelled' | 'shipped',
-        quantity: order.quantity,
-        material: order.material,
-        total_price: order.total_price,
-        estimated_delivery: order.estimated_delivery,
-        special_instructions: order.special_instructions,
-        created_at: order.created_at,
-        updated_at: order.updated_at,
-        customer_name: 'Klient',
+        customer_name: order.customer_first_name && order.customer_last_name 
+          ? `${order.customer_first_name} ${order.customer_last_name}`
+          : 'Klient',
         model_name: 'Model 3D'
       })) || [];
 
@@ -404,7 +418,51 @@ export const OrdersManagement = () => {
                 <div>
                   <h4 className="font-medium">Klient</h4>
                   <p className="text-sm text-muted-foreground">{selectedOrder.customer_name}</p>
+                  {selectedOrder.customer_email && (
+                    <p className="text-xs text-muted-foreground">{selectedOrder.customer_email}</p>
+                  )}
+                  {selectedOrder.customer_phone && (
+                    <p className="text-xs text-muted-foreground">{selectedOrder.customer_phone}</p>
+                  )}
                 </div>
+
+                {/* Shipping Information */}
+                {(selectedOrder.shipping_address || selectedOrder.delivery_method) && (
+                  <div className="pt-4 border-t">
+                    <h4 className="font-medium mb-2">Dane do wysyłki</h4>
+                    <div className="space-y-1 text-sm">
+                      {selectedOrder.shipping_address && (
+                        <p className="text-muted-foreground">
+                          <span className="font-medium">Adres:</span> {selectedOrder.shipping_address}
+                        </p>
+                      )}
+                      {selectedOrder.shipping_city && selectedOrder.shipping_postal_code && (
+                        <p className="text-muted-foreground">
+                          {selectedOrder.shipping_postal_code} {selectedOrder.shipping_city}
+                        </p>
+                      )}
+                      {selectedOrder.shipping_country && (
+                        <p className="text-muted-foreground">
+                          <span className="font-medium">Kraj:</span> {selectedOrder.shipping_country}
+                        </p>
+                      )}
+                      {selectedOrder.delivery_method && (
+                        <p className="text-muted-foreground">
+                          <span className="font-medium">Dostawa:</span>{' '}
+                          {selectedOrder.delivery_method === 'inpost-courier' 
+                            ? 'Kurier InPost' 
+                            : 'Paczkomaty InPost'}
+                        </p>
+                      )}
+                      {selectedOrder.payment_method && (
+                        <p className="text-muted-foreground">
+                          <span className="font-medium">Płatność:</span>{' '}
+                          {selectedOrder.payment_method.toUpperCase()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <h4 className="font-medium">Model</h4>

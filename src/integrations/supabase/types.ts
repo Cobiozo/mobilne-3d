@@ -170,13 +170,23 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          customer_email: string | null
+          customer_first_name: string | null
+          customer_last_name: string | null
+          customer_phone: string | null
+          delivery_method: string | null
           estimated_delivery: string | null
           id: string
           material: string | null
           model_id: string
           order_number: string
+          payment_method: string | null
           print_settings: Json | null
           quantity: number
+          shipping_address: string | null
+          shipping_city: string | null
+          shipping_country: string | null
+          shipping_postal_code: string | null
           special_instructions: string | null
           status: string
           total_price: number | null
@@ -185,13 +195,23 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          customer_email?: string | null
+          customer_first_name?: string | null
+          customer_last_name?: string | null
+          customer_phone?: string | null
+          delivery_method?: string | null
           estimated_delivery?: string | null
           id?: string
           material?: string | null
           model_id: string
           order_number: string
+          payment_method?: string | null
           print_settings?: Json | null
           quantity?: number
+          shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_postal_code?: string | null
           special_instructions?: string | null
           status?: string
           total_price?: number | null
@@ -200,13 +220,23 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          customer_email?: string | null
+          customer_first_name?: string | null
+          customer_last_name?: string | null
+          customer_phone?: string | null
+          delivery_method?: string | null
           estimated_delivery?: string | null
           id?: string
           material?: string | null
           model_id?: string
           order_number?: string
+          payment_method?: string | null
           print_settings?: Json | null
           quantity?: number
+          shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_postal_code?: string | null
           special_instructions?: string | null
           status?: string
           total_price?: number | null

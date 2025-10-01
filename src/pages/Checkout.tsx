@@ -307,12 +307,23 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
         .insert({
           user_id: user.id,
           model_id: firstModelId,
-          quantity: cartItems.reduce((sum, item) => sum + item.quantity, 0), // Total quantity
+          quantity: cartItems.reduce((sum, item) => sum + item.quantity, 0),
           total_price: orderTotalPrice,
           material: materialsUsed,
           special_instructions: specialInstructions,
           status: 'pending',
-          order_number: orderNumber
+          order_number: orderNumber,
+          // Add shipping information
+          customer_first_name: customerInfo.firstName,
+          customer_last_name: customerInfo.lastName,
+          customer_email: customerInfo.email,
+          customer_phone: customerInfo.phone,
+          shipping_address: customerInfo.address,
+          shipping_city: customerInfo.city,
+          shipping_postal_code: customerInfo.postalCode,
+          shipping_country: customerInfo.country,
+          delivery_method: deliveryMethod,
+          payment_method: paymentMethod
         })
         .select()
         .single();
