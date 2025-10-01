@@ -352,7 +352,8 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
             unit_price: itemPrice / item.quantity,
             color: item.color,
             material: material,
-            size_scale: Math.max(size.x, size.y, size.z) / 100
+            size_scale: Math.max(size.x, size.y, size.z) / 100,
+            thumbnail: item.image // Save thumbnail from cart item
           });
 
         if (itemError) {

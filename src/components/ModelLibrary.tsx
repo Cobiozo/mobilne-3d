@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
-import { Eye, Download, Trash2, Globe, Lock, Plus } from 'lucide-react';
+import { Eye, Download, Trash2, Globe, Lock, Plus, Package } from 'lucide-react';
 
 interface Model {
   id: string;
@@ -177,6 +177,14 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {/* Model thumbnail preview */}
+                <div className="mb-4 w-full h-40 bg-muted rounded-lg border overflow-hidden flex items-center justify-center">
+                  <Package className="w-12 h-12 text-muted-foreground" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <p className="text-xs text-muted-foreground">Miniaturka dostępna po otwarciu</p>
+                  </div>
+                </div>
+                
                 {model.description && (
                   <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
                     {model.description}

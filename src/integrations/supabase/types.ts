@@ -123,6 +123,7 @@ export type Database = {
           order_id: string
           quantity: number
           size_scale: number | null
+          thumbnail: string | null
           unit_price: number | null
         }
         Insert: {
@@ -134,6 +135,7 @@ export type Database = {
           order_id: string
           quantity?: number
           size_scale?: number | null
+          thumbnail?: string | null
           unit_price?: number | null
         }
         Update: {
@@ -145,6 +147,7 @@ export type Database = {
           order_id?: string
           quantity?: number
           size_scale?: number | null
+          thumbnail?: string | null
           unit_price?: number | null
         }
         Relationships: [

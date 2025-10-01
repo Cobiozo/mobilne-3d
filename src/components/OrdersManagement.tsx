@@ -10,7 +10,20 @@ import { getText } from '@/lib/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ShoppingCart, Package, Clock, CheckCircle, XCircle, Truck, Eye, Edit } from 'lucide-react';
+import { ShoppingCart, Package, Clock, CheckCircle, XCircle, Truck, Eye, Edit, Download } from 'lucide-react';
+import * as THREE from 'three';
+import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
+
+interface OrderItem {
+  id: string;
+  model_id: string;
+  quantity: number;
+  unit_price: number;
+  color: string | null;
+  material: string | null;
+  size_scale: number | null;
+  thumbnail: string | null;
+}
 
 interface Order {
   id: string;
@@ -25,6 +38,7 @@ interface Order {
   customer_name: string;
   model_name: string;
   special_instructions: string | null;
+  order_items?: OrderItem[];
 }
 
 const statusLabels = {
@@ -54,6 +68,7 @@ const statusColors = {
 export const OrdersManagement = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -139,6 +154,41 @@ export const OrdersManagement = () => {
       toast({
         title: getText('error', language),
         description: 'Failed to update order status',
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadModel = async (item: OrderItem) => {
+    try {
+      toast({
+        title: 'Pobieranie modelu...',
+        description: 'Przygotowuję model do pobrania',
+      });
+
+      // Get model details from database
+      const { data: model, error: modelError } = await supabase
+        .from('models')
+        .select('name, file_url')
+        .eq('id', item.model_id)
+        .single();
+
+      if (modelError || !model) {
+        throw new Error('Nie można znaleźć modelu');
+      }
+
+      // Download the model file directly
+      window.open(model.file_url, '_blank');
+
+      toast({
+        title: 'Sukces',
+        description: `Model "${model.name}" został pobrany`,
+      });
+    } catch (error) {
+      console.error('Error downloading model:', error);
+      toast({
+        title: 'Błąd',
+        description: error instanceof Error ? error.message : 'Nie udało się pobrać modelu',
         variant: "destructive",
       });
     }
@@ -270,7 +320,15 @@ export const OrdersManagement = () => {
                           ? 'bg-primary/10 border-primary' 
                           : 'hover:bg-muted/50'
                       }`}
-                      onClick={() => setSelectedOrder(order)}
+                      onClick={async () => {
+                        setSelectedOrder(order);
+                        // Fetch order items for selected order
+                        const { data: items } = await supabase
+                          .from('order_items')
+                          .select('*')
+                          .eq('order_id', order.id);
+                        setOrderItems(items || []);
+                      }}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
@@ -388,6 +446,47 @@ export const OrdersManagement = () => {
                     <p className="text-sm text-muted-foreground bg-muted p-2 rounded">
                       {selectedOrder.special_instructions}
                     </p>
+                  </div>
+                )}
+
+                {/* Order Items with thumbnails and download buttons */}
+                {orderItems.length > 0 && (
+                  <div className="pt-4 border-t">
+                    <h4 className="font-medium mb-3">Elementy zamówienia</h4>
+                    <div className="space-y-3">
+                      {orderItems.map((item) => (
+                        <div key={item.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                          {item.thumbnail ? (
+                            <img
+                              src={item.thumbnail}
+                              alt="Model"
+                              className="w-16 h-16 object-cover rounded border"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 bg-muted rounded border flex items-center justify-center">
+                              <Package className="w-6 h-6 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">Model ID: {item.model_id.slice(0, 8)}...</p>
+                            <p className="text-xs text-muted-foreground">
+                              Kolor: {item.color} • Materiał: {item.material}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Ilość: {item.quantity} • Cena jednostkowa: {item.unit_price?.toFixed(2)} zł
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDownloadModel(item)}
+                            title="Pobierz model gotowy do druku"
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
