@@ -159,9 +159,8 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
                         toast.error('Koszyk jest pusty');
                         return;
                       }
-                      // Save cart to localStorage and navigate to checkout
-                      localStorage.setItem('cartItems', JSON.stringify(items));
-                      console.log('Zapisano koszyk do localStorage:', items);
+                      // Cart is already saved to localStorage by parent component
+                      console.log('Navigating to checkout with items:', items);
                       // Navigate to checkout
                       navigate('/checkout');
                       setIsOpen(false);

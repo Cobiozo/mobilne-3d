@@ -34,6 +34,28 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const { language } = useApp();
 
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cartItems');
+    if (savedCart) {
+      try {
+        const items = JSON.parse(savedCart);
+        setCartItems(items);
+      } catch (error) {
+        console.error('Error loading cart from localStorage:', error);
+      }
+    }
+  }, []);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      localStorage.setItem('cartItems', JSON.stringify(cartItems));
+    } else {
+      localStorage.removeItem('cartItems');
+    }
+  }, [cartItems]);
+
   useEffect(() => {
     if (model && isOpen) {
       loadModelData();

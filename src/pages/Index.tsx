@@ -78,6 +78,31 @@ const Index = () => {
   // Shopping cart state
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cartItems');
+    if (savedCart) {
+      try {
+        const items = JSON.parse(savedCart);
+        setCartItems(items);
+        console.log('Loaded cart from localStorage:', items);
+      } catch (error) {
+        console.error('Error loading cart from localStorage:', error);
+        localStorage.removeItem('cartItems');
+      }
+    }
+  }, []);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      localStorage.setItem('cartItems', JSON.stringify(cartItems));
+      console.log('Saved cart to localStorage:', cartItems);
+    } else {
+      localStorage.removeItem('cartItems');
+    }
+  }, [cartItems]);
+
   // Auto-adjust color based on theme and apply site settings
   useEffect(() => {
     if (resolvedTheme === 'light') {
