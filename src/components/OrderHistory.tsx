@@ -163,10 +163,9 @@ export const OrderHistory = () => {
                       <div key={item.id} className="flex-shrink-0">
                         {item.thumbnail ? (
                           <img 
-                            src={`${item.thumbnail}?t=${Date.now()}`}
+                            src={item.thumbnail}
                             alt="Model"
                             className="w-16 h-16 object-cover rounded border border-border"
-                            loading="lazy"
                           />
                         ) : (
                           <div 
