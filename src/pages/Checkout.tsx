@@ -23,8 +23,11 @@ const Checkout = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [itemSizes, setItemSizes] = useState<{ [key: string]: { x: number; y: number; z: number } }>({});
   const [itemOriginalSizes, setItemOriginalSizes] = useState<{ [key: string]: { x: number; y: number; z: number } }>({});
-  const [referenceVolume, setReferenceVolume] = useState<number | null>(null); // Reference volume for pricing (first model at 100%)
   const [itemMaterials, setItemMaterials] = useState<{ [key: string]: string }>({});
+  
+  // Stała referencja cenowa: model 190mm x 109mm x 9.8mm = 39 zł z PLA
+  const REFERENCE_VOLUME_MM3 = 190 * 109 * 9.8; // = 203,042 mm³
+  const REFERENCE_PRICE_PLA = 39.0;
   const [loadingDimensions, setLoadingDimensions] = useState(true);
   
   // Form data
@@ -175,16 +178,6 @@ const Checkout = () => {
         setItemOriginalSizes(originalSizes);
         setItemMaterials(materials);
         
-        // Set first item's ORIGINAL volume as reference for pricing (at 100% scale)
-        if (items.length > 0 && !referenceVolume) {
-          const firstItemOriginalSize = originalSizes[items[0].id];
-          if (firstItemOriginalSize) {
-            const refVol = firstItemOriginalSize.x * firstItemOriginalSize.y * firstItemOriginalSize.z;
-            setReferenceVolume(refVol);
-            console.log('Reference volume set to:', refVol, 'mm³ from model:', items[0].name, 'dimensions:', firstItemOriginalSize);
-          }
-        }
-        
         setLoadingDimensions(false);
       } else {
         toast.error('Brak elementów w koszyku');
@@ -232,34 +225,31 @@ const Checkout = () => {
     const size = itemSizes[item.id] || { x: 100, y: 100, z: 100 };
     const material = itemMaterials[item.id] || 'PLA';
     
-    // Use the stored reference volume (first model's original dimensions at 100%)
-    const referenceVolumeMm3 = referenceVolume || 1000000; // Fallback to 100x100x100
-    
-    // Calculate volume in mm³ for current item's CURRENT size (after user scaling)
+    // Calculate volume in mm³ for current item's size
     const currentVolumeMm3 = size.x * size.y * size.z;
     
-    // Reference: First model at its original size (100% scale) with PLA = 39 zł
-    const referencePricePLA = 39.0;
+    // Reference: Model 190mm x 109mm x 9.8mm with PLA = 39 zł
+    // This represents ~203,042 mm³
     
     // Calculate price based on volume ratio
-    // If current volume is smaller than reference, price will be < 39 zł
-    // If current volume is larger than reference, price will be > 39 zł
-    const volumeRatio = currentVolumeMm3 / referenceVolumeMm3;
+    // Smaller volume = cheaper, larger volume = more expensive
+    const volumeRatio = currentVolumeMm3 / REFERENCE_VOLUME_MM3;
     
     // Apply material multiplier
     const materialMultiplier = getMaterialMultiplier(material);
     
-    // Calculate final price
-    const pricePerUnit = referencePricePLA * volumeRatio * materialMultiplier;
+    // Calculate final price: reference price * volume ratio * material multiplier
+    const pricePerUnit = REFERENCE_PRICE_PLA * volumeRatio * materialMultiplier;
     
     console.log(`Price calculation for ${item.name}:`, {
-      currentVolume: currentVolumeMm3.toFixed(0),
-      referenceVolume: referenceVolumeMm3.toFixed(0),
+      currentSize: `${size.x.toFixed(1)} × ${size.y.toFixed(1)} × ${size.z.toFixed(1)} mm`,
+      currentVolume: currentVolumeMm3.toFixed(0) + ' mm³',
+      referenceVolume: REFERENCE_VOLUME_MM3.toFixed(0) + ' mm³ (190×109×9.8)',
       volumeRatio: volumeRatio.toFixed(3),
       material,
       materialMultiplier,
-      basePrice: (referencePricePLA * volumeRatio).toFixed(2),
-      finalPrice: pricePerUnit.toFixed(2)
+      basePricePLA: (REFERENCE_PRICE_PLA * volumeRatio).toFixed(2) + ' zł',
+      finalPrice: pricePerUnit.toFixed(2) + ' zł'
     });
     
     return pricePerUnit * item.quantity;
