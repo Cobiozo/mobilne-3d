@@ -63,7 +63,7 @@ const Index = () => {
   const { theme, resolvedTheme } = useTheme();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"model3d" | "image2d">("model3d");
+  const [activeTab, setActiveTab] = useState<"model3d" | "image2d" | "public-models">("model3d");
   const [modelData, setModelData] = useState<ArrayBuffer | null>(null);
   const [imageGeometry, setImageGeometry] = useState<THREE.BufferGeometry | null>(null);
   const [modelColor, setModelColor] = useState("#FFFFFF");
@@ -825,15 +825,22 @@ const Index = () => {
               
               {!modelData && !imageGeometry && (
                 <div className="block xl:hidden">
-                  <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d")} className="w-full">
-                    <TabsList className="grid w-full grid-cols-1">
+                  <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d" | "public-models")} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="model3d" className="flex items-center gap-2">
                         <Layers3 className="w-4 h-4" />
                         {t('tabModel3D')}
                       </TabsTrigger>
+                      <TabsTrigger value="public-models" className="flex items-center gap-2">
+                        <Box className="w-4 h-4" />
+                        Modele
+                      </TabsTrigger>
                     </TabsList>
                     <TabsContent value="model3d" className="mt-4">
                       <FileUpload onFileSelect={handleFileSelect} />
+                    </TabsContent>
+                    <TabsContent value="public-models" className="mt-4">
+                      <PublicModels />
                     </TabsContent>
                   </Tabs>
                 </div>
@@ -868,15 +875,22 @@ const Index = () => {
           <div className="mt-4 sm:mt-6 xl:hidden">
             <div className="text-center">
               <div className="max-w-md mx-auto">
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d")} className="w-full">
-                  <TabsList className="grid w-full grid-cols-1">
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d" | "public-models")} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="model3d" className="flex items-center gap-2">
                       <Layers3 className="w-4 h-4" />
                       {t('tabModel3D')}
                     </TabsTrigger>
+                    <TabsTrigger value="public-models" className="flex items-center gap-2">
+                      <Box className="w-4 h-4" />
+                      Modele
+                    </TabsTrigger>
                   </TabsList>
                   <TabsContent value="model3d" className="mt-4">
                     <FileUpload onFileSelect={handleFileSelect} />
+                  </TabsContent>
+                  <TabsContent value="public-models" className="mt-4">
+                    <PublicModels />
                   </TabsContent>
                 </Tabs>
               </div>
@@ -888,40 +902,29 @@ const Index = () => {
         {!modelData && !imageGeometry && (
           <div className="hidden xl:block mt-6">
             <div className="text-center">
-              <div className="max-w-md mx-auto">
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d")} className="w-full">
-                  <TabsList className="grid w-full grid-cols-1">
+              <div className="max-w-2xl mx-auto">
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d" | "public-models")} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="model3d" className="flex items-center gap-2">
                       <Layers3 className="w-4 h-4" />
                       {t('tabModel3D')}
                     </TabsTrigger>
+                    <TabsTrigger value="public-models" className="flex items-center gap-2">
+                      <Box className="w-4 h-4" />
+                      Modele
+                    </TabsTrigger>
                   </TabsList>
                   <TabsContent value="model3d" className="mt-4">
                     <FileUpload onFileSelect={handleFileSelect} />
+                  </TabsContent>
+                  <TabsContent value="public-models" className="mt-4">
+                    <PublicModels />
                   </TabsContent>
                 </Tabs>
               </div>
             </div>
           </div>
         )}
-
-        {/* Public Models Section */}
-        <div className="mt-8">
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Box className="w-5 h-5" />
-                Publiczne modele 3D
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Przeglądaj dostępne modele, personalizuj kolor i dodaj do koszyka
-              </p>
-            </CardHeader>
-            <CardContent>
-              <PublicModels />
-            </CardContent>
-          </Card>
-        </div>
       </main>
     </div>
     </>
