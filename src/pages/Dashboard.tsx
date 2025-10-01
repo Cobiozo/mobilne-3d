@@ -35,20 +35,45 @@ const Dashboard = () => {
 
   // Load cart from localStorage
   useEffect(() => {
-    const savedCart = localStorage.getItem('cartItems');
-    if (savedCart) {
-      try {
-        const items = JSON.parse(savedCart);
-        setCartItems(items);
-      } catch (error) {
-        console.error('Error loading cart:', error);
+    const loadCart = () => {
+      const savedCart = localStorage.getItem('cartItems');
+      if (savedCart) {
+        try {
+          const items = JSON.parse(savedCart);
+          setCartItems(items);
+        } catch (error) {
+          console.error('Error loading cart:', error);
+        }
       }
-    }
+    };
+
+    loadCart();
+
+    // Listen for cart updates from other components
+    const handleCartUpdate = (event: CustomEvent) => {
+      if (event.detail?.cartItems) {
+        setCartItems(event.detail.cartItems);
+      } else {
+        loadCart();
+      }
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate as EventListener);
+    };
   }, []);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('cartItems', JSON.stringify(cartItems));
+    if (cartItems.length > 0 || localStorage.getItem('cartItems')) {
+      localStorage.setItem('cartItems', JSON.stringify(cartItems));
+      // Notify other components about the change
+      window.dispatchEvent(new CustomEvent('cartUpdated', { 
+        detail: { cartItems } 
+      }));
+    }
   }, [cartItems]);
 
   const handleUpdateQuantity = (id: string, quantity: number) => {

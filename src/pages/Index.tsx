@@ -97,17 +97,36 @@ const Index = () => {
 
   // Load cart from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('cartItems');
-    if (savedCart) {
-      try {
-        const items = JSON.parse(savedCart);
-        setCartItems(items);
-        console.log('Loaded cart from localStorage:', items);
-      } catch (error) {
-        console.error('Error loading cart from localStorage:', error);
-        localStorage.removeItem('cartItems');
+    const loadCart = () => {
+      const savedCart = localStorage.getItem('cartItems');
+      if (savedCart) {
+        try {
+          const items = JSON.parse(savedCart);
+          setCartItems(items);
+          console.log('Loaded cart from localStorage:', items);
+        } catch (error) {
+          console.error('Error loading cart from localStorage:', error);
+          localStorage.removeItem('cartItems');
+        }
       }
-    }
+    };
+
+    loadCart();
+
+    // Listen for cart updates from other components
+    const handleCartUpdate = (event: CustomEvent) => {
+      if (event.detail?.cartItems) {
+        setCartItems(event.detail.cartItems);
+      } else {
+        loadCart();
+      }
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate as EventListener);
+    };
   }, []);
 
   // Save cart to localStorage whenever it changes
@@ -115,8 +134,15 @@ const Index = () => {
     if (cartItems.length > 0) {
       localStorage.setItem('cartItems', JSON.stringify(cartItems));
       console.log('Saved cart to localStorage:', cartItems);
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('cartUpdated', { 
+        detail: { cartItems } 
+      }));
     } else {
       localStorage.removeItem('cartItems');
+      window.dispatchEvent(new CustomEvent('cartUpdated', { 
+        detail: { cartItems: [] } 
+      }));
     }
   }, [cartItems]);
 

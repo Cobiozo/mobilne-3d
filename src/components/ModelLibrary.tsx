@@ -193,6 +193,11 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
       // Save to localStorage
       localStorage.setItem('cartItems', JSON.stringify(cartItems));
       
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('cartUpdated', { 
+        detail: { cartItems } 
+      }));
+      
     } catch (error) {
       console.error('Error adding to cart:', error);
       sonnerToast.error('Nie udało się dodać modelu do koszyka');
