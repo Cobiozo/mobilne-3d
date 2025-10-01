@@ -188,6 +188,84 @@ export type Database = {
         }
         Relationships: []
       }
+      email_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          recipient_email: string
+          sent_at: string | null
+          status: string
+          subject: string
+          template_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          template_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          template_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          created_at: string
+          html_body: string
+          id: string
+          is_active: boolean
+          language: string
+          subject: string
+          template_key: string
+          text_body: string | null
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          created_at?: string
+          html_body: string
+          id?: string
+          is_active?: boolean
+          language?: string
+          subject: string
+          template_key: string
+          text_body?: string | null
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          created_at?: string
+          html_body?: string
+          id?: string
+          is_active?: boolean
+          language?: string
+          subject?: string
+          template_key?: string
+          text_body?: string | null
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: []
+      }
       model_orders: {
         Row: {
           buyer_id: string
@@ -528,6 +606,51 @@ export type Database = {
           setting_value?: Json
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      smtp_settings: {
+        Row: {
+          created_at: string
+          from_email: string
+          from_name: string
+          id: string
+          is_active: boolean
+          last_test_at: string | null
+          last_test_status: string | null
+          smtp_host: string
+          smtp_port: number
+          smtp_secure: boolean
+          smtp_user: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_email: string
+          from_name: string
+          id?: string
+          is_active?: boolean
+          last_test_at?: string | null
+          last_test_status?: string | null
+          smtp_host: string
+          smtp_port?: number
+          smtp_secure?: boolean
+          smtp_user: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_email?: string
+          from_name?: string
+          id?: string
+          is_active?: boolean
+          last_test_at?: string | null
+          last_test_status?: string | null
+          smtp_host?: string
+          smtp_port?: number
+          smtp_secure?: boolean
+          smtp_user?: string
+          updated_at?: string
         }
         Relationships: []
       }
