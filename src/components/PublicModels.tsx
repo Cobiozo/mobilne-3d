@@ -8,7 +8,7 @@ import { ModelThumbnail } from '@/components/ModelThumbnail';
 import { ModelViewer } from '@/components/ModelViewer';
 import { ControlPanel } from '@/components/ControlPanel';
 import { supabase } from '@/integrations/supabase/client';
-import { ShoppingCart, Palette, Package, Eye, X } from 'lucide-react';
+import { ShoppingCart, Palette, Package } from 'lucide-react';
 import { toast } from 'sonner';
 import { CartItem } from '@/components/ShoppingCart';
 
@@ -330,21 +330,15 @@ export const PublicModels = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {models.map((model) => (
           <Card key={model.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-            <CardHeader className="p-0 relative">
+            <CardHeader className="p-0 relative cursor-pointer" onClick={() => handleOpenPreview(model)}>
               <ModelThumbnail 
                 fileUrl={model.file_url}
                 color={selectedColors[model.id] || '#000000'}
                 className="w-full h-48"
               />
-              <Button
-                variant="secondary"
-                size="sm"
-                className="absolute top-2 right-2"
-                onClick={() => handleOpenPreview(model)}
-              >
-                <Eye className="w-4 h-4 mr-1" />
-                Podgląd
-              </Button>
+              <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                Kliknij aby zobaczyć
+              </div>
             </CardHeader>
             <CardContent className="p-4">
               <div className="space-y-3">
@@ -365,6 +359,45 @@ export const PublicModels = () => {
                       </span>
                     )}
                   </div>
+                </div>
+
+                {/* Color selector */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Palette className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-xs font-medium">Wybierz kolor</span>
+                  </div>
+                  <Select
+                    value={selectedColors[model.id] || '#000000'}
+                    onValueChange={(value) => handleColorChange(model.id, value)}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-4 h-4 rounded border border-border"
+                            style={{ backgroundColor: selectedColors[model.id] || '#000000' }}
+                          />
+                          <span className="text-xs">
+                            {availableColors.find(c => c.color_hex === selectedColors[model.id])?.color_name || 'Czarny'}
+                          </span>
+                        </div>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableColors.map((color) => (
+                        <SelectItem key={color.color_hex} value={color.color_hex}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-4 h-4 rounded border border-border"
+                              style={{ backgroundColor: color.color_hex }}
+                            />
+                            <span>{color.color_name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Add to cart button */}
