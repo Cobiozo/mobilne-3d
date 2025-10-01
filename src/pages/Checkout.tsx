@@ -288,11 +288,25 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
       // Create ONE order for all items
       const orderNumber = `ORD-${Date.now()}`;
       
+      // Look up first model's UUID from database
+      const { data: firstModels } = await supabase
+        .from('models')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('name', cartItems[0].name)
+        .limit(1);
+
+      if (!firstModels || firstModels.length === 0) {
+        throw new Error(`Model "${cartItems[0].name}" nie został znaleziony w bazie danych`);
+      }
+
+      const firstModelId = firstModels[0].id;
+      
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           user_id: user.id,
-          model_id: cartItems[0].id, // First model as primary (for compatibility)
+          model_id: firstModelId,
           quantity: cartItems.reduce((sum, item) => sum + item.quantity, 0), // Total quantity
           total_price: orderTotalPrice,
           material: materialsUsed,
@@ -312,6 +326,19 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
 
       // Create order items for EACH product in the cart
       for (const item of cartItems) {
+        // Look up actual model UUID from database by name
+        const { data: models } = await supabase
+          .from('models')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('name', item.name)
+          .limit(1);
+
+        if (!models || models.length === 0) {
+          throw new Error(`Model "${item.name}" nie został znaleziony w bazie danych`);
+        }
+
+        const modelId = models[0].id;
         const size = itemSizes[item.id];
         const material = itemMaterials[item.id];
         const itemPrice = calculatePrice(item);
@@ -320,7 +347,7 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
           .from('order_items')
           .insert({
             order_id: order.id,
-            model_id: item.id,
+            model_id: modelId,
             quantity: item.quantity,
             unit_price: itemPrice / item.quantity,
             color: item.color,
@@ -409,10 +436,20 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
                 return (
                   <div key={item.id} className="p-4 border rounded-lg space-y-4">
                     <div className="flex items-center gap-3">
-                      <div 
-                        className="w-8 h-8 rounded border border-border"
-                        style={{ backgroundColor: item.color }}
-                      />
+                      {item.image ? (
+                        <img 
+                          src={item.image} 
+                          alt={item.name}
+                          className="w-16 h-16 object-cover rounded border border-border"
+                        />
+                      ) : (
+                        <div 
+                          className="w-16 h-16 rounded border border-border flex items-center justify-center"
+                          style={{ backgroundColor: item.color }}
+                        >
+                          <span className="text-xs text-center px-1">3D</span>
+                        </div>
+                      )}
                       
                       <div className="flex-1">
                         <h4 className="font-medium">{item.name}</h4>

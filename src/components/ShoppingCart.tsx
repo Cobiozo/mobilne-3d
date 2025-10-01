@@ -94,10 +94,20 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
               <div className="space-y-4 max-h-96 overflow-y-auto">
                 {items.map((item) => (
                   <div key={item.id} className="flex items-center gap-3 p-3 border rounded-lg">
-                    <div 
-                      className="w-8 h-8 rounded border border-border"
-                      style={{ backgroundColor: item.color }}
-                    />
+                    {item.image ? (
+                      <img 
+                        src={item.image} 
+                        alt={item.name}
+                        className="w-12 h-12 object-cover rounded border border-border"
+                      />
+                    ) : (
+                      <div 
+                        className="w-12 h-12 rounded border border-border flex items-center justify-center"
+                        style={{ backgroundColor: item.color }}
+                      >
+                        <span className="text-xs">3D</span>
+                      </div>
+                    )}
                     
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium truncate">{item.name}</h4>
