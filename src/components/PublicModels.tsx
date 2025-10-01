@@ -36,11 +36,18 @@ export const PublicModels = () => {
   const [previewModel, setPreviewModel] = useState<PublicModel | null>(null);
   const [previewModelData, setPreviewModelData] = useState<ArrayBuffer | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     fetchPublicModels();
     loadAvailableColors();
+    loadCurrentUser();
   }, []);
+
+  const loadCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUserId(user?.id);
+  };
 
   const loadAvailableColors = async () => {
     const { data, error } = await supabase
@@ -407,6 +414,7 @@ export const PublicModels = () => {
                 <div className="border-t pt-3">
                   <ModelRating 
                     modelId={model.id}
+                    currentUserId={currentUserId}
                     compact={true}
                   />
                 </div>
