@@ -122,6 +122,9 @@ export const translations = {
     notifications: 'Powiadomienia',
     security: 'Bezpieczeństwo',
     colors: 'Kolory',
+    email_settings: 'Ustawienia Email',
+    email_templates: 'Szablony Email',
+    email_logs: 'Historia Email',
     
     // Customer Management
     viewAndManageCustomers: 'Przeglądaj i zarządzaj wszystkimi klientami',
@@ -404,6 +407,9 @@ export const translations = {
     notifications: 'Notifications',
     security: 'Security',
     colors: 'Colors',
+    email_settings: 'Email Settings',
+    email_templates: 'Email Templates',
+    email_logs: 'Email History',
     
     // Customer Management
     viewAndManageCustomers: 'View and manage all customers',

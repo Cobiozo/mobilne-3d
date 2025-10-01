@@ -24,7 +24,9 @@ import {
   Bell,
   Shield,
   Home,
-  ArrowLeft
+  ArrowLeft,
+  Mail,
+  History
 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
@@ -90,6 +92,24 @@ const adminMenuItems = [
     url: '/dashboard?tab=notifications',
     icon: Bell,
     section: 'notifications'
+  },
+  {
+    title: 'email_settings',
+    url: '/dashboard?tab=email-settings',
+    icon: Mail,
+    section: 'email-settings'
+  },
+  {
+    title: 'email_templates',
+    url: '/dashboard?tab=email-templates',
+    icon: FileText,
+    section: 'email-templates'
+  },
+  {
+    title: 'email_logs',
+    url: '/dashboard?tab=email-logs',
+    icon: History,
+    section: 'email-logs'
   },
   {
     title: 'security',

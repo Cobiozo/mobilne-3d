@@ -17,6 +17,9 @@ import { OrdersManagement } from '@/components/OrdersManagement';
 import { SiteSettings } from '@/components/SiteSettings';
 import { SitePersonalization } from '@/components/SitePersonalization';
 import { AdminOverview } from '@/components/AdminOverview';
+import { EmailSettings } from '@/components/EmailSettings';
+import { EmailTemplates } from '@/components/EmailTemplates';
+import { EmailLogs } from '@/components/EmailLogs';
 import { OrderHistory } from '@/components/OrderHistory';
 import { ShippingAddresses } from '@/components/ShippingAddresses';
 import { ChangePassword } from '@/components/ChangePassword';
@@ -197,6 +200,12 @@ const Dashboard = () => {
         return <SitePersonalization />;
       case 'site-settings':
         return <SiteSettings />;
+      case 'email-settings':
+        return <EmailSettings />;
+      case 'email-templates':
+        return <EmailTemplates />;
+      case 'email-logs':
+        return <EmailLogs />;
       case 'profile':
         return (
           <div className="space-y-6">

@@ -1,38 +1,45 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface NotificationRequest {
+interface EmailRequest {
   to: string;
-  subject: string;
-  message: string;
-  type: 'email' | 'push';
+  subject?: string;
+  templateKey?: string;
+  templateData?: Record<string, string>;
+  html?: string;
+  text?: string;
+  userId?: string;
+}
+
+// Replace template variables like {{variable}} with actual values
+function replaceTemplateVars(template: string, data: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    return data[key] || match;
+  });
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get the authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('No authorization header');
     }
 
-    // Verify the JWT token
     const jwt = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(jwt);
     
@@ -40,28 +47,122 @@ serve(async (req) => {
       throw new Error('Invalid token');
     }
 
-    const { to, subject, message, type }: NotificationRequest = await req.json();
+    const emailRequest: EmailRequest = await req.json();
+    const { to, subject, templateKey, templateData = {}, html, text, userId } = emailRequest;
 
-    console.log(`Sending ${type} notification to ${to}: ${subject}`);
+    console.log(`Processing email request for ${to}, template: ${templateKey || 'custom'}`);
 
-    // Here you would integrate with actual notification services
-    // For now, we'll just log and return success
-    const result = {
-      success: true,
-      type,
-      to,
-      subject,
-      message: 'Notification sent successfully',
-      sentAt: new Date().toISOString()
-    };
+    // Get SMTP settings
+    const { data: smtpSettings, error: smtpError } = await supabaseClient
+      .from('smtp_settings')
+      .select('*')
+      .eq('is_active', true)
+      .single();
 
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders,
-      },
-    });
+    if (smtpError || !smtpSettings) {
+      throw new Error('SMTP settings not configured');
+    }
+
+    let emailSubject = subject;
+    let emailHtml = html;
+    let emailText = text;
+
+    // If template key provided, fetch and process template
+    if (templateKey) {
+      const { data: template, error: templateError } = await supabaseClient
+        .from('email_templates')
+        .select('*')
+        .eq('template_key', templateKey)
+        .eq('language', templateData.language || 'pl')
+        .eq('is_active', true)
+        .single();
+
+      if (templateError || !template) {
+        throw new Error(`Email template not found: ${templateKey}`);
+      }
+
+      emailSubject = replaceTemplateVars(template.subject, templateData);
+      emailHtml = replaceTemplateVars(template.html_body, templateData);
+      emailText = template.text_body ? replaceTemplateVars(template.text_body, templateData) : undefined;
+    }
+
+    if (!emailSubject || !emailHtml) {
+      throw new Error('Email subject and content are required');
+    }
+
+    // Log email attempt
+    const { data: logEntry } = await supabaseClient
+      .from('email_logs')
+      .insert({
+        user_id: userId || user.id,
+        recipient_email: to,
+        subject: emailSubject,
+        template_type: templateKey || 'custom',
+        status: 'pending',
+        metadata: { templateData }
+      })
+      .select()
+      .single();
+
+    try {
+      // Send email via SMTP
+      const client = new SmtpClient();
+      
+      await client.connectTLS({
+        hostname: smtpSettings.smtp_host,
+        port: smtpSettings.smtp_port,
+        username: smtpSettings.smtp_user,
+        password: Deno.env.get('SMTP_PASSWORD') ?? '',
+      });
+
+      await client.send({
+        from: `${smtpSettings.from_name} <${smtpSettings.from_email}>`,
+        to: to,
+        subject: emailSubject,
+        content: emailText || emailSubject,
+        html: emailHtml,
+      });
+
+      await client.close();
+
+      // Update log as sent
+      if (logEntry) {
+        await supabaseClient
+          .from('email_logs')
+          .update({ 
+            status: 'sent', 
+            sent_at: new Date().toISOString() 
+          })
+          .eq('id', logEntry.id);
+      }
+
+      console.log(`Email sent successfully to ${to}`);
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Email sent successfully',
+        sentAt: new Date().toISOString()
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      });
+
+    } catch (emailError) {
+      console.error('SMTP error:', emailError);
+      
+      // Update log with error
+      if (logEntry) {
+        await supabaseClient
+          .from('email_logs')
+          .update({ 
+            status: 'failed',
+            error_message: emailError instanceof Error ? emailError.message : 'Unknown error'
+          })
+          .eq('id', logEntry.id);
+      }
+
+      throw emailError;
+    }
 
   } catch (error) {
     console.error('Error in send-notification function:', error);
@@ -72,10 +173,7 @@ serve(async (req) => {
       }),
       {
         status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-        },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
       }
     );
   }
