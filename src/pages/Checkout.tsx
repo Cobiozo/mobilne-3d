@@ -8,7 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,6 +20,7 @@ import { CartItem } from "@/components/ShoppingCart";
 const Checkout = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [searchParams] = useSearchParams();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -621,48 +624,93 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
                       </p>
                       
                       <div>
-                        <Label htmlFor={`scale-${item.id}`} className="text-sm">
-                          Skala (%)
+                        <Label htmlFor={`scale-${item.id}`} className="text-sm flex justify-between items-center">
+                          <span>Skala (%)</span>
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {Math.round((size.x / (itemOriginalSizes[item.id]?.x || 1)) * 100)}%
+                          </span>
                         </Label>
-                        <Input
-                          id={`scale-${item.id}`}
-                          type="number"
-                          min="1"
-                          max="1000"
-                          value={Math.round((size.x / (itemOriginalSizes[item.id]?.x || 1)) * 100)}
-                          onChange={(e) => {
-                            const scalePercent = Math.max(1, Math.min(1000, parseInt(e.target.value) || 100));
-                            const scale = scalePercent / 100;
-                            const originalSize = itemOriginalSizes[item.id] || { x: 100, y: 100, z: 100 };
-                            
-                            let newX = originalSize.x * scale;
-                            let newY = originalSize.y * scale;
-                            let newZ = originalSize.z * scale;
-                            
-                            // Check if exceeds maximum and scale down proportionally
-                            const scaleX = newX > 390 ? 390 / newX : 1;
-                            const scaleY = newY > 390 ? 390 / newY : 1;
-                            const scaleZ = newZ > 380 ? 380 / newZ : 1;
-                            const maxScale = Math.min(scaleX, scaleY, scaleZ);
-                            
-                            if (maxScale < 1) {
-                              newX *= maxScale;
-                              newY *= maxScale;
-                              newZ *= maxScale;
-                              toast.warning('Wymiary zostały ograniczone do maksymalnych');
-                            }
-                            
-                            setItemSizes(prev => ({
-                              ...prev,
-                              [item.id]: {
-                                x: Math.round(newX * 10) / 10,
-                                y: Math.round(newY * 10) / 10,
-                                z: Math.round(newZ * 10) / 10
+                        {isMobile ? (
+                          <Slider
+                            id={`scale-${item.id}`}
+                            min={1}
+                            max={1000}
+                            step={1}
+                            value={[Math.round((size.x / (itemOriginalSizes[item.id]?.x || 1)) * 100)]}
+                            onValueChange={(values) => {
+                              const scalePercent = values[0];
+                              const scale = scalePercent / 100;
+                              const originalSize = itemOriginalSizes[item.id] || { x: 100, y: 100, z: 100 };
+                              
+                              let newX = originalSize.x * scale;
+                              let newY = originalSize.y * scale;
+                              let newZ = originalSize.z * scale;
+                              
+                              // Check if exceeds maximum and scale down proportionally
+                              const scaleX = newX > 390 ? 390 / newX : 1;
+                              const scaleY = newY > 390 ? 390 / newY : 1;
+                              const scaleZ = newZ > 380 ? 380 / newZ : 1;
+                              const maxScale = Math.min(scaleX, scaleY, scaleZ);
+                              
+                              if (maxScale < 1) {
+                                newX *= maxScale;
+                                newY *= maxScale;
+                                newZ *= maxScale;
+                                toast.warning('Wymiary zostały ograniczone do maksymalnych');
                               }
-                            }));
-                          }}
-                          className="h-9"
-                        />
+                              
+                              setItemSizes(prev => ({
+                                ...prev,
+                                [item.id]: {
+                                  x: Math.round(newX * 10) / 10,
+                                  y: Math.round(newY * 10) / 10,
+                                  z: Math.round(newZ * 10) / 10
+                                }
+                              }));
+                            }}
+                            className="mt-2"
+                          />
+                        ) : (
+                          <Input
+                            id={`scale-${item.id}`}
+                            type="number"
+                            min="1"
+                            max="1000"
+                            value={Math.round((size.x / (itemOriginalSizes[item.id]?.x || 1)) * 100)}
+                            onChange={(e) => {
+                              const scalePercent = Math.max(1, Math.min(1000, parseInt(e.target.value) || 100));
+                              const scale = scalePercent / 100;
+                              const originalSize = itemOriginalSizes[item.id] || { x: 100, y: 100, z: 100 };
+                              
+                              let newX = originalSize.x * scale;
+                              let newY = originalSize.y * scale;
+                              let newZ = originalSize.z * scale;
+                              
+                              // Check if exceeds maximum and scale down proportionally
+                              const scaleX = newX > 390 ? 390 / newX : 1;
+                              const scaleY = newY > 390 ? 390 / newY : 1;
+                              const scaleZ = newZ > 380 ? 380 / newZ : 1;
+                              const maxScale = Math.min(scaleX, scaleY, scaleZ);
+                              
+                              if (maxScale < 1) {
+                                newX *= maxScale;
+                                newY *= maxScale;
+                                newZ *= maxScale;
+                                toast.warning('Wymiary zostały ograniczone do maksymalnych');
+                              }
+                              
+                              setItemSizes(prev => ({
+                                ...prev,
+                                [item.id]: {
+                                  x: Math.round(newX * 10) / 10,
+                                  y: Math.round(newY * 10) / 10,
+                                  z: Math.round(newZ * 10) / 10
+                                }
+                              }));
+                            }}
+                            className="h-9"
+                          />
+                        )}
                       </div>
                       
                       <div className="grid grid-cols-3 gap-2">
