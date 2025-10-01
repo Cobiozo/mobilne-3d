@@ -84,8 +84,38 @@ const Checkout = () => {
     loadProfileData();
   }, [user]);
 
+
+  // Load user profile data and model dimensions
   useEffect(() => {
-    const loadModelDimensions = async () => {
+    const loadProfileAndDimensions = async () => {
+      // Load user profile data
+      if (user) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('display_name, phone, address, city, postal_code, country')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profileData) {
+          // Extract first and last name from display_name if available
+          const nameParts = profileData.display_name?.split(' ') || [];
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+
+          setCustomerInfo({
+            firstName,
+            lastName,
+            email: user.email || '',
+            phone: profileData.phone || '',
+            address: profileData.address || '',
+            city: profileData.city || '',
+            postalCode: profileData.postal_code || '',
+            country: profileData.country || 'Polska'
+          });
+        }
+      }
+
+      // Load model dimensions
       const savedCart = localStorage.getItem('cartItems');
       if (savedCart) {
         const items = JSON.parse(savedCart);
@@ -213,8 +243,8 @@ const Checkout = () => {
       }
     };
     
-    loadModelDimensions();
-  }, [navigate]);
+    loadProfileAndDimensions();
+  }, [navigate, user]);
 
   useEffect(() => {
     console.log('Checkout auth check:', { loading, user: !!user });
@@ -417,6 +447,30 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
       if (profileError) {
         console.warn('Could not save profile data:', profileError);
         // Don't throw error, just log it - order was successful
+      }
+
+      // Save shipping information to user profile if not already saved
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('display_name, phone, address, city, postal_code, country')
+        .eq('user_id', user.id)
+        .single();
+
+      // Update profile if shipping info is missing or incomplete
+      if (existingProfile && (!existingProfile.address || !existingProfile.phone)) {
+        await supabase
+          .from('profiles')
+          .update({
+            phone: customerInfo.phone,
+            address: customerInfo.address,
+            city: customerInfo.city,
+            postal_code: customerInfo.postalCode,
+            country: customerInfo.country,
+            display_name: existingProfile.display_name || `${customerInfo.firstName} ${customerInfo.lastName}`.trim()
+          })
+          .eq('user_id', user.id);
+        
+        toast.success('Dane wysyłkowe zostały zapisane do Twojego profilu');
       }
 
       // Clear cart
