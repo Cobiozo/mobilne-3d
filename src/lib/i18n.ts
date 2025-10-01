@@ -121,6 +121,7 @@ export const translations = {
     siteSettings: 'Ustawienia strony',
     notifications: 'Powiadomienia',
     security: 'Bezpieczeństwo',
+    colors: 'Kolory',
     
     // Customer Management
     viewAndManageCustomers: 'Przeglądaj i zarządzaj wszystkimi klientami',
@@ -402,6 +403,7 @@ export const translations = {
     siteSettings: 'Site Settings',
     notifications: 'Notifications',
     security: 'Security',
+    colors: 'Colors',
     
     // Customer Management
     viewAndManageCustomers: 'View and manage all customers',

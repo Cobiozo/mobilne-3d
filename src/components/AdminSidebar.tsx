@@ -62,6 +62,12 @@ const adminMenuItems = [
     section: 'models'
   },
   {
+    title: 'colors',
+    url: '/dashboard?tab=colors',
+    icon: Palette,
+    section: 'colors'
+  },
+  {
     title: 'notes',
     url: '/dashboard?tab=notes',
     icon: MessageSquare,

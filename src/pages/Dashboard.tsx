@@ -24,6 +24,7 @@ import { ShoppingCartComponent, CartItem } from '@/components/ShoppingCart';
 import { NotesManagement } from '@/components/NotesManagement';
 import { NotificationsManagement } from '@/components/NotificationsManagement';
 import { SecuritySettings } from '@/components/SecuritySettings';
+import { ColorsManagement } from '@/components/ColorsManagement';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { User, LogOut, Upload, Settings, Home, Package, MapPin, Lock } from 'lucide-react';
 
@@ -184,6 +185,8 @@ const Dashboard = () => {
         return <OrdersManagement />;
       case 'models':
         return <ModelLibrary userId={user.id} />;
+      case 'colors':
+        return <ColorsManagement />;
       case 'notes':
         return <NotesManagement />;
       case 'notifications':

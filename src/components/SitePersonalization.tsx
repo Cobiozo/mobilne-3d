@@ -456,46 +456,209 @@ export const SitePersonalization = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>URL logo firmy</Label>
-                <Input
-                  value={settings.company_logo || ''}
-                  onChange={(e) => handleInputChange('company_logo', e.target.value)}
-                  placeholder="https://example.com/logo.png"
-                />
-              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Logo firmy</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      
+                      try {
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `logo-${Date.now()}.${fileExt}`;
+                        const { data, error } = await supabase.storage
+                          .from('models')
+                          .upload(`media/${fileName}`, file);
+                        
+                        if (error) throw error;
+                        
+                        const { data: { publicUrl } } = supabase.storage
+                          .from('models')
+                          .getPublicUrl(`media/${fileName}`);
+                        
+                        handleInputChange('company_logo', publicUrl);
+                        toast({
+                          title: "Sukces",
+                          description: "Logo zostało wgrane",
+                        });
+                      } catch (error) {
+                        console.error('Upload error:', error);
+                        toast({
+                          title: "Błąd",
+                          description: "Nie udało się wgrać pliku",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    lub podaj URL:
+                  </p>
+                  <Input
+                    value={settings.company_logo || ''}
+                    onChange={(e) => handleInputChange('company_logo', e.target.value)}
+                    placeholder="https://example.com/logo.png"
+                  />
+                  {settings.company_logo && (
+                    <img src={settings.company_logo} alt="Logo" className="h-16 object-contain" />
+                  )}
+                </div>
 
-              <div className="space-y-2">
-                <Label>URL obrazu tła strony głównej</Label>
-                <Input
-                  value={settings.homepage_hero_image || ''}
-                  onChange={(e) => handleInputChange('homepage_hero_image', e.target.value)}
-                  placeholder="https://example.com/hero-image.jpg"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Pozostaw puste aby używać domyślnego gradientu
-                </p>
-              </div>
+                <div className="space-y-2">
+                  <Label>Obraz tła strony głównej</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      
+                      try {
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `hero-${Date.now()}.${fileExt}`;
+                        const { data, error } = await supabase.storage
+                          .from('models')
+                          .upload(`media/${fileName}`, file);
+                        
+                        if (error) throw error;
+                        
+                        const { data: { publicUrl } } = supabase.storage
+                          .from('models')
+                          .getPublicUrl(`media/${fileName}`);
+                        
+                        handleInputChange('homepage_hero_image', publicUrl);
+                        toast({
+                          title: "Sukces",
+                          description: "Obraz został wgrany",
+                        });
+                      } catch (error) {
+                        console.error('Upload error:', error);
+                        toast({
+                          title: "Błąd",
+                          description: "Nie udało się wgrać pliku",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    lub podaj URL:
+                  </p>
+                  <Input
+                    value={settings.homepage_hero_image || ''}
+                    onChange={(e) => handleInputChange('homepage_hero_image', e.target.value)}
+                    placeholder="https://example.com/hero-image.jpg"
+                  />
+                  {settings.homepage_hero_image && (
+                    <img src={settings.homepage_hero_image} alt="Hero" className="h-32 object-cover rounded" />
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Pozostaw puste aby używać domyślnego gradientu
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <Label>Favicon URL</Label>
-                <Input
-                  value={settings.favicon_url || ''}
-                  onChange={(e) => handleInputChange('favicon_url', e.target.value)}
-                  placeholder="https://example.com/favicon.ico"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label>Favicon</Label>
+                  <Input
+                    type="file"
+                    accept="image/x-icon,image/png,image/svg+xml"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      
+                      try {
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `favicon-${Date.now()}.${fileExt}`;
+                        const { data, error } = await supabase.storage
+                          .from('models')
+                          .upload(`media/${fileName}`, file);
+                        
+                        if (error) throw error;
+                        
+                        const { data: { publicUrl } } = supabase.storage
+                          .from('models')
+                          .getPublicUrl(`media/${fileName}`);
+                        
+                        handleInputChange('favicon_url', publicUrl);
+                        toast({
+                          title: "Sukces",
+                          description: "Favicon został wgrany",
+                        });
+                      } catch (error) {
+                        console.error('Upload error:', error);
+                        toast({
+                          title: "Błąd",
+                          description: "Nie udało się wgrać pliku",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    lub podaj URL:
+                  </p>
+                  <Input
+                    value={settings.favicon_url || ''}
+                    onChange={(e) => handleInputChange('favicon_url', e.target.value)}
+                    placeholder="https://example.com/favicon.ico"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label>Ogimage URL (dla social media)</Label>
-                <Input
-                  value={settings.og_image || ''}
-                  onChange={(e) => handleInputChange('og_image', e.target.value)}
-                  placeholder="https://example.com/og-image.jpg"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Obraz wyświetlany przy udostępnianiu na social media (1200x630px)
-                </p>
+                <div className="space-y-2">
+                  <Label>Ogimage (dla social media)</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      
+                      try {
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `og-${Date.now()}.${fileExt}`;
+                        const { data, error } = await supabase.storage
+                          .from('models')
+                          .upload(`media/${fileName}`, file);
+                        
+                        if (error) throw error;
+                        
+                        const { data: { publicUrl } } = supabase.storage
+                          .from('models')
+                          .getPublicUrl(`media/${fileName}`);
+                        
+                        handleInputChange('og_image', publicUrl);
+                        toast({
+                          title: "Sukces",
+                          description: "Obraz został wgrany",
+                        });
+                      } catch (error) {
+                        console.error('Upload error:', error);
+                        toast({
+                          title: "Błąd",
+                          description: "Nie udało się wgrać pliku",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    lub podaj URL:
+                  </p>
+                  <Input
+                    value={settings.og_image || ''}
+                    onChange={(e) => handleInputChange('og_image', e.target.value)}
+                    placeholder="https://example.com/og-image.jpg"
+                  />
+                  {settings.og_image && (
+                    <img src={settings.og_image} alt="OG Image" className="h-32 object-cover rounded" />
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Obraz wyświetlany przy udostępnianiu na social media (1200x630px)
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
