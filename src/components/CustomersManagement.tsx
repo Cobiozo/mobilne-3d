@@ -37,6 +37,18 @@ interface Order {
   created_at: string;
   material: string | null;
   delivery_method: string | null;
+  order_items?: OrderItem[];
+}
+
+interface OrderItem {
+  id: string;
+  quantity: number;
+  thumbnail: string | null;
+  color: string | null;
+  material: string | null;
+  models: {
+    name: string;
+  } | null;
 }
 
 interface CustomerNote {
@@ -187,7 +199,17 @@ export const CustomersManagement = () => {
           total_price,
           created_at,
           material,
-          delivery_method
+          delivery_method,
+          order_items (
+            id,
+            quantity,
+            thumbnail,
+            color,
+            material,
+            models (
+              name
+            )
+          )
         `)
         .eq('user_id', customerId)
         .order('created_at', { ascending: false });
@@ -612,6 +634,44 @@ export const CustomersManagement = () => {
                                  order.status === 'cancelled' ? 'Anulowane' : order.status}
                               </Badge>
                             </div>
+                            
+                            {/* Order items with thumbnails */}
+                            {order.order_items && order.order_items.length > 0 && (
+                              <div className="mt-3 mb-3 flex gap-2 flex-wrap">
+                                {order.order_items.map((item) => (
+                                  <div key={item.id} className="relative group">
+                                    <div className="w-16 h-16 rounded border border-border overflow-hidden">
+                                      {item.thumbnail ? (
+                                        <img 
+                                          src={item.thumbnail} 
+                                          alt={item.models?.name || 'Model'} 
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <div 
+                                          className="w-full h-full flex items-center justify-center"
+                                          style={{ backgroundColor: item.color || '#000000' }}
+                                        >
+                                          <span className="text-xs font-semibold text-white">3D</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {item.quantity > 1 && (
+                                      <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                                        {item.quantity}
+                                      </Badge>
+                                    )}
+                                    {/* Tooltip with model name */}
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10">
+                                      <div className="bg-popover text-popover-foreground text-xs px-2 py-1 rounded whitespace-nowrap shadow-md border">
+                                        {item.models?.name || 'Model'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
                             <div className="grid grid-cols-2 gap-4 mt-3">
                               <div>
                                 <p className="text-sm text-muted-foreground">Kwota</p>
