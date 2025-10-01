@@ -178,9 +178,9 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
               </CardHeader>
               <CardContent>
                 {/* Model thumbnail preview */}
-                <div className="mb-4 w-full h-40 bg-muted rounded-lg border overflow-hidden flex items-center justify-center">
-                  <Package className="w-12 h-12 text-muted-foreground" />
-                  <div className="absolute inset-0 flex items-center justify-center">
+                <div className="mb-4 w-full h-40 bg-muted rounded-lg border overflow-hidden relative flex items-center justify-center">
+                  <Package className="w-12 h-12 text-muted-foreground z-10" />
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <p className="text-xs text-muted-foreground">Miniaturka dostępna po otwarciu</p>
                   </div>
                 </div>
