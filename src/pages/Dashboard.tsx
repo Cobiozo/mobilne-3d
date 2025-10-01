@@ -16,8 +16,11 @@ import { OrdersManagement } from '@/components/OrdersManagement';
 import { SiteSettings } from '@/components/SiteSettings';
 import { SitePersonalization } from '@/components/SitePersonalization';
 import { AdminOverview } from '@/components/AdminOverview';
+import { OrderHistory } from '@/components/OrderHistory';
+import { ShippingAddresses } from '@/components/ShippingAddresses';
+import { ChangePassword } from '@/components/ChangePassword';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
-import { User, LogOut, Upload, Settings, Home } from 'lucide-react';
+import { User, LogOut, Upload, Settings, Home, Package, MapPin, Lock } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
@@ -81,6 +84,12 @@ const Dashboard = () => {
       switch (currentTab) {
         case 'profile':
           return <UserProfile user={user} />;
+        case 'orders':
+          return <OrderHistory />;
+        case 'addresses':
+          return <ShippingAddresses />;
+        case 'password':
+          return <ChangePassword />;
         case 'models':
           return <ModelLibrary userId={user.id} />;
         default:
@@ -188,7 +197,7 @@ const Dashboard = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-lg md:text-2xl font-bold">
-              {getText('clientPanel', language)}
+              Moje konto
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -214,19 +223,46 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 md:py-8">
-        <div className="grid w-full grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+        <div className="grid w-full grid-cols-2 md:grid-cols-5 gap-3 mb-6">
           <Button
             variant={currentTab === 'profile' ? 'default' : 'outline'}
             onClick={() => handleTabChange('profile')}
+            className="flex-col h-auto py-3"
           >
-            <User className="w-4 h-4 mr-2" />
-            {getText('profile', language)}
+            <User className="w-5 h-5 mb-1" />
+            <span className="text-xs md:text-sm">{getText('profile', language)}</span>
+          </Button>
+          <Button
+            variant={currentTab === 'orders' ? 'default' : 'outline'}
+            onClick={() => handleTabChange('orders')}
+            className="flex-col h-auto py-3"
+          >
+            <Package className="w-5 h-5 mb-1" />
+            <span className="text-xs md:text-sm">Zamówienia</span>
+          </Button>
+          <Button
+            variant={currentTab === 'addresses' ? 'default' : 'outline'}
+            onClick={() => handleTabChange('addresses')}
+            className="flex-col h-auto py-3"
+          >
+            <MapPin className="w-5 h-5 mb-1" />
+            <span className="text-xs md:text-sm">Adresy</span>
+          </Button>
+          <Button
+            variant={currentTab === 'password' ? 'default' : 'outline'}
+            onClick={() => handleTabChange('password')}
+            className="flex-col h-auto py-3"
+          >
+            <Lock className="w-5 h-5 mb-1" />
+            <span className="text-xs md:text-sm">Hasło</span>
           </Button>
           <Button
             variant={currentTab === 'models' ? 'default' : 'outline'}
             onClick={() => handleTabChange('models')}
+            className="flex-col h-auto py-3"
           >
-            {getText('myModels', language)}
+            <Upload className="w-5 h-5 mb-1" />
+            <span className="text-xs md:text-sm">{getText('myModels', language)}</span>
           </Button>
         </div>
         
