@@ -184,14 +184,15 @@ const Index = () => {
 
   const saveModelToDatabase = async (file: File, arrayBuffer: ArrayBuffer) => {
     try {
-      console.log('Rozpoczynam zapisywanie modelu:', file.name, 'Użytkownik:', user?.id);
+      console.log('Rozpoczynam zapisywanie modelu:', file.name, 'Rozmiar:', file.size, 'Użytkownik:', user?.id);
       
-      // Check if model with the same name already exists for this user
+      // Check if model with the same name AND size already exists for this user
       const { data: existingModels, error: checkError } = await supabase
         .from('models')
-        .select('name')
+        .select('name, file_size')
         .eq('user_id', user!.id)
-        .eq('name', file.name);
+        .eq('name', file.name)
+        .eq('file_size', file.size);
 
       if (checkError) {
         console.error('Error checking for existing models:', checkError);
@@ -199,10 +200,12 @@ const Index = () => {
       }
 
       if (existingModels && existingModels.length > 0) {
-        console.log('Model o tej nazwie już istnieje:', file.name);
+        console.log('Model o tej nazwie i rozmiarze już istnieje:', file.name, file.size);
         toast.info(`Model "${file.name}" już istnieje w Twoich modelach`);
         return;
       }
+
+      console.log('Model nie istnieje, kontynuuję zapisywanie...');
 
       // Create a unique filename
       const timestamp = Date.now();
