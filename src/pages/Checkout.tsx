@@ -473,6 +473,47 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
         toast.success('Dane wysyłkowe zostały zapisane do Twojego profilu');
       }
 
+      // Save address to shipping_addresses table
+      const { data: existingAddresses } = await supabase
+        .from('shipping_addresses')
+        .select('id')
+        .eq('user_id', user.id);
+
+      const hasExistingAddresses = existingAddresses && existingAddresses.length > 0;
+
+      // Check if this exact address already exists
+      const { data: duplicateAddress } = await supabase
+        .from('shipping_addresses')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('recipient_name', `${customerInfo.firstName} ${customerInfo.lastName}`)
+        .eq('address', customerInfo.address)
+        .eq('city', customerInfo.city)
+        .eq('postal_code', customerInfo.postalCode)
+        .maybeSingle();
+
+      if (!duplicateAddress) {
+        // Create new address entry
+        const { error: addressError } = await supabase
+          .from('shipping_addresses')
+          .insert({
+            user_id: user.id,
+            label: hasExistingAddresses ? `Zamówienie ${orderNumber}` : 'Dom',
+            recipient_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
+            phone: customerInfo.phone,
+            address: customerInfo.address,
+            city: customerInfo.city,
+            postal_code: customerInfo.postalCode,
+            country: customerInfo.country,
+            is_default: !hasExistingAddresses // Set as default only if it's the first address
+          });
+
+        if (addressError) {
+          console.warn('Could not save shipping address:', addressError);
+          // Don't throw error, just log it - order was successful
+        }
+      }
+
       // Clear cart
       localStorage.removeItem('cartItems');
       
