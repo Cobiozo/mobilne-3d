@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileUpload } from "@/components/FileUpload";
 import { ImageUpload } from "@/components/ImageUpload";
 import { ModelViewer } from "@/components/ModelViewer";
 import { ControlPanel } from "@/components/ControlPanel";
 import { ProgressLoader } from "@/components/ProgressLoader";
 import { ModelSelector } from "@/components/ModelSelector";
+import { PublicModels } from "@/components/PublicModels";
 import { ShoppingCartComponent, CartItem } from "@/components/ShoppingCart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog";
@@ -902,6 +904,24 @@ const Index = () => {
             </div>
           </div>
         )}
+
+        {/* Public Models Section */}
+        <div className="mt-8">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Box className="w-5 h-5" />
+                Publiczne modele 3D
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Przeglądaj dostępne modele, personalizuj kolor i dodaj do koszyka
+              </p>
+            </CardHeader>
+            <CardContent>
+              <PublicModels />
+            </CardContent>
+          </Card>
+        </div>
       </main>
     </div>
     </>
