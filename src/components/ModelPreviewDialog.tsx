@@ -126,9 +126,26 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
       try {
         const canvas = document.querySelector('canvas') as HTMLCanvasElement;
         if (canvas) {
-          const capturedCanvas = captureCanvasFromThreeJS(canvas);
-          thumbnailUrl = capturedCanvas.toDataURL('image/png');
-          console.log('Generated thumbnail for cart');
+          // Create smaller thumbnail for better performance
+          const thumbnailCanvas = document.createElement('canvas');
+          const thumbnailWidth = 200;
+          const thumbnailHeight = 200;
+          thumbnailCanvas.width = thumbnailWidth;
+          thumbnailCanvas.height = thumbnailHeight;
+          
+          const ctx = thumbnailCanvas.getContext('2d');
+          if (ctx) {
+            // White background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, thumbnailWidth, thumbnailHeight);
+            
+            // Draw scaled down version of the canvas
+            ctx.drawImage(canvas, 0, 0, thumbnailWidth, thumbnailHeight);
+            
+            // Convert to base64 with reduced quality
+            thumbnailUrl = thumbnailCanvas.toDataURL('image/jpeg', 0.7);
+            console.log('Generated thumbnail for cart, size:', Math.round(thumbnailUrl.length / 1024), 'KB');
+          }
         }
       } catch (error) {
         console.warn('Could not capture model thumbnail:', error);
