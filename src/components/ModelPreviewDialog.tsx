@@ -95,7 +95,7 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
       name: model.name,
       color: modelColor,
       quantity: 1,
-      price: 29.99 // Default price - you can make this configurable
+      price: 39.99 // Base price - will be calculated in checkout based on actual dimensions
     };
 
     setCartItems(prev => {

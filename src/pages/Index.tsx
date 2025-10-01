@@ -316,38 +316,59 @@ const Index = () => {
   };
 
   // Shopping cart functions
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!fileName) {
       toast.error('Brak załadowanego modelu');
       return;
     }
 
-    const newItem: CartItem = {
-      id: `${Date.now()}-${Math.random()}`,
-      name: fileName,
-      color: modelColor,
-      quantity: 1,
-      price: 0 // Default price, can be updated later
-    };
-
-    setCartItems(prev => {
-      // Check if item with same name and color already exists
-      const existingIndex = prev.findIndex(
-        item => item.name === newItem.name && item.color === newItem.color
-      );
-
-      if (existingIndex >= 0) {
-        // Update quantity if item exists
-        const updated = [...prev];
-        updated[existingIndex].quantity += 1;
-        toast.success(`Zwiększono ilość "${newItem.name}" w koszyku`);
-        return updated;
-      } else {
-        // Add new item
-        toast.success(`Dodano "${newItem.name}" do koszyka`);
-        return [...prev, newItem];
+    try {
+      // Find model in database by name if user is logged in
+      let modelId = `${Date.now()}-${Math.random()}`;
+      
+      if (user) {
+        const { data: models } = await supabase
+          .from('models')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('name', fileName)
+          .limit(1);
+        
+        if (models && models.length > 0) {
+          modelId = models[0].id;
+        }
       }
-    });
+
+      const newItem: CartItem = {
+        id: modelId,
+        name: fileName,
+        color: modelColor,
+        quantity: 1,
+        price: 39.99 // Base price - will be calculated in checkout based on dimensions
+      };
+
+      setCartItems(prev => {
+        // Check if item with same id and color already exists
+        const existingIndex = prev.findIndex(
+          item => item.id === newItem.id && item.color === newItem.color
+        );
+
+        if (existingIndex >= 0) {
+          // Update quantity if item exists
+          const updated = [...prev];
+          updated[existingIndex].quantity += 1;
+          toast.success(`Zwiększono ilość "${newItem.name}" w koszyku`);
+          return updated;
+        } else {
+          // Add new item
+          toast.success(`Dodano "${newItem.name}" do koszyka`);
+          return [...prev, newItem];
+        }
+      });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Błąd podczas dodawania do koszyka');
+    }
   };
 
   const handleUpdateCartQuantity = (id: string, quantity: number) => {
