@@ -57,6 +57,34 @@ const Checkout = () => {
   };
 
   useEffect(() => {
+    const loadProfileData = async () => {
+      if (!user) return;
+
+      // Load saved profile data
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name, phone, address, city, postal_code, country')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile) {
+        setCustomerInfo(prev => ({
+          ...prev,
+          firstName: profile.display_name?.split(' ')[0] || '',
+          lastName: profile.display_name?.split(' ').slice(1).join(' ') || '',
+          phone: profile.phone || '',
+          address: profile.address || '',
+          city: profile.city || '',
+          postalCode: profile.postal_code || '',
+          country: profile.country || 'Polska'
+        }));
+      }
+    };
+
+    loadProfileData();
+  }, [user]);
+
+  useEffect(() => {
     const loadModelDimensions = async () => {
       const savedCart = localStorage.getItem('cartItems');
       if (savedCart) {
@@ -371,6 +399,24 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
           console.error('Order item creation error:', itemError);
           throw itemError;
         }
+      }
+
+      // Save shipping info to profile for future orders
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          display_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
+          phone: customerInfo.phone,
+          address: customerInfo.address,
+          city: customerInfo.city,
+          postal_code: customerInfo.postalCode,
+          country: customerInfo.country
+        });
+
+      if (profileError) {
+        console.warn('Could not save profile data:', profileError);
+        // Don't throw error, just log it - order was successful
       }
 
       // Clear cart

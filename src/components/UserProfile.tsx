@@ -19,13 +19,23 @@ interface Profile {
   display_name: string | null;
   bio: string | null;
   avatar_url: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  postal_code: string | null;
+  country: string | null;
 }
 
 export const UserProfile = ({ user }: UserProfileProps) => {
   const [profile, setProfile] = useState<Profile>({
     display_name: '',
     bio: '',
-    avatar_url: ''
+    avatar_url: '',
+    phone: '',
+    address: '',
+    city: '',
+    postal_code: '',
+    country: 'Polska'
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -37,7 +47,7 @@ export const UserProfile = ({ user }: UserProfileProps) => {
       setIsLoading(true);
       const { data, error } = await supabase
         .from('profiles')
-        .select('display_name, bio, avatar_url')
+        .select('display_name, bio, avatar_url, phone, address, city, postal_code, country')
         .eq('user_id', user.id)
         .single();
 
@@ -61,7 +71,12 @@ export const UserProfile = ({ user }: UserProfileProps) => {
         user_id: user.id,
         display_name: profile.display_name,
         bio: profile.bio,
-        avatar_url: profile.avatar_url
+        avatar_url: profile.avatar_url,
+        phone: profile.phone,
+        address: profile.address,
+        city: profile.city,
+        postal_code: profile.postal_code,
+        country: profile.country
       });
 
     if (error) {
@@ -143,6 +158,64 @@ export const UserProfile = ({ user }: UserProfileProps) => {
               onChange={(e) => handleInputChange('avatar_url', e.target.value)}
               placeholder="https://example.com/avatar.jpg"
             />
+          </div>
+
+          <div className="pt-4 border-t">
+            <h3 className="text-lg font-semibold mb-4">Dane do wysyłki</h3>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefon</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={profile.phone || ''}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  placeholder="123 456 789"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Adres</Label>
+                <Input
+                  id="address"
+                  value={profile.address || ''}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  placeholder="ul. Przykładowa 123"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="postal-code">Kod pocztowy</Label>
+                  <Input
+                    id="postal-code"
+                    value={profile.postal_code || ''}
+                    onChange={(e) => handleInputChange('postal_code', e.target.value)}
+                    placeholder="00-000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="city">Miasto</Label>
+                  <Input
+                    id="city"
+                    value={profile.city || ''}
+                    onChange={(e) => handleInputChange('city', e.target.value)}
+                    placeholder="Warszawa"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="country">Kraj</Label>
+                <Input
+                  id="country"
+                  value={profile.country || 'Polska'}
+                  onChange={(e) => handleInputChange('country', e.target.value)}
+                  placeholder="Polska"
+                />
+              </div>
+            </div>
           </div>
 
           <Button 
