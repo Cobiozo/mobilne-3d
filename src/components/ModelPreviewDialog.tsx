@@ -170,12 +170,7 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>{model?.name}</span>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X className="w-4 h-4" />
-              </Button>
-            </DialogTitle>
+            <DialogTitle>{model?.name}</DialogTitle>
           </DialogHeader>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[70vh]">

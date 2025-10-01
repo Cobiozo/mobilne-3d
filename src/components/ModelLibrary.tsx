@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ModelUpload } from '@/components/ModelUpload';
 import { ModelPreviewDialog } from '@/components/ModelPreviewDialog';
+import { ModelThumbnail } from '@/components/ModelThumbnail';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
@@ -178,12 +179,10 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
               </CardHeader>
               <CardContent>
                 {/* Model thumbnail preview */}
-                <div className="mb-4 w-full h-40 bg-muted rounded-lg border overflow-hidden relative flex items-center justify-center">
-                  <Package className="w-12 h-12 text-muted-foreground z-10" />
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <p className="text-xs text-muted-foreground">Miniaturka dostępna po otwarciu</p>
-                  </div>
-                </div>
+                <ModelThumbnail 
+                  fileUrl={model.file_url}
+                  className="w-full h-40 rounded-lg border overflow-hidden mb-4"
+                />
                 
                 {model.description && (
                   <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
