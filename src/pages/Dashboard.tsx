@@ -174,7 +174,7 @@ const Dashboard = () => {
     // Admin dashboard
     switch (currentTab) {
       case 'overview':
-        return <AdminOverview />;
+        return <AdminOverview onTabChange={handleTabChange} />;
       case 'customers':
         return <CustomersManagement />;
       case 'orders':

@@ -29,7 +29,11 @@ interface ActivityItem {
   user_name: string;
 }
 
-export const AdminOverview = () => {
+interface AdminOverviewProps {
+  onTabChange?: (tab: string) => void;
+}
+
+export const AdminOverview = ({ onTabChange }: AdminOverviewProps) => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -187,7 +191,10 @@ export const AdminOverview = () => {
 
       {/* Main Stats Cards */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card 
+          className="cursor-pointer transition-all hover:shadow-lg hover:scale-105"
+          onClick={() => onTabChange?.('customers')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{getText('allUsers', language)}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -200,7 +207,10 @@ export const AdminOverview = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer transition-all hover:shadow-lg hover:scale-105"
+          onClick={() => onTabChange?.('orders')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{getText('orders', language)}</CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
@@ -213,7 +223,10 @@ export const AdminOverview = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer transition-all hover:shadow-lg hover:scale-105"
+          onClick={() => onTabChange?.('models')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{getText('myModels', language)}</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
@@ -226,7 +239,10 @@ export const AdminOverview = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer transition-all hover:shadow-lg hover:scale-105"
+          onClick={() => onTabChange?.('orders')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{getText('revenue', language)}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
