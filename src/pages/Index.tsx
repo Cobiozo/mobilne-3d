@@ -6,12 +6,11 @@ import { ModelViewer } from "@/components/ModelViewer";
 import { ControlPanel } from "@/components/ControlPanel";
 import { ProgressLoader } from "@/components/ProgressLoader";
 import { ModelSelector } from "@/components/ModelSelector";
-import { PublicModels } from "@/components/PublicModels";
 import { ShoppingCartComponent, CartItem } from "@/components/ShoppingCart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Box, Layers3, Image, ShoppingCart, MessageCircle } from "lucide-react";
+import { Box, Layers3, Image, ShoppingCart, MessageCircle, Package } from "lucide-react";
 import { exportCanvasAs, captureCanvasFromThreeJS } from "@/utils/exportUtils";
 import { render2DView } from "@/utils/export2D";
 import { useApp } from "@/contexts/AppContext";
@@ -63,7 +62,7 @@ const Index = () => {
   const { theme, resolvedTheme } = useTheme();
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"model3d" | "image2d" | "public-models">("model3d");
+  const [activeTab, setActiveTab] = useState<"model3d" | "image2d">("model3d");
   const [modelData, setModelData] = useState<ArrayBuffer | null>(null);
   const [imageGeometry, setImageGeometry] = useState<THREE.BufferGeometry | null>(null);
   const [modelColor, setModelColor] = useState("#FFFFFF");
@@ -730,6 +729,17 @@ const Index = () => {
                 onClearCart={handleClearCart}
               />
               
+              {/* Public Models Link */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/models')}
+                className="flex items-center gap-2"
+              >
+                <Package className="w-4 h-4" />
+                <span className="hidden sm:inline">Modele</span>
+              </Button>
+              
               {/* Authentication */}
               {!loading && (
                 <div className="flex items-center gap-2">
@@ -825,22 +835,15 @@ const Index = () => {
               
               {!modelData && !imageGeometry && (
                 <div className="block xl:hidden">
-                  <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d" | "public-models")} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
+                  <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d")} className="w-full">
+                    <TabsList className="grid w-full grid-cols-1">
                       <TabsTrigger value="model3d" className="flex items-center gap-2">
                         <Layers3 className="w-4 h-4" />
                         {t('tabModel3D')}
                       </TabsTrigger>
-                      <TabsTrigger value="public-models" className="flex items-center gap-2">
-                        <Box className="w-4 h-4" />
-                        Modele
-                      </TabsTrigger>
                     </TabsList>
                     <TabsContent value="model3d" className="mt-4">
                       <FileUpload onFileSelect={handleFileSelect} />
-                    </TabsContent>
-                    <TabsContent value="public-models" className="mt-4">
-                      <PublicModels />
                     </TabsContent>
                   </Tabs>
                 </div>
@@ -875,22 +878,15 @@ const Index = () => {
           <div className="mt-4 sm:mt-6 xl:hidden">
             <div className="text-center">
               <div className="max-w-md mx-auto">
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d" | "public-models")} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d")} className="w-full">
+                  <TabsList className="grid w-full grid-cols-1">
                     <TabsTrigger value="model3d" className="flex items-center gap-2">
                       <Layers3 className="w-4 h-4" />
                       {t('tabModel3D')}
                     </TabsTrigger>
-                    <TabsTrigger value="public-models" className="flex items-center gap-2">
-                      <Box className="w-4 h-4" />
-                      Modele
-                    </TabsTrigger>
                   </TabsList>
                   <TabsContent value="model3d" className="mt-4">
                     <FileUpload onFileSelect={handleFileSelect} />
-                  </TabsContent>
-                  <TabsContent value="public-models" className="mt-4">
-                    <PublicModels />
                   </TabsContent>
                 </Tabs>
               </div>
@@ -902,23 +898,16 @@ const Index = () => {
         {!modelData && !imageGeometry && (
           <div className="hidden xl:block mt-6">
             <div className="text-center">
-              <div className="max-w-2xl mx-auto">
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d" | "public-models")} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
+              <div className="max-w-md mx-auto">
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "model3d" | "image2d")} className="w-full">
+                  <TabsList className="grid w-full grid-cols-1">
                     <TabsTrigger value="model3d" className="flex items-center gap-2">
                       <Layers3 className="w-4 h-4" />
                       {t('tabModel3D')}
                     </TabsTrigger>
-                    <TabsTrigger value="public-models" className="flex items-center gap-2">
-                      <Box className="w-4 h-4" />
-                      Modele
-                    </TabsTrigger>
                   </TabsList>
                   <TabsContent value="model3d" className="mt-4">
                     <FileUpload onFileSelect={handleFileSelect} />
-                  </TabsContent>
-                  <TabsContent value="public-models" className="mt-4">
-                    <PublicModels />
                   </TabsContent>
                 </Tabs>
               </div>
