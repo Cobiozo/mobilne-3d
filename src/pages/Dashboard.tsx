@@ -160,6 +160,7 @@ const Dashboard = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
+                    type="button"
                     variant="outline"
                     size="sm"
                     className="hidden sm:flex"
@@ -169,6 +170,7 @@ const Dashboard = () => {
                     <span className="hidden md:inline">{getText('homePage', language)}</span>
                   </Button>
                   <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={handleSignOut}
@@ -202,6 +204,7 @@ const Dashboard = () => {
           </div>
           <div className="flex items-center gap-2">
             <Button
+              type="button"
               variant="outline"
               size="sm"
               className="hidden sm:flex"
@@ -211,6 +214,7 @@ const Dashboard = () => {
               <span className="hidden md:inline">{getText('homePage', language)}</span>
             </Button>
             <Button
+              type="button"
               variant="ghost"
               size="sm"
               onClick={handleSignOut}
