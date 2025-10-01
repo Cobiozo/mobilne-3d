@@ -19,6 +19,7 @@ import { AdminOverview } from '@/components/AdminOverview';
 import { OrderHistory } from '@/components/OrderHistory';
 import { ShippingAddresses } from '@/components/ShippingAddresses';
 import { ChangePassword } from '@/components/ChangePassword';
+import { ShoppingCartComponent, CartItem } from '@/components/ShoppingCart';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { User, LogOut, Upload, Settings, Home, Package, MapPin, Lock } from 'lucide-react';
 
@@ -30,6 +31,43 @@ const Dashboard = () => {
   const [userRole, setUserRole] = useState<'admin' | 'user'>('user');
   const [isLoadingRole, setIsLoadingRole] = useState(true);
   const [currentTab, setCurrentTab] = useState(searchParams.get('tab') || 'overview');
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
+  // Load cart from localStorage
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cartItems');
+    if (savedCart) {
+      try {
+        const items = JSON.parse(savedCart);
+        setCartItems(items);
+      } catch (error) {
+        console.error('Error loading cart:', error);
+      }
+    }
+  }, []);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('cartItems', JSON.stringify(cartItems));
+  }, [cartItems]);
+
+  const handleUpdateQuantity = (id: string, quantity: number) => {
+    if (quantity === 0) {
+      setCartItems(cartItems.filter(item => item.id !== id));
+    } else {
+      setCartItems(cartItems.map(item => 
+        item.id === id ? { ...item, quantity } : item
+      ));
+    }
+  };
+
+  const handleRemoveItem = (id: string) => {
+    setCartItems(cartItems.filter(item => item.id !== id));
+  };
+
+  const handleClearCart = () => {
+    setCartItems([]);
+  };
 
   useEffect(() => {
     if (!user && !loading) {
@@ -159,6 +197,12 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <ShoppingCartComponent
+                    items={cartItems}
+                    onUpdateQuantity={handleUpdateQuantity}
+                    onRemoveItem={handleRemoveItem}
+                    onClearCart={handleClearCart}
+                  />
                   <Button
                     type="button"
                     variant="outline"
@@ -203,6 +247,12 @@ const Dashboard = () => {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <ShoppingCartComponent
+              items={cartItems}
+              onUpdateQuantity={handleUpdateQuantity}
+              onRemoveItem={handleRemoveItem}
+              onClearCart={handleClearCart}
+            />
             <Button
               type="button"
               variant="outline"
