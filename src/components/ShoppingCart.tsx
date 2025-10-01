@@ -96,9 +96,10 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
                   <div key={item.id} className="flex items-center gap-3 p-3 border rounded-lg">
                     {item.image ? (
                       <img 
-                        src={item.image} 
+                        src={item.image}
                         alt={item.name}
                         className="w-12 h-12 object-cover rounded border border-border"
+                        loading="lazy"
                       />
                     ) : (
                       <div 

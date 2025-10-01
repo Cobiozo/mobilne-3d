@@ -60,6 +60,18 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
     fetchModels();
   }, [userId, toast, language]);
 
+  // Refresh models when tab becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchModels();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   const handleUploadComplete = () => {
     setShowUpload(false);
     fetchModels(); // Refresh the models list

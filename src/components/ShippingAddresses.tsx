@@ -55,6 +55,18 @@ export const ShippingAddresses = () => {
     fetchAddresses();
   }, []);
 
+  // Refresh addresses when tab becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchAddresses();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   const fetchAddresses = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();

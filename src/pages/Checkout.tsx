@@ -591,9 +591,10 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
                     <div className="flex items-center gap-3">
                       {item.image ? (
                         <img 
-                          src={item.image} 
+                          src={item.image}
                           alt={item.name}
                           className="w-16 h-16 object-cover rounded border border-border"
+                          loading="lazy"
                         />
                       ) : (
                         <div 

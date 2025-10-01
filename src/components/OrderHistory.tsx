@@ -38,6 +38,18 @@ export const OrderHistory = () => {
     fetchOrders();
   }, []);
 
+  // Refresh orders when tab becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchOrders();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   const fetchOrders = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -151,9 +163,10 @@ export const OrderHistory = () => {
                       <div key={item.id} className="flex-shrink-0">
                         {item.thumbnail ? (
                           <img 
-                            src={item.thumbnail} 
+                            src={`${item.thumbnail}?t=${Date.now()}`}
                             alt="Model"
                             className="w-16 h-16 object-cover rounded border border-border"
+                            loading="lazy"
                           />
                         ) : (
                           <div 
