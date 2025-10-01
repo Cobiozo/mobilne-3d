@@ -73,10 +73,25 @@ export const CustomersManagement = () => {
   const fetchCustomers = async () => {
     setIsLoading(true);
     try {
-      // Fetch all users from auth with admin API
-      const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
+      // Fetch all users from edge function
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No active session');
+      }
 
-      if (authError) throw authError;
+      const response = await fetch(`https://rzupsyhyoztaekcwmels.supabase.co/functions/v1/list-users`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch users');
+      }
+
+      const { users: authUsers } = await response.json();
 
       // Fetch profiles
       const { data: profilesData } = await supabase
