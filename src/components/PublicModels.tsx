@@ -8,7 +8,7 @@ import { ModelThumbnail } from '@/components/ModelThumbnail';
 import { ModelViewer } from '@/components/ModelViewer';
 import { ControlPanel } from '@/components/ControlPanel';
 import { supabase } from '@/integrations/supabase/client';
-import { ShoppingCart, Palette, Package } from 'lucide-react';
+import { ShoppingCart, Palette, Package, Coins } from 'lucide-react';
 import { toast } from 'sonner';
 import { CartItem } from '@/components/ShoppingCart';
 
@@ -18,7 +18,9 @@ interface PublicModel {
   description: string | null;
   file_url: string;
   file_size: number | null;
+  price: number;
   created_at: string;
+  user_id: string;
   profiles: {
     display_name: string | null;
   } | null;
@@ -56,7 +58,7 @@ export const PublicModels = () => {
     try {
       const { data: modelsData, error } = await supabase
         .from('models')
-        .select('id, name, description, file_url, file_size, created_at, user_id')
+        .select('id, name, description, file_url, file_size, price, created_at, user_id')
         .eq('is_public', true)
         .order('created_at', { ascending: false });
 
@@ -142,6 +144,39 @@ export const PublicModels = () => {
     setAddingToCart(model.id);
     
     try {
+      // Check if user is logged in
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // If model has price and user is logged in, process purchase
+      if (model.price > 0 && user) {
+        // Check if user owns this model
+        if (model.user_id === user.id) {
+          toast.error('Nie możesz kupić własnego modelu!');
+          return;
+        }
+
+        // Process purchase
+        const { data: purchaseData, error: purchaseError } = await supabase
+          .rpc('process_model_purchase', {
+            p_model_id: model.id,
+            p_buyer_id: user.id,
+            p_price: model.price
+          });
+
+        if (purchaseError) {
+          if (purchaseError.message.includes('Insufficient balance')) {
+            toast.error('Niewystarczające środki w portfelu');
+          } else {
+            toast.error('Błąd podczas zakupu: ' + purchaseError.message);
+          }
+          return;
+        }
+
+        toast.success(`Zakupiono model "${model.name}" za ${model.price} monet!`);
+        return;
+      }
+
+      // If no price or not logged in, add to physical cart
       // Download model file to get dimensions and generate thumbnail
       let filePath = '';
       if (model.file_url.includes('/storage/v1/object/public/models/')) {
@@ -349,10 +384,16 @@ export const PublicModels = () => {
                       {model.description}
                     </CardDescription>
                   )}
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <Badge variant="outline" className="text-xs">
                       {formatFileSize(model.file_size)}
                     </Badge>
+                    {model.price > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Coins className="w-3 h-3 mr-1" />
+                        {model.price} monet
+                      </Badge>
+                    )}
                     {model.profiles?.display_name && (
                       <span className="text-xs text-muted-foreground">
                         by {model.profiles.display_name}
@@ -400,7 +441,7 @@ export const PublicModels = () => {
                   </Select>
                 </div>
 
-                {/* Add to cart button */}
+                {/* Add to cart / Buy button */}
                 <Button
                   className="w-full"
                   size="sm"
@@ -410,7 +451,12 @@ export const PublicModels = () => {
                   {addingToCart === model.id ? (
                     <>
                       <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      Dodawanie...
+                      {model.price > 0 ? 'Kupowanie...' : 'Dodawanie...'}
+                    </>
+                  ) : model.price > 0 ? (
+                    <>
+                      <Coins className="w-4 h-4 mr-2" />
+                      Kup za {model.price} monet
                     </>
                   ) : (
                     <>

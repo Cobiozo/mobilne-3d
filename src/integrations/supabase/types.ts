@@ -104,6 +104,47 @@ export type Database = {
         }
         Relationships: []
       }
+      model_orders: {
+        Row: {
+          buyer_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          model_id: string
+          price: number
+          seller_id: string
+          status: string
+        }
+        Insert: {
+          buyer_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          model_id: string
+          price: number
+          seller_id: string
+          status?: string
+        }
+        Update: {
+          buyer_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          model_id?: string
+          price?: number
+          seller_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "model_orders_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       models: {
         Row: {
           created_at: string
@@ -114,6 +155,7 @@ export type Database = {
           id: string
           is_public: boolean | null
           name: string
+          price: number | null
           updated_at: string
           user_id: string
         }
@@ -126,6 +168,7 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           name: string
+          price?: number | null
           updated_at?: string
           user_id: string
         }
@@ -138,6 +181,7 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           name?: string
+          price?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -424,6 +468,68 @@ export type Database = {
         }
         Relationships: []
       }
+      user_wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          related_order_id: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          related_order_id?: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          related_order_id?: string | null
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_related_order_id_fkey"
+            columns: ["related_order_id"]
+            isOneToOne: false
+            referencedRelation: "model_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -446,6 +552,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      process_model_purchase: {
+        Args: { p_buyer_id: string; p_model_id: string; p_price: number }
+        Returns: string
       }
     }
     Enums: {

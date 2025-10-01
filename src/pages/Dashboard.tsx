@@ -10,6 +10,7 @@ import { getText } from '@/lib/i18n';
 import { supabase } from '@/integrations/supabase/client';
 import { UserProfile } from '@/components/UserProfile';
 import { ModelLibrary } from '@/components/ModelLibrary';
+import { UserWallet } from '@/components/UserWallet';
 import { AdminSidebar } from '@/components/AdminSidebar';
 import { CustomersManagement } from '@/components/CustomersManagement';
 import { OrdersManagement } from '@/components/OrdersManagement';
@@ -146,7 +147,12 @@ const Dashboard = () => {
       // Regular user dashboard
       switch (currentTab) {
         case 'profile':
-          return <UserProfile user={user} />;
+          return (
+            <div className="space-y-6">
+              <UserWallet userId={user.id} />
+              <UserProfile user={user} />
+            </div>
+          );
         case 'orders':
           return <OrderHistory />;
         case 'addresses':
@@ -156,7 +162,12 @@ const Dashboard = () => {
         case 'models':
           return <ModelLibrary userId={user.id} />;
         default:
-          return <UserProfile user={user} />;
+          return (
+            <div className="space-y-6">
+              <UserWallet userId={user.id} />
+              <UserProfile user={user} />
+            </div>
+          );
       }
     }
 
@@ -175,7 +186,12 @@ const Dashboard = () => {
       case 'site-settings':
         return <SiteSettings />;
       case 'profile':
-        return <UserProfile user={user} />;
+        return (
+          <div className="space-y-6">
+            <UserWallet userId={user.id} />
+            <UserProfile user={user} />
+          </div>
+        );
       case 'settings':
         return (
           <Card>

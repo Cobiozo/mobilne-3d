@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ModelUpload } from '@/components/ModelUpload';
 import { ModelPreviewDialog } from '@/components/ModelPreviewDialog';
@@ -10,9 +11,19 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
-import { Eye, Download, Trash2, Globe, Lock, Plus, Package, ShoppingCart } from 'lucide-react';
+import { Eye, Download, Trash2, Globe, Lock, Plus, Package, ShoppingCart, Edit, Check, X, Coins } from 'lucide-react';
 import { CartItem } from '@/components/ShoppingCart';
 import { toast as sonnerToast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 interface Model {
   id: string;
@@ -22,6 +33,7 @@ interface Model {
   file_type: string | null;
   description: string | null;
   is_public: boolean;
+  price: number;
   created_at: string;
 }
 
@@ -36,6 +48,10 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
+  const [editingModel, setEditingModel] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const { toast } = useToast();
   const { language } = useApp();
 
@@ -121,6 +137,38 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
         title: getText('success', language),
         description: getText('modelVisibilityUpdated', language),
       });
+    }
+  };
+
+  const openEditDialog = (model: Model) => {
+    setEditingModel(model.id);
+    setEditName(model.name);
+    setEditPrice(model.price?.toString() || '0');
+    setShowEditDialog(true);
+  };
+
+  const saveModelEdit = async () => {
+    if (!editingModel) return;
+
+    const price = parseFloat(editPrice) || 0;
+    
+    const { error } = await supabase
+      .from('models')
+      .update({ 
+        name: editName.trim(),
+        price: price
+      })
+      .eq('id', editingModel);
+
+    if (error) {
+      sonnerToast.error('Nie udało się zaktualizować modelu');
+    } else {
+      setModels(models.map(m => 
+        m.id === editingModel ? { ...m, name: editName.trim(), price } : m
+      ));
+      sonnerToast.success('Model zaktualizowany pomyślnie');
+      setShowEditDialog(false);
+      setEditingModel(null);
     }
   };
 
@@ -266,8 +314,23 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
             <Card key={model.id}>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg truncate">{model.name}</CardTitle>
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-lg truncate">{model.name}</CardTitle>
+                    {model.price > 0 && (
+                      <Badge variant="secondary" className="mt-1">
+                        <Coins className="w-3 h-3 mr-1" />
+                        {model.price} monet
+                      </Badge>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEditDialog(model)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
                     {model.is_public ? (
                       <Globe className="w-4 h-4 text-green-500" />
                     ) : (
@@ -368,6 +431,53 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
           setSelectedModel(null);
         }}
       />
+
+      {/* Edit Model Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edytuj model</DialogTitle>
+            <DialogDescription>
+              Zmień nazwę lub cenę swojego modelu
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="model-name">Nazwa modelu</Label>
+              <Input
+                id="model-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Nazwa modelu"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="model-price">Cena (monety)</Label>
+              <Input
+                id="model-price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={editPrice}
+                onChange={(e) => setEditPrice(e.target.value)}
+                placeholder="0.00"
+              />
+              <p className="text-xs text-muted-foreground">
+                Ustaw cenę większą niż 0, aby inni użytkownicy mogli kupić ten model
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Anuluj
+            </Button>
+            <Button onClick={saveModelEdit}>
+              <Check className="w-4 h-4 mr-1" />
+              Zapisz
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
