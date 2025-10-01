@@ -27,6 +27,8 @@ const Checkout = () => {
   const [itemSizes, setItemSizes] = useState<{ [key: string]: { x: number; y: number; z: number } }>({});
   const [itemOriginalSizes, setItemOriginalSizes] = useState<{ [key: string]: { x: number; y: number; z: number } }>({});
   const [itemMaterials, setItemMaterials] = useState<{ [key: string]: string }>({});
+  const [virtualCurrency, setVirtualCurrency] = useState<number>(0);
+  const [useVirtualCurrency, setUseVirtualCurrency] = useState<number>(0);
   
   // Stała referencja cenowa: model 190mm x 109mm x 9.8mm = 39 zł z PLA
   const REFERENCE_VOLUME_MM3 = 190 * 109 * 9.8; // = 203,042 mm³
@@ -81,6 +83,17 @@ const Checkout = () => {
           postalCode: profile.postal_code || '',
           country: profile.country || 'Polska'
         }));
+      }
+
+      // Load virtual currency balance
+      const { data: wallet } = await supabase
+        .from('user_wallets')
+        .select('virtual_currency')
+        .eq('user_id', user.id)
+        .single();
+
+      if (wallet) {
+        setVirtualCurrency(Number(wallet.virtual_currency) || 0);
       }
     };
 
@@ -318,7 +331,8 @@ const Checkout = () => {
 
   const totalPrice = cartItems.reduce((sum, item) => sum + calculatePrice(item), 0);
   const deliveryPrice = deliveryPrices[deliveryMethod];
-  const finalPrice = totalPrice + deliveryPrice;
+  const discount = Math.min(useVirtualCurrency, totalPrice + deliveryPrice);
+  const finalPrice = Math.max(0, totalPrice + deliveryPrice - discount);
 
   const handleSubmitOrder = async () => {
     if (!user) return;
@@ -474,6 +488,31 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
           .eq('user_id', user.id);
         
         toast.success('Dane wysyłkowe zostały zapisane do Twojego profilu');
+      }
+
+      // Deduct virtual currency if used
+      if (useVirtualCurrency > 0) {
+        const { error: walletError } = await supabase
+          .from('user_wallets')
+          .update({ 
+            virtual_currency: Math.max(0, virtualCurrency - useVirtualCurrency) 
+          })
+          .eq('user_id', user.id);
+
+        if (walletError) {
+          console.warn('Could not update wallet:', walletError);
+        }
+
+        // Log transaction
+        await supabase
+          .from('wallet_transactions')
+          .insert({
+            user_id: user.id,
+            amount: -useVirtualCurrency,
+            transaction_type: 'order_payment',
+            description: `Płatność za zamówienie ${orderNumber}`,
+            related_order_id: order.id
+          });
       }
 
       // Save address to shipping_addresses table
@@ -803,6 +842,58 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
                   <span>Dostawa:</span>
                   <span>{deliveryPrice.toFixed(2)} zł</span>
                 </div>
+                
+                {/* Virtual Currency Section */}
+                {virtualCurrency > 0 && (
+                  <>
+                    <Separator />
+                    <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Dostępne wirtualne PLN:</span>
+                        <span className="text-sm font-semibold text-primary">{virtualCurrency.toFixed(2)} zł</span>
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="useVirtualCurrency" className="text-xs">
+                          Użyj wirtualnych PLN (max: {Math.min(virtualCurrency, totalPrice + deliveryPrice).toFixed(2)} zł)
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="useVirtualCurrency"
+                            type="number"
+                            min="0"
+                            max={Math.min(virtualCurrency, totalPrice + deliveryPrice)}
+                            step="0.01"
+                            value={useVirtualCurrency}
+                            onChange={(e) => {
+                              const value = Math.min(
+                                Math.max(0, Number(e.target.value)),
+                                Math.min(virtualCurrency, totalPrice + deliveryPrice)
+                              );
+                              setUseVirtualCurrency(value);
+                            }}
+                            className="h-9"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setUseVirtualCurrency(Math.min(virtualCurrency, totalPrice + deliveryPrice))}
+                          >
+                            Max
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                {discount > 0 && (
+                  <div className="flex justify-between items-center text-sm text-primary">
+                    <span>Rabat (wirtualne PLN):</span>
+                    <span>-{discount.toFixed(2)} zł</span>
+                  </div>
+                )}
+                
                 <Separator />
                 <div className="flex justify-between items-center font-semibold text-lg">
                   <span>Całkowita wartość:</span>

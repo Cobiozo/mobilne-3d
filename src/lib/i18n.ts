@@ -282,6 +282,12 @@ export const translations = {
     manageAccountSettings: 'Zarządzaj ustawieniami konta',
     settingsComingSoon: 'Panel ustawień już wkrótce...',
     
+    // Checkout
+    availableVirtualPLN: 'Dostępne wirtualne PLN',
+    useVirtualPLN: 'Użyj wirtualnych PLN',
+    discount: 'Rabat (wirtualne PLN)',
+    max: 'Max',
+    
     // General
     error: 'Błąd',
     success: 'Sukces'
