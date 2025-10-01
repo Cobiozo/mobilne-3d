@@ -3,9 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ModelThumbnail } from '@/components/ModelThumbnail';
+import { ModelViewer } from '@/components/ModelViewer';
+import { ControlPanel } from '@/components/ControlPanel';
 import { supabase } from '@/integrations/supabase/client';
-import { ShoppingCart, Palette, Package } from 'lucide-react';
+import { ShoppingCart, Palette, Package, Eye, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { CartItem } from '@/components/ShoppingCart';
 
@@ -27,6 +30,9 @@ export const PublicModels = () => {
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
   const [availableColors, setAvailableColors] = useState<Array<{ color_hex: string; color_name: string }>>([]);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
+  const [previewModel, setPreviewModel] = useState<PublicModel | null>(null);
+  const [previewModelData, setPreviewModelData] = useState<ArrayBuffer | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
   useEffect(() => {
     fetchPublicModels();
@@ -88,6 +94,48 @@ export const PublicModels = () => {
       ...prev,
       [modelId]: color
     }));
+  };
+
+  const handleOpenPreview = async (model: PublicModel) => {
+    setPreviewModel(model);
+    setIsLoadingPreview(true);
+    setPreviewModelData(null);
+    
+    try {
+      // Extract file path from URL
+      let filePath = '';
+      if (model.file_url.includes('/storage/v1/object/public/models/')) {
+        const urlParts = model.file_url.split('/storage/v1/object/public/models/');
+        filePath = urlParts[1];
+      } else if (model.file_url.includes('/models/')) {
+        const urlParts = model.file_url.split('/models/');
+        filePath = urlParts[1];
+      } else {
+        filePath = model.file_url;
+      }
+
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('models')
+        .download(filePath);
+
+      if (downloadError || !fileData) {
+        throw new Error('Nie udało się pobrać pliku modelu');
+      }
+
+      const arrayBuffer = await fileData.arrayBuffer();
+      setPreviewModelData(arrayBuffer);
+    } catch (error) {
+      console.error('Error loading preview:', error);
+      toast.error('Nie udało się załadować podglądu modelu');
+      setPreviewModel(null);
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  const handleClosePreview = () => {
+    setPreviewModel(null);
+    setPreviewModelData(null);
   };
 
   const handleAddToCart = async (model: PublicModel) => {
@@ -205,99 +253,144 @@ export const PublicModels = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {models.map((model) => (
-        <Card key={model.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-          <CardHeader className="p-0">
-            <ModelThumbnail 
-              fileUrl={model.file_url}
-              color={selectedColors[model.id] || '#000000'}
-              className="w-full h-48"
-            />
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <div>
-                <CardTitle className="text-base line-clamp-1">{model.name}</CardTitle>
-                {model.description && (
-                  <CardDescription className="text-xs mt-1 line-clamp-2">
-                    {model.description}
-                  </CardDescription>
-                )}
-                <div className="flex items-center gap-2 mt-2">
-                  <Badge variant="outline" className="text-xs">
-                    {formatFileSize(model.file_size)}
-                  </Badge>
-                  {model.profiles?.display_name && (
-                    <span className="text-xs text-muted-foreground">
-                      by {model.profiles.display_name}
-                    </span>
-                  )}
+    <>
+      {/* Preview Dialog */}
+      <Dialog open={!!previewModel} onOpenChange={(open) => !open && handleClosePreview()}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>{previewModel?.name}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[70vh]">
+            {/* Model Viewer */}
+            <div className="lg:col-span-2 h-full">
+              {isLoadingPreview ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                    <p>Ładowanie...</p>
+                  </div>
                 </div>
-              </div>
-
-              {/* Color selector */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Palette className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-xs font-medium">Personalizuj kolor</span>
-                </div>
-                <Select
-                  value={selectedColors[model.id] || '#000000'}
-                  onValueChange={(value) => handleColorChange(model.id, value)}
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-4 h-4 rounded border border-border"
-                          style={{ backgroundColor: selectedColors[model.id] || '#000000' }}
-                        />
-                        <span className="text-xs">
-                          {availableColors.find(c => c.color_hex === selectedColors[model.id])?.color_name || 'Czarny'}
-                        </span>
-                      </div>
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableColors.map((color) => (
-                      <SelectItem key={color.color_hex} value={color.color_hex}>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-4 h-4 rounded border border-border"
-                            style={{ backgroundColor: color.color_hex }}
-                          />
-                          <span>{color.color_name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Add to cart button */}
-              <Button
-                className="w-full"
-                size="sm"
-                onClick={() => handleAddToCart(model)}
-                disabled={addingToCart === model.id}
-              >
-                {addingToCart === model.id ? (
-                  <>
-                    <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Dodawanie...
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="w-4 h-4 mr-2" />
-                    Dodaj do koszyka
-                  </>
-                )}
-              </Button>
+              ) : (
+                <ModelViewer
+                  modelData={previewModelData}
+                  modelColor={previewModel ? selectedColors[previewModel.id] || '#000000' : '#000000'}
+                  fileName={previewModel?.name}
+                />
+              )}
             </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+
+            {/* Control Panel */}
+            <div className="h-full overflow-y-auto">
+              <ControlPanel
+                modelColor={previewModel ? selectedColors[previewModel.id] || '#000000' : '#000000'}
+                onColorChange={(color) => previewModel && handleColorChange(previewModel.id, color)}
+                fileName={previewModel?.name}
+              />
+              
+              {previewModelData && previewModel && (
+                <div className="mt-4 pt-4 border-t">
+                  <Button 
+                    onClick={() => {
+                      handleAddToCart(previewModel);
+                      handleClosePreview();
+                    }}
+                    className="w-full"
+                    disabled={addingToCart === previewModel.id}
+                  >
+                    {addingToCart === previewModel.id ? (
+                      <>
+                        <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        Dodawanie...
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        Dodaj do koszyka
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {previewModel?.description && (
+                <div className="mt-4 pt-4 border-t">
+                  <h4 className="font-semibold mb-2">Opis</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {previewModel.description}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Models Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {models.map((model) => (
+          <Card key={model.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+            <CardHeader className="p-0 relative">
+              <ModelThumbnail 
+                fileUrl={model.file_url}
+                color={selectedColors[model.id] || '#000000'}
+                className="w-full h-48"
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                className="absolute top-2 right-2"
+                onClick={() => handleOpenPreview(model)}
+              >
+                <Eye className="w-4 h-4 mr-1" />
+                Podgląd
+              </Button>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                <div>
+                  <CardTitle className="text-base line-clamp-1">{model.name}</CardTitle>
+                  {model.description && (
+                    <CardDescription className="text-xs mt-1 line-clamp-2">
+                      {model.description}
+                    </CardDescription>
+                  )}
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant="outline" className="text-xs">
+                      {formatFileSize(model.file_size)}
+                    </Badge>
+                    {model.profiles?.display_name && (
+                      <span className="text-xs text-muted-foreground">
+                        by {model.profiles.display_name}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Add to cart button */}
+                <Button
+                  className="w-full"
+                  size="sm"
+                  onClick={() => handleAddToCart(model)}
+                  disabled={addingToCart === model.id}
+                >
+                  {addingToCart === model.id ? (
+                    <>
+                      <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Dodawanie...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      Dodaj do koszyka
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </>
   );
 };
