@@ -225,6 +225,7 @@ const Dashboard = () => {
       <main className="container mx-auto px-4 py-6 md:py-8">
         <div className="grid w-full grid-cols-2 md:grid-cols-5 gap-3 mb-6">
           <Button
+            type="button"
             variant={currentTab === 'profile' ? 'default' : 'outline'}
             onClick={() => handleTabChange('profile')}
             className="flex-col h-auto py-3"
@@ -233,6 +234,7 @@ const Dashboard = () => {
             <span className="text-xs md:text-sm">{getText('profile', language)}</span>
           </Button>
           <Button
+            type="button"
             variant={currentTab === 'orders' ? 'default' : 'outline'}
             onClick={() => handleTabChange('orders')}
             className="flex-col h-auto py-3"
@@ -241,6 +243,7 @@ const Dashboard = () => {
             <span className="text-xs md:text-sm">Zamówienia</span>
           </Button>
           <Button
+            type="button"
             variant={currentTab === 'addresses' ? 'default' : 'outline'}
             onClick={() => handleTabChange('addresses')}
             className="flex-col h-auto py-3"
@@ -249,6 +252,7 @@ const Dashboard = () => {
             <span className="text-xs md:text-sm">Adresy</span>
           </Button>
           <Button
+            type="button"
             variant={currentTab === 'password' ? 'default' : 'outline'}
             onClick={() => handleTabChange('password')}
             className="flex-col h-auto py-3"
@@ -257,6 +261,7 @@ const Dashboard = () => {
             <span className="text-xs md:text-sm">Hasło</span>
           </Button>
           <Button
+            type="button"
             variant={currentTab === 'models' ? 'default' : 'outline'}
             onClick={() => handleTabChange('models')}
             className="flex-col h-auto py-3"
