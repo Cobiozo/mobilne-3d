@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, CreditCard, Truck, Package } from "lucide-react";
@@ -38,6 +39,14 @@ const Checkout = () => {
     instructions: '',
     urgent: false
   });
+
+  const [deliveryMethod, setDeliveryMethod] = useState<'inpost-courier' | 'paczkomaty'>('paczkomaty');
+  const [paymentMethod, setPaymentMethod] = useState<'traditional' | 'payu' | 'blik' | 'paypo' | 'twisto' | 'paypal'>('traditional');
+
+  const deliveryPrices = {
+    'inpost-courier': 15.99,
+    'paczkomaty': 17.22
+  };
 
   useEffect(() => {
     // Get cart items from localStorage or URL params
@@ -83,6 +92,8 @@ const Checkout = () => {
   };
 
   const totalPrice = cartItems.reduce((sum, item) => sum + calculatePrice(item), 0);
+  const deliveryPrice = deliveryPrices[deliveryMethod];
+  const finalPrice = totalPrice + deliveryPrice;
 
   const handleSubmitOrder = async () => {
     if (!user) return;
@@ -115,7 +126,7 @@ const Checkout = () => {
             quantity: item.quantity,
             total_price: itemPrice,
             material: orderInfo.material,
-            special_instructions: orderInfo.instructions,
+            special_instructions: `Dostawa: ${deliveryMethod === 'inpost-courier' ? 'Kurier InPost' : 'Paczkomaty InPost'}\nPłatność: ${paymentMethod}\n${orderInfo.instructions}`,
             status: 'pending',
             order_number: `ORD-${Date.now()}`
           })
@@ -220,9 +231,20 @@ const Checkout = () => {
               
               <Separator />
               
-              <div className="flex justify-between items-center font-semibold text-lg">
-                <span>Całkowita wartość:</span>
-                <span>{totalPrice.toFixed(2)} zł</span>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span>Suma produktów:</span>
+                  <span>{totalPrice.toFixed(2)} zł</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span>Dostawa:</span>
+                  <span>{deliveryPrice.toFixed(2)} zł</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center font-semibold text-lg">
+                  <span>Całkowita wartość:</span>
+                  <span>{finalPrice.toFixed(2)} zł</span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -351,6 +373,73 @@ const Checkout = () => {
               </CardContent>
             </Card>
 
+            {/* Delivery Method */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Truck className="w-5 h-5" />
+                  Metoda dostawy
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div 
+                  className={cn(
+                    "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                    deliveryMethod === 'paczkomaty' 
+                      ? "border-primary bg-primary/5" 
+                      : "border-border hover:border-primary/50"
+                  )}
+                  onClick={() => setDeliveryMethod('paczkomaty')}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                        deliveryMethod === 'paczkomaty' ? "border-primary" : "border-border"
+                      )}>
+                        {deliveryMethod === 'paczkomaty' && (
+                          <div className="w-2 h-2 rounded-full bg-primary" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">Paczkomaty InPost</p>
+                        <p className="text-sm text-muted-foreground">Odbierz w dowolnym paczkomacie</p>
+                      </div>
+                    </div>
+                    <span className="font-semibold">17.22 zł</span>
+                  </div>
+                </div>
+
+                <div 
+                  className={cn(
+                    "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                    deliveryMethod === 'inpost-courier' 
+                      ? "border-primary bg-primary/5" 
+                      : "border-border hover:border-primary/50"
+                  )}
+                  onClick={() => setDeliveryMethod('inpost-courier')}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                        deliveryMethod === 'inpost-courier' ? "border-primary" : "border-border"
+                      )}>
+                        {deliveryMethod === 'inpost-courier' && (
+                          <div className="w-2 h-2 rounded-full bg-primary" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">Kurier InPost</p>
+                        <p className="text-sm text-muted-foreground">Dostawa pod wskazany adres</p>
+                      </div>
+                    </div>
+                    <span className="font-semibold">15.99 zł</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Payment */}
             <Card>
               <CardHeader>
@@ -360,13 +449,43 @@ const Checkout = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">
-                      Płatność będzie możliwa po potwierdzeniu zamówienia przez nasz zespół.
-                      Skontaktujemy się z Tobą w ciągu 24 godzin z szczegółami dotyczącymi płatności.
-                    </p>
-                  </div>
+                <div className="space-y-3">
+                  {[
+                    { id: 'traditional', name: 'Przelew tradycyjny', desc: 'Standardowy przelew bankowy' },
+                    { id: 'payu', name: 'PayU', desc: 'Szybka płatność online' },
+                    { id: 'blik', name: 'Blik', desc: 'Płatność kodem z aplikacji bankowej' },
+                    { id: 'paypo', name: 'Płacę później z PayPo', desc: 'Kup teraz, zapłać później' },
+                    { id: 'twisto', name: 'Płacę później z Twisto', desc: 'Odroczona płatność' },
+                    { id: 'paypal', name: 'PayPal', desc: 'Bezpieczna płatność międzynarodowa' }
+                  ].map((method) => (
+                    <div
+                      key={method.id}
+                      className={cn(
+                        "p-3 border-2 rounded-lg cursor-pointer transition-all",
+                        paymentMethod === method.id 
+                          ? "border-primary bg-primary/5" 
+                          : "border-border hover:border-primary/50"
+                      )}
+                      onClick={() => setPaymentMethod(method.id as typeof paymentMethod)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                          paymentMethod === method.id ? "border-primary" : "border-border"
+                        )}>
+                          {paymentMethod === method.id && (
+                            <div className="w-2 h-2 rounded-full bg-primary" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{method.name}</p>
+                          <p className="text-sm text-muted-foreground">{method.desc}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <Separator className="my-4" />
                   
                   <Button 
                     onClick={handleSubmitOrder}
