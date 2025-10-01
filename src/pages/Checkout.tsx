@@ -69,63 +69,96 @@ const Checkout = () => {
         // Load actual dimensions from each model
         for (const item of items) {
           try {
-            // Get model from database to get file URL
-            const { data: models } = await supabase
-              .from('models')
-              .select('file_url')
-              .eq('id', item.id)
-              .limit(1);
-            
-            if (models && models.length > 0) {
-              const model = models[0];
+            // If item already has dimensions (from main page), use them
+            if (item.dimensions) {
+              console.log(`Using pre-loaded dimensions for ${item.name}:`, item.dimensions);
+              originalSizes[item.id] = { ...item.dimensions };
               
-              // Extract file path
-              let filePath = '';
-              if (model.file_url.includes('/storage/v1/object/public/models/')) {
-                const urlParts = model.file_url.split('/storage/v1/object/public/models/');
-                filePath = urlParts[1];
-              } else if (model.file_url.includes('/models/')) {
-                const urlParts = model.file_url.split('/models/');
-                filePath = urlParts[1];
-              } else {
-                filePath = model.file_url;
+              // Check if dimensions exceed maximum and scale down if needed
+              const maxX = 390;
+              const maxY = 390;
+              const maxZ = 380;
+              
+              const scaleX = item.dimensions.x > maxX ? maxX / item.dimensions.x : 1;
+              const scaleY = item.dimensions.y > maxY ? maxY / item.dimensions.y : 1;
+              const scaleZ = item.dimensions.z > maxZ ? maxZ / item.dimensions.z : 1;
+              
+              const scale = Math.min(scaleX, scaleY, scaleZ);
+              
+              sizes[item.id] = {
+                x: Math.round(item.dimensions.x * scale * 10) / 10,
+                y: Math.round(item.dimensions.y * scale * 10) / 10,
+                z: Math.round(item.dimensions.z * scale * 10) / 10
+              };
+              
+              if (scale < 1) {
+                toast.info(`Model "${item.name}" został przeskalowany aby zmieścić się w maksymalnych wymiarach`);
               }
-              
-              // Download model file
-              const { data: fileData, error } = await supabase.storage
+            } else {
+              // Load from database
+              const { data: models } = await supabase
                 .from('models')
-                .download(filePath);
+                .select('file_url')
+                .eq('id', item.id)
+                .limit(1);
               
-              if (!error && fileData) {
-                const arrayBuffer = await fileData.arrayBuffer();
+              if (models && models.length > 0) {
+                const model = models[0];
                 
-                // Import the function dynamically
-                const { getModelDimensions } = await import('@/utils/modelLoader');
-                const dimensions = getModelDimensions(arrayBuffer);
-                
-                // Store original dimensions
-                originalSizes[item.id] = { ...dimensions };
-                
-                // Check if dimensions exceed maximum and scale down if needed
-                const maxX = 390;
-                const maxY = 390;
-                const maxZ = 380;
-                
-                const scaleX = dimensions.x > maxX ? maxX / dimensions.x : 1;
-                const scaleY = dimensions.y > maxY ? maxY / dimensions.y : 1;
-                const scaleZ = dimensions.z > maxZ ? maxZ / dimensions.z : 1;
-                
-                const scale = Math.min(scaleX, scaleY, scaleZ);
-                
-                sizes[item.id] = {
-                  x: Math.round(dimensions.x * scale * 10) / 10,
-                  y: Math.round(dimensions.y * scale * 10) / 10,
-                  z: Math.round(dimensions.z * scale * 10) / 10
-                };
-                
-                if (scale < 1) {
-                  toast.info(`Model "${item.name}" został przeskalowany aby zmieścić się w maksymalnych wymiarach`);
+                // Extract file path
+                let filePath = '';
+                if (model.file_url.includes('/storage/v1/object/public/models/')) {
+                  const urlParts = model.file_url.split('/storage/v1/object/public/models/');
+                  filePath = urlParts[1];
+                } else if (model.file_url.includes('/models/')) {
+                  const urlParts = model.file_url.split('/models/');
+                  filePath = urlParts[1];
+                } else {
+                  filePath = model.file_url;
                 }
+                
+                // Download model file
+                const { data: fileData, error } = await supabase.storage
+                  .from('models')
+                  .download(filePath);
+                
+                if (!error && fileData) {
+                  const arrayBuffer = await fileData.arrayBuffer();
+                  
+                  // Import the function dynamically
+                  const { getModelDimensions } = await import('@/utils/modelLoader');
+                  const dimensions = getModelDimensions(arrayBuffer);
+                  
+                  console.log(`Loaded dimensions for ${item.name} from database:`, dimensions);
+                  
+                  // Store original dimensions
+                  originalSizes[item.id] = { ...dimensions };
+                  
+                  // Check if dimensions exceed maximum and scale down if needed
+                  const maxX = 390;
+                  const maxY = 390;
+                  const maxZ = 380;
+                  
+                  const scaleX = dimensions.x > maxX ? maxX / dimensions.x : 1;
+                  const scaleY = dimensions.y > maxY ? maxY / dimensions.y : 1;
+                  const scaleZ = dimensions.z > maxZ ? maxZ / dimensions.z : 1;
+                  
+                  const scale = Math.min(scaleX, scaleY, scaleZ);
+                  
+                  sizes[item.id] = {
+                    x: Math.round(dimensions.x * scale * 10) / 10,
+                    y: Math.round(dimensions.y * scale * 10) / 10,
+                    z: Math.round(dimensions.z * scale * 10) / 10
+                  };
+                  
+                  if (scale < 1) {
+                    toast.info(`Model "${item.name}" został przeskalowany aby zmieścić się w maksymalnych wymiarach`);
+                  }
+                } else {
+                  throw new Error('Failed to download model file');
+                }
+              } else {
+                throw new Error('Model not found in database');
               }
             }
           } catch (error) {

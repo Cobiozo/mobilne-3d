@@ -109,32 +109,44 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
     }
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!model || !modelData) return;
 
-    const cartItem: CartItem = {
-      id: model.id,
-      name: model.name,
-      color: modelColor,
-      quantity: 1,
-      price: 39.99 // Base price - will be calculated in checkout based on actual dimensions
-    };
-
-    setCartItems(prev => {
-      const existingIndex = prev.findIndex(item => 
-        item.id === cartItem.id && item.color === cartItem.color
-      );
+    try {
+      // Get dimensions from model
+      const { getModelDimensions } = await import('@/utils/modelLoader');
+      const dimensions = getModelDimensions(modelData);
       
-      if (existingIndex >= 0) {
-        const updated = [...prev];
-        updated[existingIndex].quantity += 1;
-        return updated;
-      } else {
-        return [...prev, cartItem];
-      }
-    });
+      console.log('Adding to cart with dimensions:', dimensions);
 
-    toast.success('Dodano do koszyka');
+      const cartItem: CartItem = {
+        id: model.id,
+        name: model.name,
+        color: modelColor,
+        quantity: 1,
+        price: 39.99, // Base price - will be calculated in checkout based on actual dimensions
+        dimensions: dimensions // Add dimensions to cart item
+      };
+
+      setCartItems(prev => {
+        const existingIndex = prev.findIndex(item => 
+          item.id === cartItem.id && item.color === cartItem.color
+        );
+        
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex].quantity += 1;
+          return updated;
+        } else {
+          return [...prev, cartItem];
+        }
+      });
+
+      toast.success('Dodano do koszyka');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Błąd podczas dodawania do koszyka');
+    }
   };
 
   return (

@@ -347,7 +347,18 @@ const Index = () => {
       return;
     }
 
+    if (!modelData) {
+      toast.error('Model nie został jeszcze wczytany');
+      return;
+    }
+
     try {
+      // Get dimensions from current model
+      const { getModelDimensions } = await import('@/utils/modelLoader');
+      const dimensions = getModelDimensions(modelData);
+      
+      console.log('Model dimensions for cart:', dimensions);
+
       // Find model in database by name if user is logged in
       let modelId = `${Date.now()}-${Math.random()}`;
       
@@ -361,6 +372,9 @@ const Index = () => {
         
         if (models && models.length > 0) {
           modelId = models[0].id;
+          console.log('Found model in database:', modelId);
+        } else {
+          console.log('Model not found in database, using temp ID:', modelId);
         }
       }
 
@@ -369,7 +383,8 @@ const Index = () => {
         name: fileName,
         color: modelColor,
         quantity: 1,
-        price: 39.99 // Base price - will be calculated in checkout based on dimensions
+        price: 39.99, // Base price - will be calculated in checkout based on dimensions
+        dimensions: dimensions // Add dimensions to cart item
       };
 
       setCartItems(prev => {

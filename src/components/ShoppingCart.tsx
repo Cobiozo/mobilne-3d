@@ -14,6 +14,7 @@ export interface CartItem {
   quantity: number;
   price?: number;
   image?: string;
+  dimensions?: { x: number; y: number; z: number }; // Optional dimensions from model
 }
 
 interface ShoppingCartProps {
