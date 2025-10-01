@@ -99,14 +99,17 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
                         src={item.image}
                         alt={item.name}
                         className="w-12 h-12 object-cover rounded border border-border"
-                        loading="lazy"
+                        onError={(e) => {
+                          console.error('Failed to load thumbnail for item:', item.name);
+                          e.currentTarget.style.display = 'none';
+                        }}
                       />
                     ) : (
                       <div 
                         className="w-12 h-12 rounded border border-border flex items-center justify-center"
                         style={{ backgroundColor: item.color }}
                       >
-                        <span className="text-xs">3D</span>
+                        <span className="text-xs font-semibold" style={{ color: item.color === '#000000' ? '#fff' : '#000' }}>3D</span>
                       </div>
                     )}
                     

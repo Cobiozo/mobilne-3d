@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { ModelViewer } from '@/components/ModelViewer';
 import { ControlPanel } from '@/components/ControlPanel';
 import { Button } from '@/components/ui/button';
@@ -184,6 +185,42 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
 
   return (
     <>
+      <AlertDialog open={showAddedToCart} onOpenChange={setShowAddedToCart}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>✓ Dodano do koszyka</AlertDialogTitle>
+            <AlertDialogDescription>
+              Produkt został dodany do koszyka. Co chcesz zrobić teraz?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              onClick={() => {
+                setShowAddedToCart(false);
+              }}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              Kupuj dalej
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowAddedToCart(false);
+                onClose();
+                // Open cart - trigger click on cart button
+                setTimeout(() => {
+                  const cartButton = document.querySelector('[data-cart-trigger]') as HTMLButtonElement;
+                  if (cartButton) cartButton.click();
+                }, 100);
+              }}
+              className="w-full sm:w-auto"
+            >
+              Idź do koszyka
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
           <DialogHeader>
@@ -218,7 +255,7 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
                 fileName={model?.name}
               />
               
-              {modelData && !showAddedToCart && (
+              {modelData && (
                 <div className="mt-4 pt-4 border-t">
                   <Button 
                     onClick={handleAddToCart}
@@ -227,38 +264,6 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
                   >
                     <ShoppingCart className="w-4 h-4 mr-2" />
                     Dodaj do koszyka
-                  </Button>
-                </div>
-              )}
-
-              {showAddedToCart && (
-                <div className="mt-4 pt-4 border-t space-y-2">
-                  <p className="text-sm text-center text-green-600 font-medium mb-3">
-                    ✓ Dodano do koszyka
-                  </p>
-                  <Button 
-                    onClick={() => {
-                      setShowAddedToCart(false);
-                      onClose();
-                    }}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    Kupuj dalej
-                  </Button>
-                  <Button 
-                    onClick={() => {
-                      setShowAddedToCart(false);
-                      onClose();
-                      // Open cart - trigger click on cart button
-                      setTimeout(() => {
-                        const cartButton = document.querySelector('[data-cart-trigger]') as HTMLButtonElement;
-                        if (cartButton) cartButton.click();
-                      }, 100);
-                    }}
-                    className="w-full"
-                  >
-                    Idź do koszyka
                   </Button>
                 </div>
               )}
