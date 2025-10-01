@@ -128,7 +128,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
     setAddingToCart(model.id);
     
     try {
-      // Download model file to get dimensions
+      // Download model file to get dimensions and generate thumbnail
       let filePath = '';
       if (model.file_url.includes('/storage/v1/object/public/models/')) {
         const urlParts = model.file_url.split('/storage/v1/object/public/models/');
@@ -154,13 +154,18 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
       const { getModelDimensions } = await import('@/utils/modelLoader');
       const dimensions = getModelDimensions(arrayBuffer);
 
+      // Generate thumbnail
+      const { generateThumbnailFromModel } = await import('@/utils/thumbnailGenerator');
+      const thumbnailUrl = await generateThumbnailFromModel(arrayBuffer, '#000000');
+
       // Create cart item with default settings (black color)
       const newItem: CartItem = {
         id: model.id,
         name: model.name,
         color: '#000000', // Default black color
         quantity: 1,
-        dimensions: dimensions
+        dimensions: dimensions,
+        image: thumbnailUrl
       };
 
       // Load existing cart
