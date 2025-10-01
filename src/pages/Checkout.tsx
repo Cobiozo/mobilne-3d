@@ -264,57 +264,74 @@ const Checkout = () => {
     
     setIsLoading(true);
     try {
-      // Create order for each cart item
-      for (const item of cartItems) {
-        // First, find the model in database by name
-        const { data: models } = await supabase
-          .from('models')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('name', item.name)
-          .limit(1);
-
-        if (!models || models.length === 0) {
-          throw new Error(`Model "${item.name}" nie został znaleziony w bazie danych`);
-        }
-
-        const modelId = models[0].id;
-        const itemPrice = calculatePrice(item);
+      // Calculate total price for entire order
+      const orderTotalPrice = cartItems.reduce((sum, item) => sum + calculatePrice(item), 0);
+      
+      // Collect all materials used
+      const materialsUsed = [...new Set(cartItems.map(item => itemMaterials[item.id]))].join(', ');
+      
+      // Create special instructions with all item details
+      const itemsDetails = cartItems.map(item => {
         const size = itemSizes[item.id];
         const material = itemMaterials[item.id];
+        return `${item.name}: ${size.x}mm × ${size.y}mm × ${size.z}mm (${material}) x ${item.quantity}`;
+      }).join('\n');
+      
+      const specialInstructions = `Dostawa: ${deliveryMethod === 'inpost-courier' ? 'Kurier InPost' : 'Paczkomaty InPost'}
+Płatność: ${paymentMethod}
 
-        // Create order
-        const { data: order, error: orderError } = await supabase
-          .from('orders')
-          .insert({
-            user_id: user.id,
-            model_id: modelId,
-            quantity: item.quantity,
-            total_price: itemPrice,
-            material: material,
-            special_instructions: `Dostawa: ${deliveryMethod === 'inpost-courier' ? 'Kurier InPost' : 'Paczkomaty InPost'}\nPłatność: ${paymentMethod}\nWymiary: ${size.x}mm x ${size.y}mm x ${size.z}mm\n${orderInfo.instructions}`,
-            status: 'pending',
-            order_number: `ORD-${Date.now()}`
-          })
-          .select()
-          .single();
+Produkty:
+${itemsDetails}
 
-        if (orderError) throw orderError;
+${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
 
-        // Create order item
+      // Create ONE order for all items
+      const orderNumber = `ORD-${Date.now()}`;
+      
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          model_id: cartItems[0].id, // First model as primary (for compatibility)
+          quantity: cartItems.reduce((sum, item) => sum + item.quantity, 0), // Total quantity
+          total_price: orderTotalPrice,
+          material: materialsUsed,
+          special_instructions: specialInstructions,
+          status: 'pending',
+          order_number: orderNumber
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error('Order creation error:', orderError);
+        throw orderError;
+      }
+
+      console.log('Created order:', order);
+
+      // Create order items for EACH product in the cart
+      for (const item of cartItems) {
+        const size = itemSizes[item.id];
+        const material = itemMaterials[item.id];
+        const itemPrice = calculatePrice(item);
+
         const { error: itemError } = await supabase
           .from('order_items')
           .insert({
             order_id: order.id,
-            model_id: modelId,
+            model_id: item.id,
             quantity: item.quantity,
             unit_price: itemPrice / item.quantity,
             color: item.color,
             material: material,
-            size_scale: Math.max(size.x, size.y, size.z) / 100 // Store relative scale
+            size_scale: Math.max(size.x, size.y, size.z) / 100
           });
 
-        if (itemError) throw itemError;
+        if (itemError) {
+          console.error('Order item creation error:', itemError);
+          throw itemError;
+        }
       }
 
       // Clear cart
