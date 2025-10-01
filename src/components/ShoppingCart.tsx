@@ -22,14 +22,24 @@ interface ShoppingCartProps {
   onUpdateQuantity: (id: string, quantity: number) => void;
   onRemoveItem: (id: string) => void;
   onClearCart: () => void;
+  calculateItemPrice?: (item: CartItem) => number; // Optional price calculator
 }
 
-export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, onClearCart }: ShoppingCartProps) => {
+export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, onClearCart, calculateItemPrice }: ShoppingCartProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = items.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
+  
+  // Use dynamic price calculation if provided, otherwise fall back to item.price
+  const getItemPrice = (item: CartItem) => {
+    if (calculateItemPrice) {
+      return calculateItemPrice(item);
+    }
+    return (item.price || 0) * item.quantity;
+  };
+  
+  const totalPrice = items.reduce((sum, item) => sum + getItemPrice(item), 0);
 
   const getColorName = (color: string) => {
     const colorNames: { [key: string]: string } = {
@@ -94,9 +104,21 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
                       <p className="text-sm text-muted-foreground">
                         {getColorName(item.color)}
                       </p>
-                      {item.price && (
-                        <p className="text-sm font-medium">
-                          {(item.price * item.quantity).toFixed(2)} zł
+                      {calculateItemPrice ? (
+                        <>
+                          <p className="text-sm font-medium">
+                            {(getItemPrice(item) / item.quantity).toFixed(2)} zł
+                            {item.quantity > 1 && (
+                              <span className="text-xs text-muted-foreground"> × {item.quantity}</span>
+                            )}
+                          </p>
+                          <p className="text-sm font-semibold">
+                            Razem: {getItemPrice(item).toFixed(2)} zł
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">
+                          Cena zostanie obliczona w checkout
                         </p>
                       )}
                     </div>
@@ -138,10 +160,18 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
               <Separator />
               
               <div className="space-y-4">
-                {totalPrice > 0 && (
+                {calculateItemPrice && totalPrice > 0 && (
                   <div className="flex justify-between items-center font-medium">
                     <span>Całkowita wartość:</span>
                     <span>{totalPrice.toFixed(2)} zł</span>
+                  </div>
+                )}
+                
+                {!calculateItemPrice && (
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground text-center">
+                      💡 Ceny zostaną obliczone na podstawie wymiarów i materiału w następnym kroku
+                    </p>
                   </div>
                 )}
                 
