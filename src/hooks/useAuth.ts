@@ -10,9 +10,14 @@ export const useAuth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('[useAuth] Setting up auth state listener');
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('[useAuth] Auth state changed:', event, 'User:', session?.user?.email || 'null');
+        console.log('[useAuth] Cart in localStorage:', localStorage.getItem('cartItems'));
+        
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -21,12 +26,16 @@ export const useAuth = () => {
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('[useAuth] Initial session check:', session?.user?.email || 'null');
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('[useAuth] Cleaning up auth subscription');
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, displayName?: string) => {

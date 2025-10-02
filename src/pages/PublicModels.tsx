@@ -17,16 +17,23 @@ const PublicModelsPage = () => {
 
   // Load cart from localStorage on mount
   useEffect(() => {
+    console.log('[PublicModelsPage] Component mounted, loading cart from localStorage');
+    
     const loadCart = () => {
       const savedCart = localStorage.getItem('cartItems');
+      console.log('[PublicModelsPage] Raw localStorage cartItems:', savedCart);
+      
       if (savedCart) {
         try {
           const items = JSON.parse(savedCart);
+          console.log('[PublicModelsPage] Parsed cart items:', items);
           setCartItems(items);
         } catch (error) {
-          console.error('Error loading cart from localStorage:', error);
+          console.error('[PublicModelsPage] Error loading cart from localStorage:', error);
           localStorage.removeItem('cartItems');
         }
+      } else {
+        console.log('[PublicModelsPage] No cart found in localStorage');
       }
     };
 
@@ -34,6 +41,8 @@ const PublicModelsPage = () => {
 
     // Listen for cart updates from other components
     const handleCartUpdate = (event: CustomEvent) => {
+      console.log('[PublicModelsPage] Received cartUpdated event:', event.detail);
+      
       if (event.detail?.cartItems) {
         setCartItems(event.detail.cartItems);
       } else {
@@ -44,6 +53,7 @@ const PublicModelsPage = () => {
     window.addEventListener('cartUpdated', handleCartUpdate as EventListener);
     
     return () => {
+      console.log('[PublicModelsPage] Component unmounting, removing event listener');
       window.removeEventListener('cartUpdated', handleCartUpdate as EventListener);
     };
   }, []);
