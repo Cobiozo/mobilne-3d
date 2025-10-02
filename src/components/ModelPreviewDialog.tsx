@@ -237,12 +237,16 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
                     <p>Ładowanie...</p>
                   </div>
                 </div>
-              ) : (
+              ) : modelData ? (
                 <ModelViewer
                   modelData={modelData}
                   modelColor={modelColor}
                   fileName={model?.name}
                 />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-muted-foreground">Nie udało się załadować modelu</p>
+                </div>
               )}
             </div>
 
