@@ -51,7 +51,6 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const [editingModel, setEditingModel] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
-  const [editPrice, setEditPrice] = useState('');
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
   const [availableColors, setAvailableColors] = useState<Array<{ color_hex: string; color_name: string }>>([]);
@@ -165,20 +164,16 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
   const openEditDialog = (model: Model) => {
     setEditingModel(model.id);
     setEditName(model.name);
-    setEditPrice(model.price?.toString() || '0');
     setShowEditDialog(true);
   };
 
   const saveModelEdit = async () => {
     if (!editingModel) return;
-
-    const price = parseFloat(editPrice) || 0;
     
     const { error } = await supabase
       .from('models')
       .update({ 
-        name: editName.trim(),
-        price: price
+        name: editName.trim()
       })
       .eq('id', editingModel);
 
@@ -186,7 +181,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
       sonnerToast.error('Nie udało się zaktualizować modelu');
     } else {
       setModels(models.map(m => 
-        m.id === editingModel ? { ...m, name: editName.trim(), price } : m
+        m.id === editingModel ? { ...m, name: editName.trim() } : m
       ));
       sonnerToast.success('Model zaktualizowany pomyślnie');
       setShowEditDialog(false);
@@ -499,9 +494,9 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edytuj model</DialogTitle>
+            <DialogTitle>Edytuj nazwę modelu</DialogTitle>
             <DialogDescription>
-              Zmień nazwę lub cenę swojego modelu
+              Zmień nazwę swojego modelu
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -513,21 +508,6 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="Nazwa modelu"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="model-price">Cena (monety)</Label>
-              <Input
-                id="model-price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={editPrice}
-                onChange={(e) => setEditPrice(e.target.value)}
-                placeholder="0.00"
-              />
-              <p className="text-xs text-muted-foreground">
-                Ustaw cenę większą niż 0, aby inni użytkownicy mogli kupić ten model
-              </p>
             </div>
           </div>
           <DialogFooter>
