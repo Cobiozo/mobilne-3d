@@ -207,19 +207,53 @@ export const OrdersManagement = () => {
         throw new Error('Nie można pobrać pliku modelu');
       }
 
+      const arrayBuffer = await fileData.arrayBuffer();
+
       // Load and scale the model if size_scale is present
       if (item.size_scale && item.size_scale !== 1.0) {
-        const arrayBuffer = await fileData.arrayBuffer();
         const { STLLoader } = await import('three/examples/jsm/loaders/STLLoader.js');
         const loader = new STLLoader();
+        
+        // Parse the original model WITHOUT any processing
         const geometry = loader.parse(arrayBuffer);
         
-        // Apply scaling
-        geometry.scale(item.size_scale, item.size_scale, item.size_scale);
+        // Get original dimensions
+        geometry.computeBoundingBox();
+        if (!geometry.boundingBox) {
+          throw new Error('Nie można obliczyć wymiarów modelu');
+        }
+        
+        const originalSize = new THREE.Vector3();
+        geometry.boundingBox.getSize(originalSize);
+        
+        console.log('Original model dimensions:', {
+          x: originalSize.x.toFixed(2),
+          y: originalSize.y.toFixed(2),
+          z: originalSize.z.toFixed(2)
+        });
+        
+        console.log('size_scale from order:', item.size_scale);
+        
+        // Apply scaling to get the dimensions from the order
+        // The size_scale represents the target size / original size
+        const scaledGeometry = geometry.clone();
+        scaledGeometry.scale(item.size_scale, item.size_scale, item.size_scale);
+        
+        // Verify scaled dimensions
+        scaledGeometry.computeBoundingBox();
+        if (scaledGeometry.boundingBox) {
+          const scaledSize = new THREE.Vector3();
+          scaledGeometry.boundingBox.getSize(scaledSize);
+          console.log('Scaled model dimensions:', {
+            x: scaledSize.x.toFixed(2),
+            y: scaledSize.y.toFixed(2),
+            z: scaledSize.z.toFixed(2)
+          });
+        }
         
         // Export scaled model to STL
         const exporter = new STLExporter();
-        const stlString = exporter.parse(new THREE.Mesh(geometry));
+        const stlString = exporter.parse(new THREE.Mesh(scaledGeometry));
         
         // Convert to blob
         const blob = new Blob([stlString], { type: 'application/octet-stream' });
