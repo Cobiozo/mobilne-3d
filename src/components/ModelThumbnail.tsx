@@ -62,26 +62,11 @@ export const ModelThumbnail = ({ fileUrl, color = '#FFFFFF', className = '' }: M
       }
 
       try {
-        // Extract file path from URL
-        let filePath = '';
-        if (fileUrl.includes('/storage/v1/object/public/models/')) {
-          const urlParts = fileUrl.split('/storage/v1/object/public/models/');
-          filePath = urlParts[1];
-        } else if (fileUrl.includes('/models/')) {
-          const urlParts = fileUrl.split('/models/');
-          filePath = urlParts[1];
-        } else {
-          filePath = fileUrl;
-        }
-
-        // Download file from Supabase Storage
-        const { data: fileData, error: downloadError } = await supabase.storage
-          .from('models')
-          .download(filePath);
-
-        if (downloadError) throw downloadError;
-
-        const arrayBuffer = await fileData.arrayBuffer();
+        // Fetch file directly from public URL (works for non-authenticated users)
+        const response = await fetch(fileUrl);
+        if (!response.ok) throw new Error('Failed to load model file');
+        
+        const arrayBuffer = await response.arrayBuffer();
 
         // Load model geometry
         const loader = new STLLoader();
