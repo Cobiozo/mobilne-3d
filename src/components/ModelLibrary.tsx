@@ -11,10 +11,11 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
-import { Eye, Download, Trash2, Globe, Lock, Plus, Package, ShoppingCart, Edit, Check, X, Coins, Star } from 'lucide-react';
+import { Eye, Download, Trash2, Globe, Lock, Plus, Package, ShoppingCart, Edit, Check, X, Coins, Star, Palette } from 'lucide-react';
 import { ModelRating } from '@/components/ModelRating';
 import { CartItem } from '@/components/ShoppingCart';
 import { toast as sonnerToast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -53,8 +54,22 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
+  const [availableColors, setAvailableColors] = useState<Array<{ color_hex: string; color_name: string }>>([]);
   const { toast } = useToast();
   const { language } = useApp();
+
+  const loadAvailableColors = async () => {
+    const { data, error } = await supabase
+      .from("available_colors")
+      .select("color_hex, color_name")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
+
+    if (!error && data) {
+      setAvailableColors(data);
+    }
+  };
 
   const fetchModels = async () => {
     setIsLoading(true);
@@ -72,12 +87,19 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
       });
     } else {
       setModels(data || []);
+      // Initialize default colors (black)
+      const defaultColors: { [key: string]: string } = {};
+      data?.forEach(model => {
+        defaultColors[model.id] = '#000000';
+      });
+      setSelectedColors(defaultColors);
     }
     setIsLoading(false);
   };
 
   useEffect(() => {
     fetchModels();
+    loadAvailableColors();
   }, [userId, toast, language]);
 
   // Refresh models when tab becomes visible
@@ -173,6 +195,13 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
     }
   };
 
+  const handleColorChange = (modelId: string, color: string) => {
+    setSelectedColors(prev => ({
+      ...prev,
+      [modelId]: color
+    }));
+  };
+
   const handleAddToCart = async (model: Model) => {
     setAddingToCart(model.id);
     
@@ -203,15 +232,16 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
       const { getModelDimensions } = await import('@/utils/modelLoader');
       const dimensions = getModelDimensions(arrayBuffer);
 
-      // Generate thumbnail
+      // Generate thumbnail with selected color
       const { generateThumbnailFromModel } = await import('@/utils/thumbnailGenerator');
-      const thumbnailUrl = await generateThumbnailFromModel(arrayBuffer, '#000000');
+      const selectedColor = selectedColors[model.id] || '#000000';
+      const thumbnailUrl = await generateThumbnailFromModel(arrayBuffer, selectedColor);
 
-      // Create cart item with default settings (black color)
+      // Create cart item with selected color
       const newItem: CartItem = {
         id: model.id,
         name: model.name,
-        color: '#000000', // Default black color
+        color: selectedColor,
         quantity: 1,
         dimensions: dimensions,
         image: thumbnailUrl
@@ -347,16 +377,56 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                 {/* Model thumbnail preview */}
                 <ModelThumbnail 
                   fileUrl={model.file_url}
+                  color={selectedColors[model.id] || '#000000'}
                   className="w-full h-48 rounded-lg border overflow-hidden mb-4"
                 />
                 
                 {/* Rating component */}
-                <div className="mb-4">
+                <div className="mb-4 border-b pb-3">
                   <ModelRating 
                     modelId={model.id} 
                     currentUserId={userId}
                     compact={true}
                   />
+                </div>
+
+                {/* Color selector */}
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Palette className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-xs font-medium">Wybierz kolor</span>
+                  </div>
+                  <Select
+                    value={selectedColors[model.id] || '#000000'}
+                    onValueChange={(value) => handleColorChange(model.id, value)}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-4 h-4 rounded border border-border"
+                            style={{ backgroundColor: selectedColors[model.id] || '#000000' }}
+                          />
+                          <span className="text-xs">
+                            {availableColors.find(c => c.color_hex === selectedColors[model.id])?.color_name || 'Czarny'}
+                          </span>
+                        </div>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableColors.map((color) => (
+                        <SelectItem key={color.color_hex} value={color.color_hex}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-4 h-4 rounded border border-border"
+                              style={{ backgroundColor: color.color_hex }}
+                            />
+                            <span>{color.color_name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 {model.description && (
