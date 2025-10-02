@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
+import { SmtpClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -105,25 +105,18 @@ serve(async (req) => {
       .single();
 
     try {
-      // Send email via SMTP
-      const client = new SmtpClient();
-      
-      // Port 587 uses STARTTLS, port 465 uses direct TLS
-      if (smtpSettings.smtp_port === 465) {
-        await client.connectTLS({
+      // Send email via SMTP using denomailer
+      const client = new SmtpClient({
+        connection: {
           hostname: smtpSettings.smtp_host,
           port: smtpSettings.smtp_port,
-          username: smtpSettings.smtp_user,
-          password: Deno.env.get('SMTP_PASSWORD') ?? '',
-        });
-      } else {
-        await client.connect({
-          hostname: smtpSettings.smtp_host,
-          port: smtpSettings.smtp_port,
-          username: smtpSettings.smtp_user,
-          password: Deno.env.get('SMTP_PASSWORD') ?? '',
-        });
-      }
+          tls: smtpSettings.smtp_secure,
+          auth: {
+            username: smtpSettings.smtp_user,
+            password: Deno.env.get('SMTP_PASSWORD') ?? '',
+          },
+        },
+      });
 
       await client.send({
         from: `${smtpSettings.from_name} <${smtpSettings.from_email}>`,
