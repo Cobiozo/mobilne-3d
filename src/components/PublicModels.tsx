@@ -425,37 +425,21 @@ export const PublicModels = () => {
                     <Palette className="w-4 h-4 text-muted-foreground" />
                     <span className="text-xs font-medium">Wybierz kolor</span>
                   </div>
-                  <Select
-                    value={selectedColors[model.id] || '#000000'}
-                    onValueChange={(value) => handleColorChange(model.id, value)}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-4 h-4 rounded border border-border"
-                            style={{ backgroundColor: selectedColors[model.id] || '#000000' }}
-                          />
-                          <span className="text-xs">
-                            {availableColors.find(c => c.color_hex === selectedColors[model.id])?.color_name || 'Czarny'}
-                          </span>
-                        </div>
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableColors.map((color) => (
-                        <SelectItem key={color.color_hex} value={color.color_hex}>
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-4 h-4 rounded border border-border"
-                              style={{ backgroundColor: color.color_hex }}
-                            />
-                            <span>{color.color_name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5">
+                    {availableColors.map((color) => (
+                      <button
+                        key={color.color_hex}
+                        onClick={() => handleColorChange(model.id, color.color_hex)}
+                        className={`w-6 h-6 rounded border-2 transition-all hover:scale-110 ${
+                          (selectedColors[model.id] || '#000000').toLowerCase() === color.color_hex.toLowerCase() 
+                            ? 'border-primary shadow-glow' 
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                        style={{ backgroundColor: color.color_hex }}
+                        title={color.color_name}
+                      />
+                    ))}
+                  </div>
                 </div>
 
                 {/* Add to cart / Buy button */}
