@@ -108,12 +108,22 @@ serve(async (req) => {
       // Send email via SMTP
       const client = new SmtpClient();
       
-      await client.connectTLS({
-        hostname: smtpSettings.smtp_host,
-        port: smtpSettings.smtp_port,
-        username: smtpSettings.smtp_user,
-        password: Deno.env.get('SMTP_PASSWORD') ?? '',
-      });
+      // Port 587 uses STARTTLS, port 465 uses direct TLS
+      if (smtpSettings.smtp_port === 465) {
+        await client.connectTLS({
+          hostname: smtpSettings.smtp_host,
+          port: smtpSettings.smtp_port,
+          username: smtpSettings.smtp_user,
+          password: Deno.env.get('SMTP_PASSWORD') ?? '',
+        });
+      } else {
+        await client.connect({
+          hostname: smtpSettings.smtp_host,
+          port: smtpSettings.smtp_port,
+          username: smtpSettings.smtp_user,
+          password: Deno.env.get('SMTP_PASSWORD') ?? '',
+        });
+      }
 
       await client.send({
         from: `${smtpSettings.from_name} <${smtpSettings.from_email}>`,
