@@ -54,12 +54,12 @@ export const AdminOverview = ({ onTabChange }: AdminOverviewProps) => {
       // Fetch orders count and revenue
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('id, total_price, created_at');
+        .select('id, total_price, created_at, user_id');
 
       // Fetch models count
       const { data: modelsData, error: modelsError } = await supabase
         .from('models')
-        .select('id, created_at');
+        .select('id, created_at, user_id');
 
       if (usersError || ordersError || modelsError) {
         throw new Error('Failed to fetch dashboard data');
@@ -89,37 +89,82 @@ export const AdminOverview = ({ onTabChange }: AdminOverviewProps) => {
         return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
       }).length || 0;
 
-      // Mock recent activity (in a real app, you'd fetch from analytics_events table)
-      const recentActivity: ActivityItem[] = [
-        {
-          id: '1',
+      // Fetch recent activity from actual data
+      const recentActivity: ActivityItem[] = [];
+
+      // Get recent users
+      const recentUsers = usersData
+        ?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 3) || [];
+      
+      for (const user of recentUsers) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('user_id', user.user_id)
+          .single();
+        
+        recentActivity.push({
+          id: user.user_id,
           type: 'user_registered',
           description: 'Nowy użytkownik zarejestrował się',
-          timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          user_name: 'Jan Kowalski'
-        },
-        {
-          id: '2',
+          timestamp: user.created_at,
+          user_name: profile?.display_name || 'Nieznany użytkownik'
+        });
+      }
+
+      // Get recent orders
+      const recentOrders = ordersData
+        ?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 3) || [];
+      
+      for (const order of recentOrders) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('user_id', order.user_id)
+          .single();
+        
+        recentActivity.push({
+          id: order.id,
           type: 'order_created',
           description: 'Nowe zamówienie zostało złożone',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-          user_name: 'Anna Nowak'
-        },
-        {
-          id: '3',
+          timestamp: order.created_at,
+          user_name: profile?.display_name || 'Nieznany użytkownik'
+        });
+      }
+
+      // Get recent models
+      const recentModels = modelsData
+        ?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 3) || [];
+      
+      for (const model of recentModels) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('user_id', model.user_id)
+          .single();
+        
+        recentActivity.push({
+          id: model.id,
           type: 'model_uploaded',
           description: 'Nowy model 3D został wgrany',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
-          user_name: 'Piotr Wiśniewski'
-        }
-      ];
+          timestamp: model.created_at,
+          user_name: profile?.display_name || 'Nieznany użytkownik'
+        });
+      }
+
+      // Sort all activities by timestamp and take the 5 most recent
+      recentActivity.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      const limitedActivity = recentActivity.slice(0, 5);
 
       setStats({
         totalUsers,
         totalOrders,
         totalModels,
         totalRevenue,
-        recentActivity,
+        recentActivity: limitedActivity,
         monthlyStats: {
           newUsers,
           newOrders,
