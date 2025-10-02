@@ -16,6 +16,7 @@ import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 
 interface OrderItem {
   id: string;
+  order_id: string;
   model_id: string;
   quantity: number;
   unit_price: number;
@@ -191,6 +192,17 @@ export const OrdersManagement = () => {
         throw new Error('Nie można znaleźć modelu');
       }
 
+      // Get order to extract target dimensions from special_instructions
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('special_instructions')
+        .eq('id', item.order_id)
+        .single();
+
+      if (orderError) {
+        console.warn('Could not fetch order details:', orderError);
+      }
+
       // Extract the path from file_url
       const urlParts = model.file_url.split('/storage/v1/object/public/models/');
       if (urlParts.length !== 2) {
@@ -208,43 +220,75 @@ export const OrdersManagement = () => {
       }
 
       const arrayBuffer = await fileData.arrayBuffer();
+      const { STLLoader } = await import('three/examples/jsm/loaders/STLLoader.js');
+      const loader = new STLLoader();
+      
+      // Parse the original model WITHOUT any processing
+      const geometry = loader.parse(arrayBuffer);
+      
+      // Get original dimensions
+      geometry.computeBoundingBox();
+      if (!geometry.boundingBox) {
+        throw new Error('Nie można obliczyć wymiarów modelu');
+      }
+      
+      const originalSize = new THREE.Vector3();
+      geometry.boundingBox.getSize(originalSize);
+      
+      console.log('Original model dimensions (mm):', {
+        x: originalSize.x.toFixed(2),
+        y: originalSize.y.toFixed(2),
+        z: originalSize.z.toFixed(2)
+      });
 
-      // Load and scale the model if size_scale is present
-      if (item.size_scale && item.size_scale !== 1.0) {
-        const { STLLoader } = await import('three/examples/jsm/loaders/STLLoader.js');
-        const loader = new STLLoader();
+      // Try to extract target dimensions from special_instructions
+      let targetDimensions: { x: number; y: number; z: number } | null = null;
+      
+      if (order?.special_instructions) {
+        // Parse format like "model.stl: 282.7mm × 161.8mm × 14.5mm (PLA) x 1"
+        const modelNamePattern = model.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`${modelNamePattern}[^:]*:\\s*([0-9.]+)mm\\s*[×x]\\s*([0-9.]+)mm\\s*[×x]\\s*([0-9.]+)mm`);
+        const match = order.special_instructions.match(regex);
         
-        // Parse the original model WITHOUT any processing
-        const geometry = loader.parse(arrayBuffer);
-        
-        // Get original dimensions
-        geometry.computeBoundingBox();
-        if (!geometry.boundingBox) {
-          throw new Error('Nie można obliczyć wymiarów modelu');
+        if (match) {
+          targetDimensions = {
+            x: parseFloat(match[1]),
+            y: parseFloat(match[2]),
+            z: parseFloat(match[3])
+          };
+          console.log('Target dimensions from order (mm):', targetDimensions);
         }
+      }
+
+      // Calculate scale factor if we have target dimensions
+      let scaleFactor = 1.0;
+      if (targetDimensions) {
+        // Use the average scale factor from all dimensions
+        const scaleX = targetDimensions.x / originalSize.x;
+        const scaleY = targetDimensions.y / originalSize.y;
+        const scaleZ = targetDimensions.z / originalSize.z;
         
-        const originalSize = new THREE.Vector3();
-        geometry.boundingBox.getSize(originalSize);
+        // Use the average to maintain proportions
+        scaleFactor = (scaleX + scaleY + scaleZ) / 3;
         
-        console.log('Original model dimensions:', {
-          x: originalSize.x.toFixed(2),
-          y: originalSize.y.toFixed(2),
-          z: originalSize.z.toFixed(2)
-        });
-        
-        console.log('size_scale from order:', item.size_scale);
-        
-        // Apply scaling to get the dimensions from the order
-        // The size_scale represents the target size / original size
+        console.log('Calculated scale factors:', { scaleX, scaleY, scaleZ, average: scaleFactor });
+      } else if (item.size_scale && item.size_scale !== 1.0) {
+        // Fallback to size_scale from item if no dimensions in special_instructions
+        scaleFactor = item.size_scale;
+        console.log('Using size_scale from order_item:', scaleFactor);
+      }
+
+      if (scaleFactor !== 1.0) {
+        // Apply scaling
         const scaledGeometry = geometry.clone();
-        scaledGeometry.scale(item.size_scale, item.size_scale, item.size_scale);
+        scaledGeometry.scale(scaleFactor, scaleFactor, scaleFactor);
         
         // Verify scaled dimensions
         scaledGeometry.computeBoundingBox();
         if (scaledGeometry.boundingBox) {
           const scaledSize = new THREE.Vector3();
           scaledGeometry.boundingBox.getSize(scaledSize);
-          console.log('Scaled model dimensions:', {
+          console.log('Final scaled dimensions (mm):', {
             x: scaledSize.x.toFixed(2),
             y: scaledSize.y.toFixed(2),
             z: scaledSize.z.toFixed(2)
@@ -260,7 +304,7 @@ export const OrdersManagement = () => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        const scaledName = model.name.replace('.stl', '') + `_scaled_${item.size_scale.toFixed(2)}x.stl`;
+        const scaledName = model.name.replace('.stl', '') + `_order_${scaleFactor.toFixed(2)}x.stl`;
         link.download = scaledName;
         document.body.appendChild(link);
         link.click();
@@ -269,7 +313,7 @@ export const OrdersManagement = () => {
         
         toast({
           title: 'Sukces',
-          description: `Model "${scaledName}" został pobrany (skala: ${item.size_scale.toFixed(2)}x)`,
+          description: `Model "${scaledName}" został pobrany`,
         });
       } else {
         // No scaling needed, download original
