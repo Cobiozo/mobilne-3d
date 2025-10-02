@@ -192,7 +192,6 @@ export const OrdersManagement = () => {
       }
 
       // Extract the path from file_url
-      // file_url format: https://rzupsyhyoztaekcwmels.supabase.co/storage/v1/object/public/models/path/to/file.stl
       const urlParts = model.file_url.split('/storage/v1/object/public/models/');
       if (urlParts.length !== 2) {
         throw new Error('Nieprawidłowy format URL pliku');
@@ -208,21 +207,53 @@ export const OrdersManagement = () => {
         throw new Error('Nie można pobrać pliku modelu');
       }
 
-      // Create download link
-      const blob = new Blob([fileData], { type: 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = model.name.endsWith('.stl') ? model.name : `${model.name}.stl`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: 'Sukces',
-        description: `Model "${model.name}" został pobrany`,
-      });
+      // Load and scale the model if size_scale is present
+      if (item.size_scale && item.size_scale !== 1.0) {
+        const arrayBuffer = await fileData.arrayBuffer();
+        const { STLLoader } = await import('three/examples/jsm/loaders/STLLoader.js');
+        const loader = new STLLoader();
+        const geometry = loader.parse(arrayBuffer);
+        
+        // Apply scaling
+        geometry.scale(item.size_scale, item.size_scale, item.size_scale);
+        
+        // Export scaled model to STL
+        const exporter = new STLExporter();
+        const stlString = exporter.parse(new THREE.Mesh(geometry));
+        
+        // Convert to blob
+        const blob = new Blob([stlString], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const scaledName = model.name.replace('.stl', '') + `_scaled_${item.size_scale.toFixed(2)}x.stl`;
+        link.download = scaledName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: 'Sukces',
+          description: `Model "${scaledName}" został pobrany (skala: ${item.size_scale.toFixed(2)}x)`,
+        });
+      } else {
+        // No scaling needed, download original
+        const blob = new Blob([fileData], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = model.name.endsWith('.stl') ? model.name : `${model.name}.stl`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: 'Sukces',
+          description: `Model "${model.name}" został pobrany`,
+        });
+      }
     } catch (error) {
       console.error('Error downloading model:', error);
       toast({
