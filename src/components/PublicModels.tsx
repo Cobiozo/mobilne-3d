@@ -414,6 +414,7 @@ export const PublicModels = () => {
                 <div className="border-t pt-3">
                   <ModelRating 
                     modelId={model.id}
+                    modelOwnerId={model.user_id}
                     currentUserId={currentUserId}
                     compact={true}
                   />

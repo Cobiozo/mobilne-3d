@@ -375,14 +375,6 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                   className="w-full h-48 rounded-lg border overflow-hidden mb-4"
                 />
                 
-                {/* Rating component */}
-                <div className="mb-4 border-b pb-3">
-                  <ModelRating 
-                    modelId={model.id} 
-                    currentUserId={userId}
-                    compact={true}
-                  />
-                </div>
 
                 {/* Color selector */}
                 <div className="space-y-2 mb-4">

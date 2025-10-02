@@ -15,6 +15,7 @@ import {
 
 interface ModelRatingProps {
   modelId: string;
+  modelOwnerId: string;
   currentUserId?: string;
   compact?: boolean;
 }
@@ -25,7 +26,7 @@ interface Rating {
   user_id: string;
 }
 
-export const ModelRating = ({ modelId, currentUserId, compact = false }: ModelRatingProps) => {
+export const ModelRating = ({ modelId, modelOwnerId, currentUserId, compact = false }: ModelRatingProps) => {
   const [averageRating, setAverageRating] = useState<number>(0);
   const [totalRatings, setTotalRatings] = useState<number>(0);
   const [userRating, setUserRating] = useState<number>(0);
@@ -33,6 +34,9 @@ export const ModelRating = ({ modelId, currentUserId, compact = false }: ModelRa
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [hoveredStar, setHoveredStar] = useState<number>(0);
   const { toast } = useToast();
+
+  // Check if current user is the owner
+  const isOwner = currentUserId === modelOwnerId;
 
   useEffect(() => {
     fetchRatings();
@@ -72,6 +76,15 @@ export const ModelRating = ({ modelId, currentUserId, compact = false }: ModelRa
       toast({
         title: 'Błąd',
         description: 'Musisz być zalogowany aby ocenić model',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (isOwner) {
+      toast({
+        title: 'Błąd',
+        description: 'Nie możesz ocenić własnego modelu',
         variant: 'destructive',
       });
       return;
@@ -146,7 +159,7 @@ export const ModelRating = ({ modelId, currentUserId, compact = false }: ModelRa
           </span>
         </div>
         
-        {currentUserId && (
+        {currentUserId && !isOwner && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
@@ -210,7 +223,7 @@ export const ModelRating = ({ modelId, currentUserId, compact = false }: ModelRa
         </span>
       </div>
 
-      {currentUserId && (
+      {currentUserId && !isOwner && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" size="sm">
