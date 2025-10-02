@@ -57,14 +57,17 @@ export const EmailSettings = () => {
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      const { error } = settings.id
+      // Prepare data without id for insert
+      const { id, last_test_status, last_test_at, ...dataToSave } = settings;
+      
+      const { error } = id
         ? await supabase
             .from("smtp_settings")
-            .update(settings)
-            .eq("id", settings.id)
+            .update(dataToSave)
+            .eq("id", id)
         : await supabase
             .from("smtp_settings")
-            .insert([settings]);
+            .insert([dataToSave]);
 
       if (error) throw error;
 
