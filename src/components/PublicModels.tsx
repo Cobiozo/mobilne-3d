@@ -217,8 +217,11 @@ export const PublicModels = () => {
       const thumbnailUrl = await generateThumbnailFromModel(arrayBuffer, selectedColor);
 
       // Create cart item
+      // Create unique cart item ID from model ID and color
+      const cartItemId = `${model.id}-${selectedColor}`;
+      
       const newItem: CartItem = {
-        id: model.id,
+        id: cartItemId,
         name: model.name,
         color: selectedColor,
         quantity: 1,
@@ -238,9 +241,9 @@ export const PublicModels = () => {
         }
       }
 
-      // Check if item already exists with same color
+      // Check if item already exists (by unique cart item ID)
       const existingIndex = cartItems.findIndex(
-        item => item.id === newItem.id && item.color === newItem.color
+        item => item.id === cartItemId
       );
 
       if (existingIndex >= 0) {
