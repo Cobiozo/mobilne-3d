@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { SmtpClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import nodemailer from 'npm:nodemailer@6.9.7';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -105,28 +105,29 @@ serve(async (req) => {
       .single();
 
     try {
-      // Send email via SMTP using denomailer
-      const client = new SmtpClient({
-        connection: {
-          hostname: smtpSettings.smtp_host,
-          port: smtpSettings.smtp_port,
-          tls: smtpSettings.smtp_secure,
-          auth: {
-            username: smtpSettings.smtp_user,
-            password: Deno.env.get('SMTP_PASSWORD') ?? '',
-          },
+      // Create nodemailer transporter
+      const transporter = nodemailer.createTransport({
+        host: smtpSettings.smtp_host,
+        port: smtpSettings.smtp_port,
+        secure: smtpSettings.smtp_secure, // true for 465, false for other ports
+        auth: {
+          user: smtpSettings.smtp_user,
+          pass: Deno.env.get('SMTP_PASSWORD') ?? '',
         },
       });
 
-      await client.send({
+      console.log('Attempting to send email via nodemailer...');
+
+      // Send email
+      const info = await transporter.sendMail({
         from: `${smtpSettings.from_name} <${smtpSettings.from_email}>`,
         to: to,
         subject: emailSubject,
-        content: emailText || emailSubject,
+        text: emailText || emailSubject,
         html: emailHtml,
       });
 
-      await client.close();
+      console.log('Email sent successfully:', info.messageId);
 
       // Update log as sent
       if (logEntry) {
@@ -139,11 +140,10 @@ serve(async (req) => {
           .eq('id', logEntry.id);
       }
 
-      console.log(`Email sent successfully to ${to}`);
-
       return new Response(JSON.stringify({
         success: true,
         message: 'Email sent successfully',
+        messageId: info.messageId,
         sentAt: new Date().toISOString()
       }), {
         status: 200,
