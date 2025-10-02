@@ -156,7 +156,16 @@ export const EmailSettings = () => {
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setSettings(prev => ({ ...prev, [field]: value }));
+    setSettings(prev => {
+      const newSettings = { ...prev, [field]: value };
+      
+      // Automatycznie ustaw port w zależności od SSL/TLS
+      if (field === 'smtp_secure') {
+        newSettings.smtp_port = value ? 465 : 587;
+      }
+      
+      return newSettings;
+    });
   };
 
   if (isLoading && !settings.id) {
