@@ -48,46 +48,43 @@ const PublicModelsPage = () => {
     };
   }, []);
 
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    if (cartItems.length > 0) {
-      localStorage.setItem('cartItems', JSON.stringify(cartItems));
-      window.dispatchEvent(new CustomEvent('cartUpdated', { 
-        detail: { cartItems } 
-      }));
-    } else {
-      localStorage.removeItem('cartItems');
-      window.dispatchEvent(new CustomEvent('cartUpdated', { 
-        detail: { cartItems: [] } 
-      }));
-    }
-  }, [cartItems]);
-
   const handleUpdateCartQuantity = (id: string, quantity: number) => {
     if (quantity <= 0) {
       handleRemoveFromCart(id);
       return;
     }
 
-    setCartItems(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, quantity } : item
-      )
+    const updatedItems = cartItems.map(item =>
+      item.id === id ? { ...item, quantity } : item
     );
+    
+    setCartItems(updatedItems);
+    localStorage.setItem('cartItems', JSON.stringify(updatedItems));
+    window.dispatchEvent(new CustomEvent('cartUpdated', { 
+      detail: { cartItems: updatedItems } 
+    }));
   };
 
   const handleRemoveFromCart = (id: string) => {
-    setCartItems(prev => {
-      const item = prev.find(item => item.id === id);
-      if (item) {
-        toast.success(`Usunięto "${item.name}" z koszyka`);
-      }
-      return prev.filter(item => item.id !== id);
-    });
+    const item = cartItems.find(item => item.id === id);
+    if (item) {
+      toast.success(`Usunięto "${item.name}" z koszyka`);
+    }
+    
+    const updatedItems = cartItems.filter(item => item.id !== id);
+    setCartItems(updatedItems);
+    localStorage.setItem('cartItems', JSON.stringify(updatedItems));
+    window.dispatchEvent(new CustomEvent('cartUpdated', { 
+      detail: { cartItems: updatedItems } 
+    }));
   };
 
   const handleClearCart = () => {
     setCartItems([]);
+    localStorage.removeItem('cartItems');
+    window.dispatchEvent(new CustomEvent('cartUpdated', { 
+      detail: { cartItems: [] } 
+    }));
     toast.success('Wyczyszczono koszyk');
   };
 
