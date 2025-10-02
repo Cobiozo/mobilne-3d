@@ -257,8 +257,15 @@ export const EmailSettings = () => {
           </div>
 
           <Alert>
-            <AlertDescription>
-              Hasło SMTP jest przechowywane bezpiecznie w sekretach Supabase jako SMTP_PASSWORD
+            <AlertDescription className="flex items-center justify-between">
+              <span>Hasło SMTP jest przechowywane bezpiecznie w sekretach Supabase jako SMTP_PASSWORD</span>
+              <Button
+                variant="link"
+                size="sm"
+                onClick={() => window.open('https://supabase.com/dashboard/project/rzupsyhyoztaekcwmels/settings/functions', '_blank')}
+              >
+                Zaktualizuj hasło
+              </Button>
             </AlertDescription>
           </Alert>
 
