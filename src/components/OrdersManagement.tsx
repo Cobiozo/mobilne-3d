@@ -191,8 +191,33 @@ export const OrdersManagement = () => {
         throw new Error('Nie można znaleźć modelu');
       }
 
-      // Download the model file directly
-      window.open(model.file_url, '_blank');
+      // Extract the path from file_url
+      // file_url format: https://rzupsyhyoztaekcwmels.supabase.co/storage/v1/object/public/models/path/to/file.stl
+      const urlParts = model.file_url.split('/storage/v1/object/public/models/');
+      if (urlParts.length !== 2) {
+        throw new Error('Nieprawidłowy format URL pliku');
+      }
+      const filePath = urlParts[1];
+
+      // Download from storage bucket
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('models')
+        .download(filePath);
+
+      if (downloadError || !fileData) {
+        throw new Error('Nie można pobrać pliku modelu');
+      }
+
+      // Create download link
+      const blob = new Blob([fileData], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = model.name.endsWith('.stl') ? model.name : `${model.name}.stl`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       toast({
         title: 'Sukces',
