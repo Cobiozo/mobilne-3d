@@ -9,7 +9,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useAuth } from '@/hooks/useAuth';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
-import { Check, X } from 'lucide-react';
+import { Check, X, ArrowLeft } from 'lucide-react';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -130,6 +130,17 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
+          <div className="flex items-center justify-between mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Strona główna
+            </Button>
+          </div>
           <CardTitle className="text-2xl font-bold">
             {getText('welcome', language)}
           </CardTitle>
