@@ -267,7 +267,8 @@ const Checkout = () => {
     if (!loading && !user) {
       console.log('Redirecting to auth - no user found');
       toast.error('Musisz być zalogowany, aby złożyć zamówienie');
-      navigate('/auth');
+      // Save that we want to return to checkout after login
+      navigate('/auth?returnTo=/checkout');
     }
   }, [user, loading, navigate]);
 

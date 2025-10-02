@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,8 @@ const Auth = () => {
   const { user, loading, signUp, signIn, signInWithGoogle, resetPassword } = useAuth();
   const { language } = useApp();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo') || '/';
 
   // Password validation state
   const [passwordFocus, setPasswordFocus] = useState(false);
@@ -40,9 +42,10 @@ const Auth = () => {
 
   useEffect(() => {
     if (user && !loading) {
-      navigate('/');
+      console.log('[Auth] User logged in, redirecting to:', returnTo);
+      navigate(returnTo);
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, returnTo]);
 
   if (loading) {
     return <LoadingSpinner />;
