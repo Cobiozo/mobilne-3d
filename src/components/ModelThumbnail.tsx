@@ -62,9 +62,11 @@ export const ModelThumbnail = ({ fileUrl, color = '#FFFFFF', className = '' }: M
       }
 
       try {
-        // Fetch file directly from public URL (works for non-authenticated users)
+        // Use public URL directly since bucket is now public
         const response = await fetch(fileUrl);
-        if (!response.ok) throw new Error('Failed to load model file');
+        if (!response.ok) {
+          throw new Error(`Failed to load model file: ${response.status} ${response.statusText}`);
+        }
         
         const arrayBuffer = await response.arrayBuffer();
 

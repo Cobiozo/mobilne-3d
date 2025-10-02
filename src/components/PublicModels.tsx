@@ -149,13 +149,11 @@ export const PublicModels = () => {
   };
 
   const handleAddToCart = async (model: PublicModel) => {
-    console.log('handleAddToCart called for model:', model.name);
     setAddingToCart(model.id);
     
     try {
       // Check if user is logged in
       const { data: { user } } = await supabase.auth.getUser();
-      console.log('User logged in:', !!user, 'Model price:', model.price);
       
       // If model has price and user is logged in, process purchase
       if (model.price > 0 && user) {
@@ -187,7 +185,6 @@ export const PublicModels = () => {
       }
 
       // If no price or not logged in, add to physical cart
-      console.log('Adding to physical cart...');
       // Download model file to get dimensions and generate thumbnail
       let filePath = '';
       if (model.file_url.includes('/storage/v1/object/public/models/')) {
@@ -266,10 +263,8 @@ export const PublicModels = () => {
       
     } catch (error) {
       console.error('Error adding to cart:', error);
-      console.error('Error details:', error instanceof Error ? error.message : String(error));
       toast.error('Nie udało się dodać modelu do koszyka: ' + (error instanceof Error ? error.message : 'Nieznany błąd'));
     } finally {
-      console.log('handleAddToCart finished');
       setAddingToCart(null);
     }
   };
