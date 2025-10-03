@@ -54,9 +54,8 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
   useEffect(() => {
     if (cartItems.length > 0) {
       localStorage.setItem('cartItems', JSON.stringify(cartItems));
-    } else {
-      localStorage.removeItem('cartItems');
     }
+    // Don't remove from localStorage when empty - only when explicitly cleared
   }, [cartItems]);
 
   useEffect(() => {

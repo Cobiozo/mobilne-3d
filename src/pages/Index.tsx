@@ -139,12 +139,8 @@ const Index = () => {
       window.dispatchEvent(new CustomEvent('cartUpdated', { 
         detail: { cartItems } 
       }));
-    } else {
-      localStorage.removeItem('cartItems');
-      window.dispatchEvent(new CustomEvent('cartUpdated', { 
-        detail: { cartItems: [] } 
-      }));
     }
+    // Don't remove from localStorage when empty - only when explicitly cleared
   }, [cartItems]);
 
   // Auto-adjust color based on theme and apply site settings
@@ -497,6 +493,10 @@ const Index = () => {
 
   const handleClearCart = () => {
     setCartItems([]);
+    localStorage.removeItem('cartItems'); // Only remove when explicitly clearing
+    window.dispatchEvent(new CustomEvent('cartUpdated', { 
+      detail: { cartItems: [] } 
+    }));
     toast.success('Wyczyszczono koszyk');
   };
 

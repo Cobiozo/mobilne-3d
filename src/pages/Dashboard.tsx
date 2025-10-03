@@ -76,13 +76,14 @@ const Dashboard = () => {
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    if (cartItems.length > 0 || localStorage.getItem('cartItems')) {
+    if (cartItems.length > 0) {
       localStorage.setItem('cartItems', JSON.stringify(cartItems));
       // Notify other components about the change
       window.dispatchEvent(new CustomEvent('cartUpdated', { 
         detail: { cartItems } 
       }));
     }
+    // Don't remove from localStorage when empty - only when explicitly cleared
   }, [cartItems]);
 
   const handleUpdateQuantity = (id: string, quantity: number) => {
