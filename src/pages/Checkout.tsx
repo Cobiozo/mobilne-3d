@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, CreditCard, Truck, Package } from "lucide-react";
 import { CartItem } from "@/components/ShoppingCart";
+import { ShippingAddresses } from "@/components/ShippingAddresses";
 
 const Checkout = () => {
   const { user, loading } = useAuth();
@@ -82,24 +83,46 @@ const Checkout = () => {
     const loadProfileData = async () => {
       if (!user) return;
 
-      // Load saved profile data
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('display_name, phone, address, city, postal_code, country')
+      // First try to load default shipping address
+      const { data: defaultAddress } = await supabase
+        .from('shipping_addresses')
+        .select('*')
         .eq('user_id', user.id)
-        .single();
+        .eq('is_default', true)
+        .maybeSingle();
 
-      if (profile) {
+      if (defaultAddress) {
+        // Use default shipping address
         setCustomerInfo(prev => ({
           ...prev,
-          firstName: profile.display_name?.split(' ')[0] || '',
-          lastName: profile.display_name?.split(' ').slice(1).join(' ') || '',
-          phone: profile.phone || '',
-          address: profile.address || '',
-          city: profile.city || '',
-          postalCode: profile.postal_code || '',
-          country: profile.country || 'Polska'
+          firstName: defaultAddress.recipient_name.split(' ')[0] || '',
+          lastName: defaultAddress.recipient_name.split(' ').slice(1).join(' ') || '',
+          phone: defaultAddress.phone || '',
+          address: defaultAddress.address || '',
+          city: defaultAddress.city || '',
+          postalCode: defaultAddress.postal_code || '',
+          country: defaultAddress.country || 'Polska'
         }));
+      } else {
+        // Fallback to profile data if no default shipping address
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name, phone, address, city, postal_code, country')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (profile) {
+          setCustomerInfo(prev => ({
+            ...prev,
+            firstName: profile.display_name?.split(' ')[0] || '',
+            lastName: profile.display_name?.split(' ').slice(1).join(' ') || '',
+            phone: profile.phone || '',
+            address: profile.address || '',
+            city: profile.city || '',
+            postalCode: profile.postal_code || '',
+            country: profile.country || 'Polska'
+          }));
+        }
       }
 
       // Load virtual currency balance
@@ -107,7 +130,7 @@ const Checkout = () => {
         .from('user_wallets')
         .select('virtual_currency')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (wallet) {
         setVirtualCurrency(Number(wallet.virtual_currency) || 0);
@@ -1072,6 +1095,22 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
 
           {/* Order Form */}
           <div className="space-y-6">
+            {/* Shipping Addresses Management */}
+            <ShippingAddresses 
+              onAddressSelect={(address) => {
+                setCustomerInfo(prev => ({
+                  ...prev,
+                  firstName: address.recipient_name.split(' ')[0] || '',
+                  lastName: address.recipient_name.split(' ').slice(1).join(' ') || '',
+                  phone: address.phone || '',
+                  address: address.address || '',
+                  city: address.city || '',
+                  postalCode: address.postal_code || '',
+                  country: address.country || 'Polska'
+                }));
+              }}
+            />
+
             {/* Customer Information */}
             <Card>
               <CardHeader>

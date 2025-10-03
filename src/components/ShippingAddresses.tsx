@@ -31,7 +31,11 @@ interface ShippingAddress {
   is_default: boolean;
 }
 
-export const ShippingAddresses = () => {
+interface ShippingAddressesProps {
+  onAddressSelect?: (address: ShippingAddress) => void;
+}
+
+export const ShippingAddresses = ({ onAddressSelect }: ShippingAddressesProps = {}) => {
   const [addresses, setAddresses] = useState<ShippingAddress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -190,7 +194,15 @@ export const ShippingAddresses = () => {
         description: 'Adres domyślny został zmieniony',
       });
 
-      fetchAddresses();
+      await fetchAddresses();
+
+      // Notify parent component of the selected address
+      if (onAddressSelect) {
+        const selectedAddress = addresses.find(addr => addr.id === id);
+        if (selectedAddress) {
+          onAddressSelect({ ...selectedAddress, is_default: true });
+        }
+      }
     } catch (error: any) {
       toast({
         title: getText('error', language),
@@ -271,6 +283,15 @@ export const ShippingAddresses = () => {
                   <p className="text-sm text-muted-foreground">{address.country}</p>
                 </div>
                 <div className="flex gap-2 mt-4">
+                  {onAddressSelect && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => onAddressSelect(address)}
+                    >
+                      Wybierz
+                    </Button>
+                  )}
                   {!address.is_default && (
                     <Button
                       size="sm"
