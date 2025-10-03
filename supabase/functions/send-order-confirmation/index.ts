@@ -51,7 +51,8 @@ serve(async (req) => {
       deliveryMethod,
       paymentMethod,
       shippingAddress,
-      paymentDetails
+      paymentDetails,
+      invoiceData
     }: OrderConfirmationRequest = await req.json();
 
     // Get SMTP settings
@@ -134,10 +135,25 @@ serve(async (req) => {
               Tel: +48 518 339 298
             </p>
           </div>
+
+          ${invoiceData ? `
+          <div style="margin-top: 30px; padding: 20px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+            <h3 style="margin: 0 0 15px 0; color: #1e40af; font-size: 18px;">
+              📄 Dane do faktury VAT
+            </h3>
+            <div style="font-size: 14px; color: #1f2937; line-height: 1.6;">
+              <p style="margin: 5px 0;"><strong>Firma:</strong> ${invoiceData.companyName}</p>
+              <p style="margin: 5px 0;"><strong>NIP:</strong> ${invoiceData.nip}</p>
+              <p style="margin: 5px 0;"><strong>Adres:</strong> ${invoiceData.address}</p>
+              <p style="margin: 5px 0;">${invoiceData.postalCode} ${invoiceData.city}</p>
+              <p style="margin: 5px 0;"><strong>Kraj:</strong> ${invoiceData.country}</p>
+            </div>
+          </div>
+          ` : ''}
         </div>
       </body>
-      </html>
-    `;
+    </html>
+  `;
 
     // Send email using SMTP
     const emailData = {

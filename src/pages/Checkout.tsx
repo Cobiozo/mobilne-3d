@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,6 +37,15 @@ const Checkout = () => {
     description: string | null;
     is_active: boolean;
   }>>([]);
+  const [needsInvoice, setNeedsInvoice] = useState(false);
+  const [invoiceData, setInvoiceData] = useState({
+    companyName: '',
+    nip: '',
+    address: '',
+    city: '',
+    postalCode: '',
+    country: 'Polska'
+  });
   
   // Stała referencja cenowa: model 190mm x 109mm x 9.8mm = 39 zł z PLA
   const REFERENCE_VOLUME_MM3 = 190 * 109 * 9.8; // = 203,042 mm³
@@ -421,7 +431,8 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
           shipping_postal_code: customerInfo.postalCode,
           shipping_country: customerInfo.country,
           delivery_method: deliveryMethod,
-          payment_method: paymentMethod
+          payment_method: paymentMethod,
+          invoice_data: needsInvoice ? invoiceData : null
         })
         .select()
         .single();
@@ -670,6 +681,11 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
             accountHolder: paymentConfig.account_holder,
             transferTitle: paymentConfig.transfer_title?.replace('{order_number}', orderNumber) || orderNumber
           };
+        }
+
+        // Add invoice data if needed
+        if (needsInvoice) {
+          emailData.invoiceData = invoiceData;
         }
 
         await supabase.functions.invoke('send-order-confirmation', {
@@ -1224,6 +1240,89 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
                     <span className="font-semibold">15.99 zł</span>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Invoice Data */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Dane do faktury VAT</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="needsInvoice" 
+                    checked={needsInvoice}
+                    onCheckedChange={(checked) => setNeedsInvoice(checked as boolean)}
+                  />
+                  <label 
+                    htmlFor="needsInvoice" 
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    Potrzebuję faktury VAT
+                  </label>
+                </div>
+
+                {needsInvoice && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <Label htmlFor="companyName">Nazwa firmy *</Label>
+                        <Input
+                          id="companyName"
+                          value={invoiceData.companyName}
+                          onChange={(e) => setInvoiceData({ ...invoiceData, companyName: e.target.value })}
+                          required={needsInvoice}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="nip">NIP *</Label>
+                        <Input
+                          id="nip"
+                          value={invoiceData.nip}
+                          onChange={(e) => setInvoiceData({ ...invoiceData, nip: e.target.value })}
+                          required={needsInvoice}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="invoiceCity">Miasto *</Label>
+                        <Input
+                          id="invoiceCity"
+                          value={invoiceData.city}
+                          onChange={(e) => setInvoiceData({ ...invoiceData, city: e.target.value })}
+                          required={needsInvoice}
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label htmlFor="invoiceAddress">Adres *</Label>
+                        <Input
+                          id="invoiceAddress"
+                          value={invoiceData.address}
+                          onChange={(e) => setInvoiceData({ ...invoiceData, address: e.target.value })}
+                          required={needsInvoice}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="invoicePostalCode">Kod pocztowy *</Label>
+                        <Input
+                          id="invoicePostalCode"
+                          value={invoiceData.postalCode}
+                          onChange={(e) => setInvoiceData({ ...invoiceData, postalCode: e.target.value })}
+                          required={needsInvoice}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="invoiceCountry">Kraj *</Label>
+                        <Input
+                          id="invoiceCountry"
+                          value={invoiceData.country}
+                          onChange={(e) => setInvoiceData({ ...invoiceData, country: e.target.value })}
+                          required={needsInvoice}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

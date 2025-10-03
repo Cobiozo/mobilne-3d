@@ -50,6 +50,7 @@ interface Order {
   shipping_country?: string | null;
   delivery_method?: string | null;
   payment_method?: string | null;
+  invoice_data?: any;
 }
 
 const statusLabels = {
@@ -115,7 +116,8 @@ export const OrdersManagement = () => {
           shipping_postal_code,
           shipping_country,
           delivery_method,
-          payment_method
+          payment_method,
+          invoice_data
         `)
         .order('created_at', { ascending: false });
 
@@ -636,6 +638,29 @@ export const OrdersManagement = () => {
                   <div>
                     <h4 className="font-medium">Materiał</h4>
                     <p className="text-sm text-muted-foreground">{selectedOrder.material}</p>
+                  </div>
+                )}
+
+                {selectedOrder.invoice_data && (
+                  <div className="pt-4 border-t">
+                    <h4 className="font-medium mb-2">Dane do faktury VAT</h4>
+                    <div className="space-y-1 text-sm">
+                      <p className="text-muted-foreground">
+                        <span className="font-medium">Firma:</span> {selectedOrder.invoice_data.companyName}
+                      </p>
+                      <p className="text-muted-foreground">
+                        <span className="font-medium">NIP:</span> {selectedOrder.invoice_data.nip}
+                      </p>
+                      <p className="text-muted-foreground">
+                        <span className="font-medium">Adres:</span> {selectedOrder.invoice_data.address}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {selectedOrder.invoice_data.postalCode} {selectedOrder.invoice_data.city}
+                      </p>
+                      <p className="text-muted-foreground">
+                        <span className="font-medium">Kraj:</span> {selectedOrder.invoice_data.country}
+                      </p>
+                    </div>
                   </div>
                 )}
 

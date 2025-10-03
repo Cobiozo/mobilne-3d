@@ -478,6 +478,7 @@ export type Database = {
           delivery_method: string | null
           estimated_delivery: string | null
           id: string
+          invoice_data: Json | null
           material: string | null
           model_id: string
           order_number: string
@@ -503,6 +504,7 @@ export type Database = {
           delivery_method?: string | null
           estimated_delivery?: string | null
           id?: string
+          invoice_data?: Json | null
           material?: string | null
           model_id: string
           order_number: string
@@ -528,6 +530,7 @@ export type Database = {
           delivery_method?: string | null
           estimated_delivery?: string | null
           id?: string
+          invoice_data?: Json | null
           material?: string | null
           model_id?: string
           order_number?: string
