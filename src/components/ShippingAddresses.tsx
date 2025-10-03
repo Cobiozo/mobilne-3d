@@ -18,6 +18,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SavedParcelLockers } from '@/components/SavedParcelLockers';
 
 interface ShippingAddress {
   id: string;
@@ -217,18 +219,25 @@ export const ShippingAddresses = ({ onAddressSelect }: ShippingAddressesProps = 
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5" />
-              Adresy wysyłkowe
-            </CardTitle>
-            <CardDescription>
-              Zarządzaj swoimi adresami dostaw
-            </CardDescription>
-          </div>
+    <Tabs defaultValue="addresses" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="addresses">Moje adresy</TabsTrigger>
+        <TabsTrigger value="lockers">Moje paczkomaty</TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="addresses">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5" />
+                  Adresy wysyłkowe
+                </CardTitle>
+                <CardDescription>
+                  Zarządzaj swoimi adresami dostaw
+                </CardDescription>
+              </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => setEditingAddress(null)}>
@@ -337,6 +346,12 @@ export const ShippingAddresses = ({ onAddressSelect }: ShippingAddressesProps = 
         )}
       </CardContent>
     </Card>
+      </TabsContent>
+      
+      <TabsContent value="lockers">
+        <SavedParcelLockers />
+      </TabsContent>
+    </Tabs>
   );
 };
 

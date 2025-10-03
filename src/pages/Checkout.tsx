@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { ArrowLeft, CreditCard, Truck, Package } from "lucide-react";
 import { CartItem } from "@/components/ShoppingCart";
 import { ShippingAddresses } from "@/components/ShippingAddresses";
+import { ParcelLockerPicker } from "@/components/ParcelLockerPicker";
 
 const Checkout = () => {
   const { user, loading } = useAuth();
@@ -73,6 +74,15 @@ const Checkout = () => {
 
   const [deliveryMethod, setDeliveryMethod] = useState<'inpost-courier' | 'paczkomaty'>('paczkomaty');
   const [paymentMethod, setPaymentMethod] = useState<string>('traditional');
+  const [selectedParcelLocker, setSelectedParcelLocker] = useState<{
+    code: string;
+    name: string;
+    address: string;
+    city: string;
+    postal_code: string;
+    lat: number;
+    lng: number;
+  } | null>(null);
 
   const deliveryPrices = {
     'inpost-courier': 15.99,
@@ -408,8 +418,12 @@ const Checkout = () => {
         return `${item.name}: ${size.x}mm × ${size.y}mm × ${size.z}mm (${material}) x ${item.quantity}`;
       }).join('\n');
       
+      const parcelLockerInfo = deliveryMethod === 'paczkomaty' && selectedParcelLocker 
+        ? `\nPaczkomat: ${selectedParcelLocker.name} (${selectedParcelLocker.code})\nAdres paczkomatu: ${selectedParcelLocker.address}` 
+        : '';
+      
       const specialInstructions = `Dostawa: ${deliveryMethod === 'inpost-courier' ? 'Kurier InPost' : 'Paczkomaty InPost'}
-Płatność: ${paymentMethod}
+Płatność: ${paymentMethod}${parcelLockerInfo}
 
 Produkty:
 ${itemsDetails}
@@ -613,7 +627,38 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
         }
       }
 
-      // Get payment method details from database
+      // Save parcel locker if paczkomaty delivery was chosen
+      if (deliveryMethod === 'paczkomaty' && selectedParcelLocker) {
+        // Check if this locker already exists
+        const { data: existingLocker } = await supabase
+          .from('saved_parcel_lockers')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('locker_code', selectedParcelLocker.code)
+          .maybeSingle();
+
+        if (!existingLocker) {
+          const { error: lockerError } = await supabase
+            .from('saved_parcel_lockers')
+            .insert({
+              user_id: user.id,
+              locker_code: selectedParcelLocker.code,
+              locker_name: selectedParcelLocker.name,
+              locker_address: selectedParcelLocker.address,
+              locker_city: selectedParcelLocker.city,
+              locker_postal_code: selectedParcelLocker.postal_code,
+              location_lat: selectedParcelLocker.lat,
+              location_lng: selectedParcelLocker.lng,
+              is_favorite: false
+            });
+
+          if (lockerError) {
+            console.warn('Could not save parcel locker:', lockerError);
+            // Don't throw error, just log it - order was successful
+          }
+        }
+      }
+
       const { data: paymentMethodData } = await supabase
         .from('payment_methods')
         .select('*')
@@ -1281,6 +1326,17 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
                 </div>
               </CardContent>
             </Card>
+
+            {/* Parcel Locker Picker - shown only for paczkomaty delivery */}
+            {deliveryMethod === 'paczkomaty' && (
+              <ParcelLockerPicker
+                userAddress={customerInfo.address}
+                userCity={customerInfo.city}
+                userPostalCode={customerInfo.postalCode}
+                onLockerSelect={(locker) => setSelectedParcelLocker(locker)}
+                selectedLocker={selectedParcelLocker}
+              />
+            )}
 
             {/* Invoice Data */}
             <Card>
