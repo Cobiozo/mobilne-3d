@@ -6,16 +6,21 @@
  * 
  * Usage:
  * 1. Build the application: npm run build
- * 2. Install dependencies: npm install express
+ * 2. Install dependencies: npm install express compression
  * 3. Start the server: node server.js
  * 
  * For production use with PM2:
- * pm2 start server.js --name "3d-print-app"
+ * pm2 start ecosystem.config.js
  */
 
-const express = require('express');
-const path = require('path');
-const compression = require('compression');
+import express from 'express';
+import compression from 'compression';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 8080;

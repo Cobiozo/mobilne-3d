@@ -11,7 +11,7 @@
  * For more information: https://pm2.keymetrics.io/docs/usage/application-declaration/
  */
 
-module.exports = {
+export default {
   apps: [{
     name: '3d-print-app',
     script: './server.js',
