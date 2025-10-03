@@ -1,16 +1,16 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CreditCard, MoreVertical, Settings } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreVertical, Settings, Trash2 } from "lucide-react";
 
 interface PaymentMethod {
   id: string;
@@ -29,13 +29,13 @@ const PaymentMethodsManagement = () => {
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
-  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
 
   useEffect(() => {
-    fetchPaymentMethods();
+    fetchMethods();
   }, []);
 
-  const fetchPaymentMethods = async () => {
+  const fetchMethods = async () => {
     try {
       const { data, error } = await supabase
         .from('payment_methods')
@@ -52,60 +52,85 @@ const PaymentMethodsManagement = () => {
     }
   };
 
-  const toggleMethodStatus = async (method: PaymentMethod) => {
+  const toggleMethod = async (id: string, currentStatus: boolean) => {
     try {
       const { error } = await supabase
         .from('payment_methods')
-        .update({ is_active: !method.is_active })
-        .eq('id', method.id);
+        .update({ is_active: !currentStatus })
+        .eq('id', id);
 
       if (error) throw error;
 
       setMethods(methods.map(m => 
-        m.id === method.id ? { ...m, is_active: !m.is_active } : m
+        m.id === id ? { ...m, is_active: !currentStatus } : m
       ));
 
       toast.success(
-        method.is_active 
-          ? 'Metoda płatności wyłączona' 
-          : 'Metoda płatności włączona'
+        !currentStatus ? 'Metoda płatności włączona' : 'Metoda płatności wyłączona'
       );
     } catch (error) {
-      console.error('Error toggling method:', error);
+      console.error('Error toggling payment method:', error);
       toast.error('Błąd podczas zmiany statusu');
     }
   };
 
-  const handleSaveConfig = async (methodId: string, config: any) => {
+  const updateMethod = async (id: string, updates: Partial<PaymentMethod>) => {
     try {
       const { error } = await supabase
         .from('payment_methods')
-        .update({ config })
-        .eq('id', methodId);
+        .update(updates)
+        .eq('id', id);
 
       if (error) throw error;
 
-      setMethods(methods.map(m => 
-        m.id === methodId ? { ...m, config } : m
-      ));
-
-      toast.success('Konfiguracja zapisana');
-      setConfigDialogOpen(false);
+      await fetchMethods();
+      toast.success('Metoda płatności zaktualizowana');
+      setIsConfigDialogOpen(false);
     } catch (error) {
-      console.error('Error saving config:', error);
-      toast.error('Błąd podczas zapisywania konfiguracji');
+      console.error('Error updating payment method:', error);
+      toast.error('Błąd podczas aktualizacji');
+    }
+  };
+
+  const deleteMethod = async (id: string) => {
+    if (!confirm('Czy na pewno chcesz usunąć tę metodę płatności?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('payment_methods')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setMethods(methods.filter(m => m.id !== id));
+      toast.success('Metoda płatności usunięta');
+    } catch (error) {
+      console.error('Error deleting payment method:', error);
+      toast.error('Błąd podczas usuwania');
     }
   };
 
   const getMethodIcon = (methodKey: string) => {
-    // Return appropriate icon based on method key
-    // For simplicity, using generic CreditCard icon
-    return <CreditCard className="h-6 w-6" />;
+    const iconMap: Record<string, string> = {
+      traditional: '🏦',
+      payu_standard: 'PayU',
+      payu_card: '💳',
+      payu_blik: 'BLIK',
+      payu_bank_list: 'PayU',
+      payu_installments: 'PayU',
+      payu_klarna: 'Klarna',
+      payu_paypo: 'PayPo',
+      payu_twisto: 'Twisto',
+      payu_twisto_3: 'Twisto',
+      payu_secure_form: 'PayU',
+    };
+    return iconMap[methodKey] || 'PayU';
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="flex justify-center items-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
@@ -113,108 +138,154 @@ const PaymentMethodsManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Metody płatności</h2>
-        <p className="text-muted-foreground mt-1">
-          Zarządzaj dostępnymi metodami płatności w sklepie
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Metody płatności</h2>
+          <p className="text-muted-foreground">
+            Zarządzaj dostępnymi metodami płatności w sklepie
+          </p>
+        </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {methods.map((method) => (
-          <Card key={method.id} className="transition-all hover:shadow-md">
+          <Card key={method.id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-muted">
-                    {method.icon_url ? (
-                      <img src={method.icon_url} alt={method.name} className="w-8 h-8 object-contain" />
-                    ) : (
-                      getMethodIcon(method.method_key)
-                    )}
-                  </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-muted">
+                  <span className="text-lg font-bold">
+                    {getMethodIcon(method.method_key)}
+                  </span>
+                </div>
 
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold">{method.name}</h3>
-                      <Badge variant={method.is_active ? "default" : "secondary"}>
-                        {method.is_active ? "Włączone" : "Nieaktywne"}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {method.description || "Metoda płatności"}
-                    </p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold">{method.name}</h3>
+                    <Badge variant={method.is_active ? "default" : "secondary"}>
+                      {method.is_active ? "Włączone" : "Nieaktywne"}
+                    </Badge>
                   </div>
+                  <p className="text-sm text-muted-foreground">
+                    {method.description || 'Brak opisu'}
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Switch
-                    checked={method.is_active}
-                    onCheckedChange={() => toggleMethodStatus(method)}
-                  />
+                  <Button
+                    variant={method.is_active ? "outline" : "default"}
+                    size="sm"
+                    onClick={() => toggleMethod(method.id, method.is_active)}
+                  >
+                    {method.is_active ? "Wyłącz" : "Włącz"}
+                  </Button>
 
-                  <Dialog open={configDialogOpen && selectedMethod?.id === method.id} onOpenChange={(open) => {
-                    setConfigDialogOpen(open);
-                    if (!open) setSelectedMethod(null);
-                  }}>
+                  <Dialog 
+                    open={isConfigDialogOpen && selectedMethod?.id === method.id}
+                    onOpenChange={(open) => {
+                      setIsConfigDialogOpen(open);
+                      if (open) setSelectedMethod(method);
+                    }}
+                  >
                     <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedMethod(method)}
-                      >
-                        <Settings className="h-4 w-4 mr-1" />
+                      <Button variant="outline" size="sm">
                         Zarządzaj
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="max-w-2xl">
                       <DialogHeader>
                         <DialogTitle>Konfiguracja: {method.name}</DialogTitle>
                         <DialogDescription>
-                          Skonfiguruj szczegóły metody płatności
+                          Edytuj ustawienia metody płatności
                         </DialogDescription>
                       </DialogHeader>
-                      <div className="space-y-4">
+
+                      <div className="space-y-4 py-4">
                         <div>
-                          <Label>Nazwa</Label>
+                          <Label htmlFor="name">Nazwa</Label>
                           <Input
-                            value={method.name}
+                            id="name"
+                            defaultValue={method.name}
                             onChange={(e) => {
-                              setMethods(methods.map(m =>
-                                m.id === method.id ? { ...m, name: e.target.value } : m
-                              ));
+                              if (selectedMethod) {
+                                setSelectedMethod({
+                                  ...selectedMethod,
+                                  name: e.target.value
+                                });
+                              }
                             }}
                           />
                         </div>
+
                         <div>
-                          <Label>Opis</Label>
+                          <Label htmlFor="description">Opis</Label>
                           <Textarea
-                            value={method.description || ''}
+                            id="description"
+                            defaultValue={method.description || ''}
                             onChange={(e) => {
-                              setMethods(methods.map(m =>
-                                m.id === method.id ? { ...m, description: e.target.value } : m
-                              ));
+                              if (selectedMethod) {
+                                setSelectedMethod({
+                                  ...selectedMethod,
+                                  description: e.target.value
+                                });
+                              }
                             }}
-                            rows={3}
                           />
                         </div>
+
                         <div>
-                          <Label>Kolejność wyświetlania</Label>
+                          <Label htmlFor="sort_order">Kolejność sortowania</Label>
                           <Input
+                            id="sort_order"
                             type="number"
-                            value={method.sort_order}
+                            defaultValue={method.sort_order}
                             onChange={(e) => {
-                              setMethods(methods.map(m =>
-                                m.id === method.id ? { ...m, sort_order: parseInt(e.target.value) } : m
-                              ));
+                              if (selectedMethod) {
+                                setSelectedMethod({
+                                  ...selectedMethod,
+                                  sort_order: parseInt(e.target.value)
+                                });
+                              }
                             }}
                           />
                         </div>
+
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id="is_active"
+                            checked={selectedMethod?.is_active}
+                            onCheckedChange={(checked) => {
+                              if (selectedMethod) {
+                                setSelectedMethod({
+                                  ...selectedMethod,
+                                  is_active: checked
+                                });
+                              }
+                            }}
+                          />
+                          <Label htmlFor="is_active">Aktywna</Label>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2">
                         <Button
-                          onClick={() => handleSaveConfig(method.id, method.config)}
-                          className="w-full"
+                          variant="outline"
+                          onClick={() => setIsConfigDialogOpen(false)}
                         >
-                          Zapisz
+                          Anuluj
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            if (selectedMethod) {
+                              updateMethod(selectedMethod.id, {
+                                name: selectedMethod.name,
+                                description: selectedMethod.description,
+                                sort_order: selectedMethod.sort_order,
+                                is_active: selectedMethod.is_active
+                              });
+                            }
+                          }}
+                        >
+                          Zapisz zmiany
                         </Button>
                       </div>
                     </DialogContent>
@@ -230,11 +301,18 @@ const PaymentMethodsManagement = () => {
                       <DropdownMenuItem
                         onClick={() => {
                           setSelectedMethod(method);
-                          setConfigDialogOpen(true);
+                          setIsConfigDialogOpen(true);
                         }}
                       >
-                        <Settings className="h-4 w-4 mr-2" />
-                        Konfiguruj
+                        <Settings className="mr-2 h-4 w-4" />
+                        Ustawienia
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => deleteMethod(method.id)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Usuń
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
