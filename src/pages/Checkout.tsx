@@ -29,6 +29,12 @@ const Checkout = () => {
   const [itemMaterials, setItemMaterials] = useState<{ [key: string]: string }>({});
   const [virtualCurrency, setVirtualCurrency] = useState<number>(0);
   const [useVirtualCurrency, setUseVirtualCurrency] = useState<number>(0);
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<Array<{
+    method_key: string;
+    name: string;
+    description: string | null;
+    is_active: boolean;
+  }>>([]);
   
   // Stała referencja cenowa: model 190mm x 109mm x 9.8mm = 39 zł z PLA
   const REFERENCE_VOLUME_MM3 = 190 * 109 * 9.8; // = 203,042 mm³
@@ -54,7 +60,7 @@ const Checkout = () => {
   });
 
   const [deliveryMethod, setDeliveryMethod] = useState<'inpost-courier' | 'paczkomaty'>('paczkomaty');
-  const [paymentMethod, setPaymentMethod] = useState<'traditional' | 'payu' | 'blik' | 'paypo' | 'twisto' | 'paypal'>('traditional');
+  const [paymentMethod, setPaymentMethod] = useState<string>('traditional');
 
   const deliveryPrices = {
     'inpost-courier': 15.99,
@@ -94,6 +100,21 @@ const Checkout = () => {
 
       if (wallet) {
         setVirtualCurrency(Number(wallet.virtual_currency) || 0);
+      }
+
+      // Load available payment methods
+      const { data: methods } = await supabase
+        .from('payment_methods')
+        .select('method_key, name, description, is_active')
+        .eq('is_active', true)
+        .order('sort_order');
+
+      if (methods) {
+        setAvailablePaymentMethods(methods);
+        // Set default payment method to first available
+        if (methods.length > 0) {
+          setPaymentMethod(methods[0].method_key);
+        }
       }
     };
 
@@ -557,8 +578,8 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
         }
       }
 
-      // Handle PayU payment
-      if (paymentMethod === 'payu') {
+      // Handle PayU payment (for any payu_* method)
+      if (paymentMethod.startsWith('payu_')) {
         try {
           const currentUrl = window.location.origin;
           const continueUrl = `${currentUrl}/payment-status?orderId=${order.id}`;
@@ -1139,32 +1160,29 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {[
-                    { id: 'traditional', name: 'Przelew tradycyjny', desc: 'Standardowy przelew bankowy' },
-                    { id: 'payu', name: 'PayU - Płatności online', desc: 'Blik, karty płatnicze, raty, płacę później i więcej' }
-                  ].map((method) => (
+                  {availablePaymentMethods.map((method) => (
                     <div
-                      key={method.id}
+                      key={method.method_key}
                       className={cn(
                         "p-3 border-2 rounded-lg cursor-pointer transition-all",
-                        paymentMethod === method.id 
+                        paymentMethod === method.method_key 
                           ? "border-primary bg-primary/5" 
                           : "border-border hover:border-primary/50"
                       )}
-                      onClick={() => setPaymentMethod(method.id as typeof paymentMethod)}
+                      onClick={() => setPaymentMethod(method.method_key)}
                     >
                       <div className="flex items-center gap-3">
                         <div className={cn(
                           "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                          paymentMethod === method.id ? "border-primary" : "border-border"
+                          paymentMethod === method.method_key ? "border-primary" : "border-border"
                         )}>
-                          {paymentMethod === method.id && (
+                          {paymentMethod === method.method_key && (
                             <div className="w-2 h-2 rounded-full bg-primary" />
                           )}
                         </div>
                         <div className="flex-1">
                           <p className="font-medium">{method.name}</p>
-                          <p className="text-sm text-muted-foreground">{method.desc}</p>
+                          <p className="text-sm text-muted-foreground">{method.description}</p>
                         </div>
                       </div>
                     </div>
