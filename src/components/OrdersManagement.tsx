@@ -730,10 +730,18 @@ export const OrdersManagement = () => {
 
                 {selectedOrder.special_instructions && (
                   <div>
-                    <h4 className="font-medium">Uwagi specjalne</h4>
-                    <p className="text-sm text-muted-foreground bg-muted p-2 rounded">
-                      {selectedOrder.special_instructions}
-                    </p>
+                    <h4 className="font-medium mb-2">Uwagi specjalne</h4>
+                    <div className="text-sm text-muted-foreground bg-muted p-3 rounded space-y-1">
+                      {selectedOrder.special_instructions.split('\n').map((line, index) => (
+                        line.trim() ? (
+                          <p key={index} className={line.startsWith('Produkty:') || line.startsWith('Uwagi:') ? 'font-medium mt-2' : ''}>
+                            {line}
+                          </p>
+                        ) : (
+                          <div key={index} className="h-2" />
+                        )
+                      ))}
+                    </div>
                   </div>
                 )}
 

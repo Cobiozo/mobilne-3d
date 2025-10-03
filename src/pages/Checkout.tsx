@@ -419,7 +419,7 @@ const Checkout = () => {
       }).join('\n');
       
       const parcelLockerInfo = deliveryMethod === 'paczkomaty' && selectedParcelLocker 
-        ? `\nPaczkomat: ${selectedParcelLocker.name} (${selectedParcelLocker.code})\nAdres paczkomatu: ${selectedParcelLocker.address}` 
+        ? `\nPaczkomat: ${selectedParcelLocker.name} (${selectedParcelLocker.code})\nAdres paczkomatu: ${selectedParcelLocker.address}, ${selectedParcelLocker.postal_code} ${selectedParcelLocker.city}` 
         : '';
       
       const specialInstructions = `Dostawa: ${deliveryMethod === 'inpost-courier' ? 'Kurier InPost' : 'Paczkomaty InPost'}
