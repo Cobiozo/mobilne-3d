@@ -475,7 +475,8 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
           user_id: user.id,
           model_id: firstModelId,
           quantity: cartItems.reduce((sum, item) => sum + item.quantity, 0),
-          total_price: orderTotalPrice,
+          total_price: finalPrice, // Save final price after discount
+          discount_amount: useVirtualCurrency, // Save discount amount
           material: materialsUsed,
           special_instructions: specialInstructions,
           status: 'pending',

@@ -14,6 +14,7 @@ interface Order {
   order_number: string;
   status: string;
   total_price: number;
+  discount_amount: number | null;
   created_at: string;
   material: string | null;
   delivery_method: string | null;
@@ -150,7 +151,8 @@ export const OrderHistory = () => {
           id, 
           order_number, 
           status, 
-          total_price, 
+          total_price,
+          discount_amount,
           created_at, 
           material, 
           delivery_method, 
@@ -276,6 +278,11 @@ export const OrderHistory = () => {
                   <div>
                     <p className="text-muted-foreground">Kwota</p>
                     <p className="font-medium">{parseFloat(order.total_price.toString()).toFixed(2)} zł</p>
+                    {order.discount_amount && order.discount_amount > 0 && (
+                      <p className="text-xs text-green-600">
+                        Rabat: -{parseFloat(order.discount_amount.toString()).toFixed(2)} zł
+                      </p>
+                    )}
                   </div>
                   {order.material && (
                     <div>

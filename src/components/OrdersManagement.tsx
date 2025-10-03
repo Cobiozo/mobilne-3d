@@ -34,6 +34,7 @@ interface Order {
   quantity: number;
   material: string | null;
   total_price: number | null;
+  discount_amount: number | null;
   estimated_delivery: string | null;
   created_at: string;
   updated_at: string;
@@ -145,6 +146,7 @@ export const OrdersManagement = () => {
           quantity,
           material,
           total_price,
+          discount_amount,
           estimated_delivery,
           special_instructions,
           created_at,
@@ -675,6 +677,11 @@ export const OrdersManagement = () => {
                     <p className="text-sm text-muted-foreground">
                       {selectedOrder.total_price ? `${selectedOrder.total_price} zł` : 'Nie ustalono'}
                     </p>
+                    {selectedOrder.discount_amount && selectedOrder.discount_amount > 0 && (
+                      <p className="text-xs text-green-600">
+                        Użyto rabatu: {selectedOrder.discount_amount} zł
+                      </p>
+                    )}
                   </div>
                 </div>
 
