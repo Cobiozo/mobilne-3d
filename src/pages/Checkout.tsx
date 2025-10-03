@@ -729,8 +729,14 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
           const payuData = payuResponse.data;
           
           if (payuData.success && payuData.redirectUri) {
-            // Clear cart before redirect
+            // Clear cart from localStorage
             localStorage.removeItem('cartItems');
+            
+            // Clear cart from database
+            await supabase
+              .from('user_carts')
+              .delete()
+              .eq('user_id', user.id);
             
             // Redirect to PayU
             window.location.href = payuData.redirectUri;
@@ -793,8 +799,14 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
         // Don't block order completion if email fails
       }
 
-      // Clear cart for non-PayU payments
+      // Clear cart from localStorage for non-PayU payments
       localStorage.removeItem('cartItems');
+      
+      // Clear cart from database
+      await supabase
+        .from('user_carts')
+        .delete()
+        .eq('user_id', user.id);
       
       toast.success('Zamówienie zostało złożone pomyślnie!');
       navigate('/dashboard?tab=orders');
