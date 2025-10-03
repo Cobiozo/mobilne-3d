@@ -28,6 +28,7 @@ import { NotesManagement } from '@/components/NotesManagement';
 import { NotificationsManagement } from '@/components/NotificationsManagement';
 import { SecuritySettings } from '@/components/SecuritySettings';
 import { ColorsManagement } from '@/components/ColorsManagement';
+import PaymentMethodsManagement from '@/components/PaymentMethodsManagement';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { User, LogOut, Upload, Settings, Home, Package, MapPin, Lock } from 'lucide-react';
 
@@ -190,6 +191,8 @@ const Dashboard = () => {
         return <ModelLibrary userId={user.id} />;
       case 'colors':
         return <ColorsManagement />;
+      case 'payment-methods':
+        return <PaymentMethodsManagement />;
       case 'notes':
         return <NotesManagement />;
       case 'notifications':

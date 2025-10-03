@@ -26,7 +26,8 @@ import {
   Home,
   ArrowLeft,
   Mail,
-  History
+  History,
+  CreditCard
 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
@@ -68,6 +69,12 @@ const adminMenuItems = [
     url: '/dashboard?tab=colors',
     icon: Palette,
     section: 'colors'
+  },
+  {
+    title: 'paymentMethods',
+    url: '/dashboard?tab=payment-methods',
+    icon: CreditCard,
+    section: 'payment-methods'
   },
   {
     title: 'notes',
