@@ -29,6 +29,10 @@ interface Transaction {
   transaction_type: string;
   description: string;
   created_at: string;
+  related_order_id: string | null;
+  order?: {
+    order_number: string;
+  };
 }
 
 interface CoinTransaction {
@@ -89,6 +93,22 @@ export const UserWallet = ({ userId }: UserWalletProps) => {
 
         if (transactionsError) throw transactionsError;
 
+        // Fetch order details for transactions with related orders
+        const transactionsWithOrders = await Promise.all(
+          (transactionsData || []).map(async (tx) => {
+            if (tx.related_order_id) {
+              const { data: orderData } = await supabase
+                .from('orders')
+                .select('order_number')
+                .eq('id', tx.related_order_id)
+                .single();
+              
+              return { ...tx, order: orderData };
+            }
+            return tx;
+          })
+        );
+
         // Fetch coin transactions
         const { data: coinTransactionsData, error: coinTransactionsError } = await supabase
           .from('coin_transactions')
@@ -102,7 +122,7 @@ export const UserWallet = ({ userId }: UserWalletProps) => {
         setWallet({
           balance: walletData?.balance || 0,
           virtual_currency: walletData?.virtual_currency || 0,
-          transactions: transactionsData || [],
+          transactions: transactionsWithOrders || [],
           coin_transactions: coinTransactionsData || []
         });
       }
@@ -214,6 +234,11 @@ export const UserWallet = ({ userId }: UserWalletProps) => {
                         )}
                         <div>
                           <p className="font-medium">{transaction.description}</p>
+                          {transaction.related_order_id && transaction.order && (
+                            <p className="text-xs text-primary font-medium">
+                              Zamówienie: {transaction.order.order_number}
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground">
                             {new Date(transaction.created_at).toLocaleString('pl-PL')}
                           </p>
@@ -265,67 +290,69 @@ export const UserWallet = ({ userId }: UserWalletProps) => {
               Użyj przy składaniu zamówień
             </p>
             
-            <Dialog open={showExchangeDialog} onOpenChange={setShowExchangeDialog}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full">
-                  <ArrowRightLeft className="w-4 h-4 mr-2" />
-                  Wymień monety na PLN
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Wymiana monet</DialogTitle>
-                  <DialogDescription>
-                    100 monet = 1 PLN. Minimalna wymiana: 100 monet
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Liczba monet do wymiany</Label>
-                    <Input
-                      type="number"
-                      min="100"
-                      step="100"
-                      value={coinsToExchange}
-                      onChange={(e) => setCoinsToExchange(e.target.value)}
-                      placeholder="100"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Otrzymasz: {(parseInt(coinsToExchange) / 100 || 0).toFixed(2)} PLN
-                    </p>
-                  </div>
-
-                  <div className="p-3 bg-muted rounded-lg space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Dostępne monety:</span>
-                      <span className="font-medium">{formatAmount(wallet.balance)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Aktualna waluta:</span>
-                      <span className="font-medium">{formatAmount(wallet.virtual_currency)} PLN</span>
-                    </div>
-                  </div>
-
-                  <Button 
-                    onClick={handleExchangeCoins} 
-                    disabled={isExchanging}
-                    className="w-full"
-                  >
-                    {isExchanging ? (
-                      <>
-                        <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        Wymieniam...
-                      </>
-                    ) : (
-                      <>
-                        <ArrowRightLeft className="w-4 h-4 mr-2" />
-                        Wymień monety
-                      </>
-                    )}
+            {wallet.balance > 0 && (
+              <Dialog open={showExchangeDialog} onOpenChange={setShowExchangeDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <ArrowRightLeft className="w-4 h-4 mr-2" />
+                    Wymień monety na PLN
                   </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Wymiana monet</DialogTitle>
+                    <DialogDescription>
+                      100 monet = 1 PLN. Minimalna wymiana: 100 monet
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Liczba monet do wymiany</Label>
+                      <Input
+                        type="number"
+                        min="100"
+                        step="100"
+                        value={coinsToExchange}
+                        onChange={(e) => setCoinsToExchange(e.target.value)}
+                        placeholder="100"
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Otrzymasz: {(parseInt(coinsToExchange) / 100 || 0).toFixed(2)} PLN
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-muted rounded-lg space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span>Dostępne monety:</span>
+                        <span className="font-medium">{formatAmount(wallet.balance)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Aktualna waluta:</span>
+                        <span className="font-medium">{formatAmount(wallet.virtual_currency)} PLN</span>
+                      </div>
+                    </div>
+
+                    <Button 
+                      onClick={handleExchangeCoins} 
+                      disabled={isExchanging}
+                      className="w-full"
+                    >
+                      {isExchanging ? (
+                        <>
+                          <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          Wymieniam...
+                        </>
+                      ) : (
+                        <>
+                          <ArrowRightLeft className="w-4 h-4 mr-2" />
+                          Wymień monety
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
         {(wallet.transactions.length > 0 || wallet.coin_transactions.length > 0) && (
@@ -343,12 +370,19 @@ export const UserWallet = ({ userId }: UserWalletProps) => {
               </div>
             ))}
             {wallet.transactions.slice(0, 1).map((tx) => (
-              <div key={tx.id} className="flex items-center justify-between text-sm">
-                <span>{tx.description}</span>
-                <span className={tx.amount > 0 ? 'text-green-600' : 'text-red-600'}>
-                  {tx.amount > 0 ? '+' : ''}
-                  {formatAmount(tx.amount)}
-                </span>
+              <div key={tx.id} className="flex flex-col text-sm p-2 bg-muted/50 rounded">
+                <div className="flex items-center justify-between">
+                  <span>{tx.description}</span>
+                  <span className={tx.amount > 0 ? 'text-green-600' : 'text-red-600'}>
+                    {tx.amount > 0 ? '+' : ''}
+                    {formatAmount(tx.amount)}
+                  </span>
+                </div>
+                {tx.related_order_id && tx.order && (
+                  <span className="text-xs text-primary font-medium mt-1">
+                    Zamówienie: {tx.order.order_number}
+                  </span>
+                )}
               </div>
             ))}
           </div>
