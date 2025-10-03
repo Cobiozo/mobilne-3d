@@ -482,6 +482,9 @@ export type Database = {
           material: string | null
           model_id: string
           order_number: string
+          parcel_locker_address: string | null
+          parcel_locker_code: string | null
+          parcel_locker_name: string | null
           payment_method: string | null
           print_settings: Json | null
           quantity: number
@@ -508,6 +511,9 @@ export type Database = {
           material?: string | null
           model_id: string
           order_number: string
+          parcel_locker_address?: string | null
+          parcel_locker_code?: string | null
+          parcel_locker_name?: string | null
           payment_method?: string | null
           print_settings?: Json | null
           quantity?: number
@@ -534,6 +540,9 @@ export type Database = {
           material?: string | null
           model_id?: string
           order_number?: string
+          parcel_locker_address?: string | null
+          parcel_locker_code?: string | null
+          parcel_locker_name?: string | null
           payment_method?: string | null
           print_settings?: Json | null
           quantity?: number
@@ -636,6 +645,51 @@ export type Database = {
           id?: string
           phone?: string | null
           postal_code?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      saved_parcel_lockers: {
+        Row: {
+          created_at: string
+          id: string
+          is_favorite: boolean
+          location_lat: number | null
+          location_lng: number | null
+          locker_address: string
+          locker_city: string | null
+          locker_code: string
+          locker_name: string
+          locker_postal_code: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          location_lat?: number | null
+          location_lng?: number | null
+          locker_address: string
+          locker_city?: string | null
+          locker_code: string
+          locker_name: string
+          locker_postal_code?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          location_lat?: number | null
+          location_lng?: number | null
+          locker_address?: string
+          locker_city?: string | null
+          locker_code?: string
+          locker_name?: string
+          locker_postal_code?: string | null
           updated_at?: string
           user_id?: string
         }
