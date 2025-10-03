@@ -160,6 +160,28 @@ const Checkout = () => {
           setPaymentMethod(methods[0].method_key);
         }
       }
+
+      // Load favorite or last used parcel locker
+      const { data: savedLockers } = await supabase
+        .from('saved_parcel_lockers')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('is_favorite', { ascending: false })
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (savedLockers) {
+        setSelectedParcelLocker({
+          code: savedLockers.locker_code,
+          name: savedLockers.locker_name,
+          address: savedLockers.locker_address,
+          city: savedLockers.locker_city || '',
+          postal_code: savedLockers.locker_postal_code || '',
+          lat: Number(savedLockers.location_lat) || 0,
+          lng: Number(savedLockers.location_lng) || 0
+        });
+      }
     };
 
     loadProfileData();
@@ -469,7 +491,11 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
           shipping_country: customerInfo.country,
           delivery_method: deliveryMethod,
           payment_method: paymentMethod,
-          invoice_data: needsInvoice ? invoiceData : null
+          invoice_data: needsInvoice ? invoiceData : null,
+          // Add parcel locker information if paczkomaty delivery
+          parcel_locker_code: deliveryMethod === 'paczkomaty' && selectedParcelLocker ? selectedParcelLocker.code : null,
+          parcel_locker_name: deliveryMethod === 'paczkomaty' && selectedParcelLocker ? selectedParcelLocker.name : null,
+          parcel_locker_address: deliveryMethod === 'paczkomaty' && selectedParcelLocker ? `${selectedParcelLocker.address}, ${selectedParcelLocker.postal_code} ${selectedParcelLocker.city}` : null
         })
         .select()
         .single();

@@ -19,6 +19,9 @@ interface Order {
   delivery_method: string | null;
   estimated_delivery: string | null;
   payment_method: string | null;
+  parcel_locker_code: string | null;
+  parcel_locker_name: string | null;
+  parcel_locker_address: string | null;
   order_items?: OrderItem[];
 }
 
@@ -153,6 +156,9 @@ export const OrderHistory = () => {
           delivery_method, 
           estimated_delivery,
           payment_method,
+          parcel_locker_code,
+          parcel_locker_name,
+          parcel_locker_address,
           order_items (
             id,
             model_id,
@@ -292,6 +298,22 @@ export const OrderHistory = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Parcel Locker Information */}
+                {order.delivery_method === 'paczkomaty' && order.parcel_locker_name && (
+                  <div className="mt-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">
+                      Paczkomat:
+                    </p>
+                    <p className="font-semibold text-primary">{order.parcel_locker_name}</p>
+                    {order.parcel_locker_code && (
+                      <p className="text-sm text-muted-foreground">Kod: {order.parcel_locker_code}</p>
+                    )}
+                    {order.parcel_locker_address && (
+                      <p className="text-sm">{order.parcel_locker_address}</p>
+                    )}
+                  </div>
+                )}
 
                 {order.payment_method === 'traditional' && (
                   <PaymentDetailsButton 
