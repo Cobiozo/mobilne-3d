@@ -30,6 +30,14 @@ interface OrderConfirmationRequest {
     accountHolder?: string;
     transferTitle?: string;
   };
+  invoiceData?: {
+    companyName: string;
+    nip: string;
+    address: string;
+    city: string;
+    postalCode: string;
+    country: string;
+  };
 }
 
 serve(async (req) => {
@@ -179,8 +187,10 @@ serve(async (req) => {
       })
     });
 
+    const responseData = await response.json();
+
     if (!response.ok) {
-      console.error('SMTP send failed:', await response.text());
+      console.error('SMTP send failed:', responseData);
     }
 
     // Log email
@@ -191,7 +201,7 @@ serve(async (req) => {
       template_type: 'order_confirmation',
       status: response.ok ? 'sent' : 'failed',
       sent_at: response.ok ? new Date().toISOString() : null,
-      error_message: response.ok ? null : await response.text(),
+      error_message: response.ok ? null : JSON.stringify(responseData),
       metadata: {
         order_id: orderId,
         order_number: orderNumber,

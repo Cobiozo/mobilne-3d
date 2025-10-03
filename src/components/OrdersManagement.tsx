@@ -10,7 +10,8 @@ import { getText } from '@/lib/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ShoppingCart, Package, Clock, CheckCircle, XCircle, Truck, Eye, Edit, Download } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ShoppingCart, Package, Clock, CheckCircle, XCircle, Truck, Eye, Edit, Download, CreditCard } from 'lucide-react';
 import * as THREE from 'three';
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 
@@ -75,6 +76,88 @@ const statusColors = {
   completed: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800',
   shipped: 'bg-purple-100 text-purple-800'
+};
+
+const PaymentDetailsButton = ({ orderId, totalPrice, orderNumber }: { orderId: string; totalPrice: number; orderNumber: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [paymentConfig, setPaymentConfig] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const loadPaymentDetails = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('payment_methods')
+        .select('config')
+        .eq('method_key', 'traditional')
+        .eq('is_active', true)
+        .single();
+
+      if (error) throw error;
+      setPaymentConfig(data?.config || {});
+    } catch (error) {
+      console.error('Error loading payment details:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && !paymentConfig) {
+      loadPaymentDetails();
+    }
+  }, [isOpen]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="w-full">
+          <CreditCard className="w-4 h-4 mr-2" />
+          Pokaż dane do przelewu
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Dane do przelewu tradycyjnego</DialogTitle>
+        </DialogHeader>
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <LoadingSpinner />
+          </div>
+        ) : paymentConfig ? (
+          <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Numer konta:</p>
+                <p className="font-mono font-semibold text-lg">{paymentConfig.account_number}</p>
+              </div>
+              {paymentConfig.account_holder && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Odbiorca:</p>
+                  <p className="font-semibold">{paymentConfig.account_holder}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-muted-foreground">Kwota:</p>
+                <p className="font-semibold text-lg">{totalPrice.toFixed(2)} zł</p>
+              </div>
+              {paymentConfig.transfer_title && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Tytuł przelewu:</p>
+                  <p className="font-semibold">{paymentConfig.transfer_title.replace('{order_number}', orderNumber)}</p>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Prosimy o dokonanie przelewu w ciągu 3 dni roboczych. Zamówienie zostanie zrealizowane po zaksięgowaniu wpłaty.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Brak skonfigurowanych danych do przelewu</p>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 export const OrdersManagement = () => {
@@ -661,6 +744,15 @@ export const OrdersManagement = () => {
                         <span className="font-medium">Kraj:</span> {selectedOrder.invoice_data.country}
                       </p>
                     </div>
+                  </div>
+                )}
+
+                {selectedOrder.payment_method === 'traditional' && (
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium">Dane do przelewu</h4>
+                    </div>
+                    <PaymentDetailsButton orderId={selectedOrder.id} totalPrice={selectedOrder.total_price || 0} orderNumber={selectedOrder.order_number} />
                   </div>
                 )}
 
