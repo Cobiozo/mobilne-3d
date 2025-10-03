@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ShoppingCart, Package, Clock, CheckCircle, XCircle, Truck, Eye, Edit, Download, CreditCard } from 'lucide-react';
+import { ShoppingCart, Package, Clock, CheckCircle, XCircle, Truck, Eye, Edit, Download, FileText } from 'lucide-react';
 import * as THREE from 'three';
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 
@@ -78,83 +78,42 @@ const statusColors = {
   shipped: 'bg-purple-100 text-purple-800'
 };
 
-const PaymentDetailsButton = ({ orderId, totalPrice, orderNumber }: { orderId: string; totalPrice: number; orderNumber: string }) => {
+const InvoiceDetailsButton = ({ invoiceData }: { invoiceData: any }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [paymentConfig, setPaymentConfig] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const loadPaymentDetails = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('payment_methods')
-        .select('config')
-        .eq('method_key', 'traditional')
-        .eq('is_active', true)
-        .single();
-
-      if (error) throw error;
-      setPaymentConfig(data?.config || {});
-    } catch (error) {
-      console.error('Error loading payment details:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isOpen && !paymentConfig) {
-      loadPaymentDetails();
-    }
-  }, [isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="w-full">
-          <CreditCard className="w-4 h-4 mr-2" />
-          Pokaż dane do przelewu
+          <FileText className="w-4 h-4 mr-2" />
+          Pokaż dane do FV
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Dane do przelewu tradycyjnego</DialogTitle>
+          <DialogTitle>Dane do faktury VAT</DialogTitle>
         </DialogHeader>
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <LoadingSpinner />
-          </div>
-        ) : paymentConfig ? (
-          <div className="space-y-4">
-            <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg space-y-3">
-              <div>
-                <p className="text-sm text-muted-foreground">Numer konta:</p>
-                <p className="font-mono font-semibold text-lg">{paymentConfig.account_number}</p>
-              </div>
-              {paymentConfig.account_holder && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Odbiorca:</p>
-                  <p className="font-semibold">{paymentConfig.account_holder}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm text-muted-foreground">Kwota:</p>
-                <p className="font-semibold text-lg">{totalPrice.toFixed(2)} zł</p>
-              </div>
-              {paymentConfig.transfer_title && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Tytuł przelewu:</p>
-                  <p className="font-semibold">{paymentConfig.transfer_title.replace('{order_number}', orderNumber)}</p>
-                </div>
-              )}
+        <div className="space-y-4">
+          <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg space-y-3">
+            <div>
+              <p className="text-sm text-muted-foreground">Nazwa firmy:</p>
+              <p className="font-semibold text-lg">{invoiceData.companyName}</p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Prosimy o dokonanie przelewu w ciągu 3 dni roboczych. Zamówienie zostanie zrealizowane po zaksięgowaniu wpłaty.
-            </p>
+            <div>
+              <p className="text-sm text-muted-foreground">NIP:</p>
+              <p className="font-semibold text-lg">{invoiceData.nip}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Adres:</p>
+              <p className="font-semibold">{invoiceData.address}</p>
+              <p className="font-semibold">{invoiceData.postalCode} {invoiceData.city}</p>
+              <p className="font-semibold">{invoiceData.country}</p>
+            </div>
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Brak skonfigurowanych danych do przelewu</p>
-        )}
+          <p className="text-xs text-muted-foreground">
+            Faktura VAT powinna być wystawiona na powyższe dane.
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -691,7 +650,9 @@ export const OrdersManagement = () => {
                     {selectedOrder.payment_method ? (
                       <p className="text-muted-foreground">
                         <span className="font-medium">Płatność:</span>{' '}
-                        {selectedOrder.payment_method.toUpperCase()}
+                        {selectedOrder.payment_method === 'traditional' 
+                          ? 'Przelew tradycyjny'
+                          : selectedOrder.payment_method.toUpperCase()}
                       </p>
                     ) : (
                       <p className="text-xs text-muted-foreground italic">Metoda płatności nie określona</p>
@@ -747,12 +708,14 @@ export const OrdersManagement = () => {
                   </div>
                 )}
 
-                {selectedOrder.payment_method === 'traditional' && (
+                {selectedOrder.invoice_data && (
                   <div className="pt-4 border-t">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium">Dane do przelewu</h4>
+                    <div className="bg-red-50 dark:bg-red-950 border-2 border-red-500 rounded-lg p-3 mb-3">
+                      <p className="text-red-600 dark:text-red-400 font-bold text-center">
+                        ⚠️ KLIENT PROSI O FV
+                      </p>
                     </div>
-                    <PaymentDetailsButton orderId={selectedOrder.id} totalPrice={selectedOrder.total_price || 0} orderNumber={selectedOrder.order_number} />
+                    <InvoiceDetailsButton invoiceData={selectedOrder.invoice_data} />
                   </div>
                 )}
 
