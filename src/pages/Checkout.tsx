@@ -29,6 +29,7 @@ const Checkout = () => {
   const [itemMaterials, setItemMaterials] = useState<{ [key: string]: string }>({});
   const [virtualCurrency, setVirtualCurrency] = useState<number>(0);
   const [useVirtualCurrency, setUseVirtualCurrency] = useState<number>(0);
+  const [paymentMethodConfig, setPaymentMethodConfig] = useState<any>(null);
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<Array<{
     method_key: string;
     name: string;
@@ -578,6 +579,15 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
         }
       }
 
+      // Get payment method details from database
+      const { data: paymentMethodData } = await supabase
+        .from('payment_methods')
+        .select('*')
+        .eq('method_key', paymentMethod === 'payu' ? 'payu_standard' : paymentMethod)
+        .single();
+
+      const paymentConfig = (paymentMethodData?.config || {}) as any;
+
       // Handle PayU payment (for any payu_* method)
       if (paymentMethod.startsWith('payu_')) {
         try {
@@ -630,11 +640,54 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
         }
       }
 
+      // Send order confirmation email for all payment methods
+      try {
+        const emailData: any = {
+          orderId: order.id,
+          customerEmail: customerInfo.email,
+          orderNumber: orderNumber,
+          items: cartItems.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: calculatePrice(item)
+          })),
+          totalPrice: finalPrice,
+          deliveryMethod: deliveryMethod === 'paczkomaty' ? 'Paczkomaty InPost' : 'Kurier InPost',
+          paymentMethod: paymentMethodData?.name || 'Przelew tradycyjny',
+          shippingAddress: {
+            name: `${customerInfo.firstName} ${customerInfo.lastName}`,
+            address: customerInfo.address,
+            city: customerInfo.city,
+            postalCode: customerInfo.postalCode,
+            country: customerInfo.country
+          }
+        };
+
+        // Add payment details for traditional transfer
+        if (paymentMethod === 'traditional' && paymentConfig.account_number) {
+          emailData.paymentDetails = {
+            accountNumber: paymentConfig.account_number,
+            accountHolder: paymentConfig.account_holder,
+            transferTitle: paymentConfig.transfer_title?.replace('{order_number}', orderNumber) || orderNumber
+          };
+        }
+
+        await supabase.functions.invoke('send-order-confirmation', {
+          body: emailData
+        });
+
+        console.log('Order confirmation email sent');
+      } catch (emailError) {
+        console.error('Error sending confirmation email:', emailError);
+        // Don't block order completion if email fails
+      }
+
       // Clear cart for non-PayU payments
       localStorage.removeItem('cartItems');
       
       toast.success('Zamówienie zostało złożone pomyślnie!');
       navigate('/dashboard?tab=orders');
+      
       
     } catch (error) {
       console.error('Error creating order:', error);
@@ -973,6 +1026,30 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
                   <span>Całkowita wartość:</span>
                   <span>{finalPrice.toFixed(2)} zł</span>
                 </div>
+
+                {/* Payment details for traditional transfer */}
+                {paymentMethod === 'traditional' && paymentMethodConfig?.account_number && (
+                  <>
+                    <Separator className="my-4" />
+                    <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg space-y-2">
+                      <h4 className="font-semibold text-sm">Dane do przelewu:</h4>
+                      <div className="space-y-1 text-sm">
+                        <p><span className="text-muted-foreground">Numer konta:</span></p>
+                        <p className="font-mono font-semibold">{paymentMethodConfig.account_number}</p>
+                        {paymentMethodConfig.account_holder && (
+                          <p><span className="text-muted-foreground">Odbiorca:</span> {paymentMethodConfig.account_holder}</p>
+                        )}
+                        <p><span className="text-muted-foreground">Kwota:</span> <span className="font-semibold">{finalPrice.toFixed(2)} zł</span></p>
+                        {paymentMethodConfig.transfer_title && (
+                          <p><span className="text-muted-foreground">Tytuł:</span> {paymentMethodConfig.transfer_title.replace('{order_number}', 'ORD-...')}</p>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Dokładne dane zostaną wysłane w potwierdzeniu zamówienia
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>

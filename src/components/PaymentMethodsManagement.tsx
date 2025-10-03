@@ -232,6 +232,71 @@ const PaymentMethodsManagement = () => {
                           />
                         </div>
 
+                        {method.method_key === 'traditional' && (
+                          <>
+                            <div>
+                              <Label htmlFor="account_number">Numer konta bankowego</Label>
+                              <Input
+                                id="account_number"
+                                defaultValue={method.config?.account_number || ''}
+                                placeholder="PL00 0000 0000 0000 0000 0000 0000"
+                                onChange={(e) => {
+                                  if (selectedMethod) {
+                                    setSelectedMethod({
+                                      ...selectedMethod,
+                                      config: {
+                                        ...selectedMethod.config,
+                                        account_number: e.target.value
+                                      }
+                                    });
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="account_holder">Nazwa odbiorcy</Label>
+                              <Input
+                                id="account_holder"
+                                defaultValue={method.config?.account_holder || ''}
+                                placeholder="Nazwa firmy / osoby"
+                                onChange={(e) => {
+                                  if (selectedMethod) {
+                                    setSelectedMethod({
+                                      ...selectedMethod,
+                                      config: {
+                                        ...selectedMethod.config,
+                                        account_holder: e.target.value
+                                      }
+                                    });
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="transfer_title">Tytuł przelewu (szablon)</Label>
+                              <Input
+                                id="transfer_title"
+                                defaultValue={method.config?.transfer_title || ''}
+                                placeholder="Zamówienie {order_number}"
+                                onChange={(e) => {
+                                  if (selectedMethod) {
+                                    setSelectedMethod({
+                                      ...selectedMethod,
+                                      config: {
+                                        ...selectedMethod.config,
+                                        transfer_title: e.target.value
+                                      }
+                                    });
+                                  }
+                                }}
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Użyj {'{order_number}'} dla numeru zamówienia
+                              </p>
+                            </div>
+                          </>
+                        )}
+
                         <div>
                           <Label htmlFor="sort_order">Kolejność sortowania</Label>
                           <Input
@@ -280,7 +345,8 @@ const PaymentMethodsManagement = () => {
                                 name: selectedMethod.name,
                                 description: selectedMethod.description,
                                 sort_order: selectedMethod.sort_order,
-                                is_active: selectedMethod.is_active
+                                is_active: selectedMethod.is_active,
+                                config: selectedMethod.config
                               });
                             }
                           }}
