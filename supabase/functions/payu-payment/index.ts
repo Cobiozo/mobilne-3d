@@ -40,6 +40,15 @@ serve(async (req) => {
     const PAYU_CLIENT_SECRET = Deno.env.get('PAYU_CLIENT_SECRET');
     const PAYU_MD5 = Deno.env.get('PAYU_MD5');
 
+    console.log('PayU credentials check:', {
+      hasPosId: !!PAYU_POS_ID,
+      hasClientId: !!PAYU_CLIENT_ID,
+      hasClientSecret: !!PAYU_CLIENT_SECRET,
+      hasMD5: !!PAYU_MD5,
+      posId: PAYU_POS_ID,
+      clientId: PAYU_CLIENT_ID
+    });
+
     if (!PAYU_POS_ID || !PAYU_CLIENT_ID || !PAYU_CLIENT_SECRET) {
       throw new Error('PayU credentials not configured');
     }
@@ -47,7 +56,7 @@ serve(async (req) => {
     const { action, ...data } = await req.json();
     console.log('PayU request:', { action, data });
 
-    // Get OAuth token
+    // Get OAuth token - using sandbox environment
     const tokenResponse = await fetch('https://secure.snd.payu.com/pl/standard/user/oauth/authorize', {
       method: 'POST',
       headers: {
