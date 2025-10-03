@@ -740,6 +740,16 @@ const Index = () => {
                 <span className="hidden sm:inline">Modele</span>
               </Button>
               
+              {/* Terms Link */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/regulamin')}
+                className="flex items-center gap-2"
+              >
+                <span className="hidden sm:inline">Regulamin</span>
+              </Button>
+              
               {/* Authentication */}
               {!loading && (
                 <div className="flex items-center gap-2">
