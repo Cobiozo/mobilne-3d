@@ -1140,28 +1140,44 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
 
           {/* Order Form */}
           <div className="space-y-6">
-            {/* Shipping Addresses Management */}
-            <ShippingAddresses 
-              onAddressSelect={(address) => {
-                setCustomerInfo(prev => ({
-                  ...prev,
-                  firstName: address.recipient_name.split(' ')[0] || '',
-                  lastName: address.recipient_name.split(' ').slice(1).join(' ') || '',
-                  phone: address.phone || '',
-                  address: address.address || '',
-                  city: address.city || '',
-                  postalCode: address.postal_code || '',
-                  country: address.country || 'Polska'
-                }));
-              }}
-            />
-
             {/* Customer Information */}
             <Card>
               <CardHeader>
                 <CardTitle>Dane klienta</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Display selected parcel locker for paczkomaty delivery */}
+                {deliveryMethod === 'paczkomaty' && selectedParcelLocker && (
+                  <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg mb-4">
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
+                      Wybrany paczkomat:
+                    </p>
+                    <p className="font-semibold text-primary">{selectedParcelLocker.name}</p>
+                    <p className="text-sm">{selectedParcelLocker.address}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedParcelLocker.postal_code} {selectedParcelLocker.city}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Display default address for courier delivery */}
+                {deliveryMethod === 'inpost-courier' && customerInfo.address && (
+                  <div className="p-4 bg-muted border rounded-lg mb-4">
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
+                      Adres dostawy:
+                    </p>
+                    <p className="font-semibold">
+                      {customerInfo.firstName} {customerInfo.lastName}
+                    </p>
+                    <p className="text-sm">{customerInfo.phone}</p>
+                    <p className="text-sm">{customerInfo.address}</p>
+                    <p className="text-sm">
+                      {customerInfo.postalCode} {customerInfo.city}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{customerInfo.country}</p>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName">Imię</Label>
