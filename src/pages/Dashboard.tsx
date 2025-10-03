@@ -29,6 +29,7 @@ import { NotificationsManagement } from '@/components/NotificationsManagement';
 import { SecuritySettings } from '@/components/SecuritySettings';
 import { ColorsManagement } from '@/components/ColorsManagement';
 import PaymentMethodsManagement from '@/components/PaymentMethodsManagement';
+import { MonetizationManagement } from '@/components/MonetizationManagement';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { User, LogOut, Upload, Settings, Home, Package, MapPin, Lock } from 'lucide-react';
 
@@ -210,6 +211,8 @@ const Dashboard = () => {
         return <EmailTemplates />;
       case 'email-logs':
         return <EmailLogs />;
+      case 'monetization':
+        return <MonetizationManagement />;
       case 'profile':
         return (
           <div className="space-y-6">

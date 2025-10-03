@@ -27,7 +27,8 @@ import {
   ArrowLeft,
   Mail,
   History,
-  CreditCard
+  CreditCard,
+  DollarSign
 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
@@ -75,6 +76,12 @@ const adminMenuItems = [
     url: '/dashboard?tab=payment-methods',
     icon: CreditCard,
     section: 'payment-methods'
+  },
+  {
+    title: 'monetization',
+    url: '/dashboard?tab=monetization',
+    icon: DollarSign,
+    section: 'monetization'
   },
   {
     title: 'notes',
