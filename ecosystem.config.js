@@ -13,7 +13,7 @@
 
 export default {
   apps: [{
-    name: '3d-print-app',
+    name: 'mobilne-3d',
     script: './server.js',
     
     // Instance configuration
@@ -24,7 +24,8 @@ export default {
     env: {
       NODE_ENV: 'production',
       PORT: 8080,
-      HOST: '0.0.0.0',
+      HOST: 's108.cyber-folks.pl',
+      SERVER_IP: '195.78.66.103',
     },
     
     // Logging
@@ -51,16 +52,16 @@ export default {
     ignore_watch: ['node_modules', 'logs', 'dist'],
   }],
   
-  // Deployment configuration (optional)
+  // Deployment configuration for Cyberfolks.pl
   deploy: {
     production: {
-      user: 'deploy',
-      host: 'your-server.com',
+      user: 'itshjoxaxd',
+      host: 's108.cyber-folks.pl',
       ref: 'origin/main',
       repo: 'git@github.com:username/repo.git',
-      path: '/var/www/3d-print-app',
+      path: '/home/itshjoxaxd/mobilne-3d',
       'post-deploy': 'npm install && npm run build && pm2 reload ecosystem.config.js --env production',
-      'pre-setup': 'echo "Setting up production server..."',
+      'pre-setup': 'echo "Setting up Cyberfolks production server..."',
     },
   },
 };

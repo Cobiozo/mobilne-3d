@@ -1,5 +1,6 @@
 /**
- * Production Node.js server for 3D Printing Platform
+ * Production Node.js server for Mobilne-3D Platform
+ * Deployed on Cyberfolks.pl (s108.cyber-folks.pl - 195.78.66.103)
  * 
  * This server serves the built static files from the 'dist' directory
  * and handles client-side routing for the Single Page Application (SPA).
@@ -71,9 +72,10 @@ app.use((err, req, res, next) => {
 // Start the server
 app.listen(PORT, HOST, () => {
   console.log('='.repeat(60));
-  console.log('🚀 3D Printing Platform Server');
+  console.log('🚀 Mobilne-3D Platform Server');
   console.log('='.repeat(60));
   console.log(`📍 Server running at: http://${HOST}:${PORT}`);
+  console.log(`🌐 Host: s108.cyber-folks.pl (${process.env.SERVER_IP || '195.78.66.103'})`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'production'}`);
   console.log(`📅 Started at: ${new Date().toLocaleString('pl-PL')}`);
   console.log('='.repeat(60));
