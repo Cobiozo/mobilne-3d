@@ -7,10 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { MoreVertical, Settings, Trash2 } from "lucide-react";
+import { GripVertical } from "lucide-react";
 
 interface PaymentMethod {
   id: string;
@@ -30,6 +29,7 @@ const PaymentMethodsManagement = () => {
   const [loading, setLoading] = useState(true);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
+  const [draggedItem, setDraggedItem] = useState<PaymentMethod | null>(null);
 
   useEffect(() => {
     fetchMethods();
@@ -92,22 +92,57 @@ const PaymentMethodsManagement = () => {
     }
   };
 
-  const deleteMethod = async (id: string) => {
-    if (!confirm('Czy na pewno chcesz usunąć tę metodę płatności?')) return;
+  const handleDragStart = (method: PaymentMethod) => {
+    setDraggedItem(method);
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetMethod: PaymentMethod) => {
+    e.preventDefault();
+    
+    if (!draggedItem || draggedItem.id === targetMethod.id) return;
+
+    const draggedIndex = methods.findIndex(m => m.id === draggedItem.id);
+    const targetIndex = methods.findIndex(m => m.id === targetMethod.id);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const newMethods = [...methods];
+    newMethods.splice(draggedIndex, 1);
+    newMethods.splice(targetIndex, 0, draggedItem);
+
+    // Update sort_order based on new positions
+    const updatedMethods = newMethods.map((m, index) => ({
+      ...m,
+      sort_order: index
+    }));
+
+    setMethods(updatedMethods);
+  };
+
+  const handleDragEnd = async () => {
+    if (!draggedItem) return;
 
     try {
-      const { error } = await supabase
-        .from('payment_methods')
-        .delete()
-        .eq('id', id);
+      // Update all methods with their new sort_order
+      const updates = methods.map((method, index) => ({
+        id: method.id,
+        sort_order: index
+      }));
 
-      if (error) throw error;
+      for (const update of updates) {
+        await supabase
+          .from('payment_methods')
+          .update({ sort_order: update.sort_order })
+          .eq('id', update.id);
+      }
 
-      setMethods(methods.filter(m => m.id !== id));
-      toast.success('Metoda płatności usunięta');
+      toast.success('Kolejność metod płatności zaktualizowana');
     } catch (error) {
-      console.error('Error deleting payment method:', error);
-      toast.error('Błąd podczas usuwania');
+      console.error('Error updating sort order:', error);
+      toast.error('Błąd podczas zmiany kolejności');
+      fetchMethods(); // Reload on error
+    } finally {
+      setDraggedItem(null);
     }
   };
 
@@ -149,9 +184,19 @@ const PaymentMethodsManagement = () => {
 
       <div className="space-y-2">
         {methods.map((method) => (
-          <Card key={method.id} className="hover:shadow-md transition-shadow">
+          <Card 
+            key={method.id} 
+            className="hover:shadow-md transition-shadow cursor-move"
+            draggable
+            onDragStart={() => handleDragStart(method)}
+            onDragOver={(e) => handleDragOver(e, method)}
+            onDragEnd={handleDragEnd}
+          >
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
+                <div className="cursor-grab active:cursor-grabbing">
+                  <GripVertical className="h-5 w-5 text-muted-foreground" />
+                </div>
                 <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-muted">
                   <span className="text-lg font-bold">
                     {getMethodIcon(method.method_key)}
@@ -356,32 +401,6 @@ const PaymentMethodsManagement = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedMethod(method);
-                          setIsConfigDialogOpen(true);
-                        }}
-                      >
-                        <Settings className="mr-2 h-4 w-4" />
-                        Ustawienia
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => deleteMethod(method.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Usuń
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               </div>
             </CardContent>
