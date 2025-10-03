@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
-import { Calendar, Package } from 'lucide-react';
+import { Calendar, Package, CreditCard } from 'lucide-react';
 
 interface Order {
   id: string;
@@ -16,6 +18,7 @@ interface Order {
   material: string | null;
   delivery_method: string | null;
   estimated_delivery: string | null;
+  payment_method: string | null;
   order_items?: OrderItem[];
 }
 
@@ -28,6 +31,88 @@ interface OrderItem {
   material: string;
   thumbnail: string | null;
 }
+
+const PaymentDetailsButton = ({ orderId, totalPrice, orderNumber }: { orderId: string; totalPrice: number; orderNumber: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [paymentConfig, setPaymentConfig] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const loadPaymentDetails = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('payment_methods')
+        .select('config')
+        .eq('method_key', 'traditional')
+        .eq('is_active', true)
+        .single();
+
+      if (error) throw error;
+      setPaymentConfig(data?.config || {});
+    } catch (error) {
+      console.error('Error loading payment details:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && !paymentConfig) {
+      loadPaymentDetails();
+    }
+  }, [isOpen]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="w-full mt-3">
+          <CreditCard className="w-4 h-4 mr-2" />
+          Dane do przelewu
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Dane do przelewu tradycyjnego</DialogTitle>
+        </DialogHeader>
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <LoadingSpinner />
+          </div>
+        ) : paymentConfig ? (
+          <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg space-y-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Numer konta:</p>
+                <p className="font-mono font-semibold text-lg break-all">{paymentConfig.account_number}</p>
+              </div>
+              {paymentConfig.account_holder && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Odbiorca:</p>
+                  <p className="font-semibold">{paymentConfig.account_holder}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-muted-foreground">Kwota:</p>
+                <p className="font-semibold text-lg">{totalPrice.toFixed(2)} zł</p>
+              </div>
+              {paymentConfig.transfer_title && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Tytuł przelewu:</p>
+                  <p className="font-semibold">{paymentConfig.transfer_title.replace('{order_number}', orderNumber)}</p>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Prosimy o dokonanie przelewu w ciągu 3 dni roboczych. Zamówienie zostanie zrealizowane po zaksięgowaniu wpłaty.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Brak skonfigurowanych danych do przelewu</p>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 export const OrderHistory = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -67,6 +152,7 @@ export const OrderHistory = () => {
           material, 
           delivery_method, 
           estimated_delivery,
+          payment_method,
           order_items (
             id,
             model_id,
@@ -206,6 +292,14 @@ export const OrderHistory = () => {
                     </div>
                   )}
                 </div>
+
+                {order.payment_method === 'traditional' && (
+                  <PaymentDetailsButton 
+                    orderId={order.id} 
+                    totalPrice={order.total_price} 
+                    orderNumber={order.order_number} 
+                  />
+                )}
               </div>
             ))}
           </div>
