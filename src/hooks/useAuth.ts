@@ -16,11 +16,33 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('[useAuth] Auth state changed:', event, 'User:', session?.user?.email || 'null');
-        console.log('[useAuth] Cart in localStorage:', localStorage.getItem('cartItems'));
         
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+
+        // Load cart from database when user signs in
+        if (event === 'SIGNED_IN' && session?.user) {
+          setTimeout(async () => {
+            try {
+              const { data } = await supabase
+                .from('user_carts')
+                .select('cart_data')
+                .eq('user_id', session.user.id)
+                .single();
+
+              if (data?.cart_data) {
+                localStorage.setItem('cartItems', JSON.stringify(data.cart_data));
+                window.dispatchEvent(new CustomEvent('cartUpdated', { 
+                  detail: { cartItems: data.cart_data } 
+                }));
+                console.log('[useAuth] Loaded cart from database:', data.cart_data);
+              }
+            } catch (error) {
+              console.error('[useAuth] Error loading cart:', error);
+            }
+          }, 0);
+        }
       }
     );
 
@@ -113,6 +135,12 @@ export const useAuth = () => {
         description: error.message,
         variant: "destructive",
       });
+    } else {
+      // Clear cart from localStorage on logout
+      localStorage.removeItem('cartItems');
+      window.dispatchEvent(new CustomEvent('cartUpdated', { 
+        detail: { cartItems: [] } 
+      }));
     }
 
     return { error };

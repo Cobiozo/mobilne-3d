@@ -23,7 +23,7 @@ import { loadModelFile, Model3MFInfo } from "@/utils/modelLoader";
 import { imageToGen3D, loadImageData } from "@/utils/imageToGeometry";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { User, LogIn } from "lucide-react";
+import { User, LogIn, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import * as THREE from 'three';
@@ -60,7 +60,7 @@ const Index = () => {
   const { language, siteSettings } = useApp();
   const { t } = useTranslation(language);
   const { theme, resolvedTheme } = useTheme();
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"model3d" | "image2d">("model3d");
   const [modelData, setModelData] = useState<ArrayBuffer | null>(null);
@@ -130,18 +130,36 @@ const Index = () => {
     };
   }, []);
 
-  // Save cart to localStorage whenever it changes
+  // Save cart to localStorage and database whenever it changes
   useEffect(() => {
     if (cartItems.length > 0) {
       localStorage.setItem('cartItems', JSON.stringify(cartItems));
       console.log('Saved cart to localStorage:', cartItems);
+      
+      // Save to database if user is logged in
+      if (user) {
+        supabase
+          .from('user_carts')
+          .upsert([{
+            user_id: user.id,
+            cart_data: cartItems as any
+          }])
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error saving cart to database:', error);
+            } else {
+              console.log('Cart saved to database');
+            }
+          });
+      }
+      
       // Dispatch custom event to notify other components
       window.dispatchEvent(new CustomEvent('cartUpdated', { 
         detail: { cartItems } 
       }));
     }
     // Don't remove from localStorage when empty - only when explicitly cleared
-  }, [cartItems]);
+  }, [cartItems, user]);
 
   // Auto-adjust color based on theme and apply site settings
   useEffect(() => {
@@ -754,15 +772,29 @@ const Index = () => {
               {!loading && (
                 <div className="flex items-center gap-2">
                   {user ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate('/dashboard')}
-                      className="flex items-center gap-2"
-                    >
-                      <User className="w-4 h-4" />
-                      <span className="hidden sm:inline">Dashboard</span>
-                    </Button>
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate('/dashboard')}
+                        className="flex items-center gap-2"
+                      >
+                        <User className="w-4 h-4" />
+                        <span className="hidden sm:inline">Dashboard</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          await signOut();
+                          toast.success('Wylogowano pomyślnie');
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span className="hidden sm:inline">Wyloguj</span>
+                      </Button>
+                    </>
                   ) : (
                     <Button
                       variant="ghost"
