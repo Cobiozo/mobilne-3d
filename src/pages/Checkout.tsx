@@ -557,7 +557,59 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
         }
       }
 
-      // Clear cart
+      // Handle PayU payment
+      if (paymentMethod === 'payu') {
+        try {
+          const currentUrl = window.location.origin;
+          const continueUrl = `${currentUrl}/payment-status?orderId=${order.id}`;
+          
+          // Create PayU order
+          const payuResponse = await supabase.functions.invoke('payu-payment', {
+            body: {
+              action: 'create_order',
+              customerIp: '127.0.0.1', // In production, get real IP
+              description: `Zamówienie ${orderNumber}`,
+              totalAmount: finalPrice,
+              buyer: {
+                email: customerInfo.email,
+                phone: customerInfo.phone,
+                firstName: customerInfo.firstName,
+                lastName: customerInfo.lastName,
+              },
+              products: cartItems.map(item => ({
+                name: item.name,
+                unitPrice: (calculatePrice(item) / item.quantity).toString(),
+                quantity: item.quantity.toString(),
+              })),
+              continueUrl,
+            },
+          });
+
+          if (payuResponse.error) {
+            throw new Error(payuResponse.error.message);
+          }
+
+          const payuData = payuResponse.data;
+          
+          if (payuData.success && payuData.redirectUri) {
+            // Clear cart before redirect
+            localStorage.removeItem('cartItems');
+            
+            // Redirect to PayU
+            window.location.href = payuData.redirectUri;
+            return;
+          } else {
+            throw new Error('PayU nie zwróciło URL przekierowania');
+          }
+        } catch (payuError) {
+          console.error('PayU error:', payuError);
+          toast.error(`Błąd płatności PayU: ${payuError instanceof Error ? payuError.message : 'Nieznany błąd'}`);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Clear cart for non-PayU payments
       localStorage.removeItem('cartItems');
       
       toast.success('Zamówienie zostało złożone pomyślnie!');
@@ -1089,11 +1141,7 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
                 <div className="space-y-3">
                   {[
                     { id: 'traditional', name: 'Przelew tradycyjny', desc: 'Standardowy przelew bankowy' },
-                    { id: 'payu', name: 'PayU', desc: 'Szybka płatność online' },
-                    { id: 'blik', name: 'Blik', desc: 'Płatność kodem z aplikacji bankowej' },
-                    { id: 'paypo', name: 'Płacę później z PayPo', desc: 'Kup teraz, zapłać później' },
-                    { id: 'twisto', name: 'Płacę później z Twisto', desc: 'Odroczona płatność' },
-                    { id: 'paypal', name: 'PayPal', desc: 'Bezpieczna płatność międzynarodowa' }
+                    { id: 'payu', name: 'PayU - Płatności online', desc: 'Blik, karty płatnicze, raty, płacę później i więcej' }
                   ].map((method) => (
                     <div
                       key={method.id}
