@@ -46,75 +46,54 @@ serve(async (req) => {
     const { action, userId } = await req.json();
 
     if (action === 'list') {
-      // Get all users first
-      const { data: { users }, error: listError } = await supabaseClient.auth.admin.listUsers();
-
-      if (listError) {
-        console.error('Error listing users:', listError);
-        throw listError;
-      }
-
-      console.log('Total users found:', users.length);
-
-      // Get recent analytics events to determine active sessions (last 7 days)
+      // Get active sessions from our tracking table (last 7 days)
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: events, error: eventsError } = await supabaseClient
-        .from('analytics_events')
-        .select('user_id, ip_address, user_agent, created_at')
-        .not('user_id', 'is', null)
-        .gte('created_at', sevenDaysAgo)
-        .order('created_at', { ascending: false });
+      const { data: sessions, error: sessionsError } = await supabaseClient
+        .from('active_sessions')
+        .select(`
+          id,
+          user_id,
+          ip_address,
+          user_agent,
+          last_activity,
+          created_at
+        `)
+        .gte('last_activity', sevenDaysAgo)
+        .order('last_activity', { ascending: false });
 
-      if (eventsError) {
-        console.error('Error fetching analytics events:', eventsError);
+      if (sessionsError) {
+        console.error('Error fetching sessions:', sessionsError);
+        throw sessionsError;
       }
 
-      console.log('Analytics events found:', events?.length || 0);
+      console.log('Active sessions found:', sessions?.length || 0);
 
-      // Group by user_id to get latest activity
-      const sessionsMap = new Map();
+      // Get user emails for each session
+      const { data: { users }, error: usersError } = await supabaseClient.auth.admin.listUsers();
       
-      if (events && events.length > 0) {
-        for (const event of events) {
-          if (!sessionsMap.has(event.user_id)) {
-            const user = users.find(u => u.id === event.user_id);
-            if (user) {
-              sessionsMap.set(event.user_id, {
-                id: event.user_id,
-                user_id: event.user_id,
-                email: user.email || 'Unknown',
-                created_at: user.created_at,
-                last_seen: event.created_at,
-                ip_address: event.ip_address || 'Unknown',
-                user_agent: event.user_agent || 'Unknown'
-              });
-            }
-          }
-        }
-      } else {
-        // If no analytics events, show all users as potential sessions
-        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        for (const user of users) {
-          // Only show users who logged in within last 24 hours
-          if (user.last_sign_in_at && user.last_sign_in_at > oneDayAgo) {
-            sessionsMap.set(user.id, {
-              id: user.id,
-              user_id: user.id,
-              email: user.email || 'Unknown',
-              created_at: user.created_at,
-              last_seen: user.last_sign_in_at,
-              ip_address: 'Unknown',
-              user_agent: 'Unknown'
-            });
-          }
-        }
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+        throw usersError;
       }
 
-      const sessions = Array.from(sessionsMap.values());
-      console.log('Sessions to return:', sessions.length);
+      // Map sessions with user details
+      const sessionsWithDetails = (sessions || []).map(session => {
+        const user = users.find(u => u.id === session.user_id);
+        return {
+          id: session.id,
+          user_id: session.user_id,
+          email: user?.email || 'Unknown',
+          created_at: user?.created_at || session.created_at,
+          last_seen: session.last_activity,
+          ip_address: session.ip_address ? session.ip_address.toString() : 'Unknown',
+          user_agent: session.user_agent || 'Unknown'
+        };
+      });
+
+      console.log('Sessions to return:', sessionsWithDetails.length);
 
       return new Response(
-        JSON.stringify({ sessions }),
+        JSON.stringify({ sessions: sessionsWithDetails }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
@@ -132,30 +111,16 @@ serve(async (req) => {
         });
       }
 
-      // Delete all sessions for this user from auth.sessions table
+      // Delete all sessions for this user from our tracking table
       console.log('Deleting all sessions for user:', userId);
       const { error: deleteError } = await supabaseClient
-        .from('auth.sessions')
+        .from('active_sessions')
         .delete()
         .eq('user_id', userId);
 
       if (deleteError) {
         console.error('Session deletion error:', deleteError);
-        // If direct deletion fails, try using admin API to update user
-        // This will invalidate all their tokens
-        const { error: updateError } = await supabaseClient.auth.admin.updateUserById(
-          userId,
-          { 
-            user_metadata: { 
-              force_logout: new Date().toISOString() 
-            } 
-          }
-        );
-        
-        if (updateError) {
-          console.error('Update user error:', updateError);
-          throw updateError;
-        }
+        throw deleteError;
       }
 
       console.log('User sessions terminated successfully');
