@@ -15,7 +15,7 @@ export const translations = {
     uploadError: 'Nie udało się załadować pliku modelu',
     
     // Control Panel
-    modelInfo: 'Nazwa pliku',
+    modelInfo: 'Nazwa',
     color: 'Kolor',
     controls: 'Kontrolki',
     reset: 'Resetuj',
@@ -64,7 +64,7 @@ export const translations = {
     currentlySelected: 'Aktualnie wybrany:',
     selectCustom: 'Wybierz niestandardowy:',
     clickHint: 'Kliknij',
-    fileName: 'Nazwa pliku',
+    fileName: 'Nazwa',
     
     // Tabs
     tabModel3D: 'Model 3D',
@@ -309,7 +309,7 @@ export const translations = {
     uploadError: 'Failed to load the model file',
     
     // Control Panel
-    modelInfo: 'File name',
+    modelInfo: 'Name',
     color: 'Color',
     controls: 'Controls',
     reset: 'Reset',
@@ -358,7 +358,7 @@ export const translations = {
     currentlySelected: 'Currently selected:',
     selectCustom: 'Select custom:',
     clickHint: 'Click',
-    fileName: 'File name',
+    fileName: 'Name',
     
     // Tabs
     tabModel3D: '3D Model',
