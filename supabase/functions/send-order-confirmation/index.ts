@@ -81,8 +81,14 @@ serve(async (req) => {
       });
 
     if (decryptError || !decryptedPassword) {
+      console.error('Failed to decrypt SMTP password:', decryptError);
       throw new Error('Failed to decrypt SMTP password');
     }
+
+    console.log('Decrypted password format check:', {
+      length: decryptedPassword.length,
+      startsWithApi: decryptedPassword.startsWith('api-')
+    });
 
     // Build email content
     const itemsList = items.map(item => 
