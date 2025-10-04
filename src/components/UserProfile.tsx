@@ -77,6 +77,8 @@ export const UserProfile = ({ user }: UserProfileProps) => {
         city: profile.city,
         postal_code: profile.postal_code,
         country: profile.country
+      }, {
+        onConflict: 'user_id'
       });
 
     if (error) {
