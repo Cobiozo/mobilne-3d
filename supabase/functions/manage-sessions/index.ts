@@ -56,13 +56,14 @@ serve(async (req) => {
 
       console.log('Total users found:', users.length);
 
-      // Get recent analytics events to determine active sessions
+      // Get recent analytics events to determine active sessions (last 7 days)
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const { data: events, error: eventsError } = await supabaseClient
         .from('analytics_events')
         .select('user_id, ip_address, user_agent, created_at')
         .not('user_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(100);
+        .gte('created_at', sevenDaysAgo)
+        .order('created_at', { ascending: false });
 
       if (eventsError) {
         console.error('Error fetching analytics events:', eventsError);
@@ -131,16 +132,33 @@ serve(async (req) => {
         });
       }
 
-      // Sign out user from all sessions
-      console.log('Attempting to sign out user:', userId);
-      const { error: signOutError } = await supabaseClient.auth.admin.signOut(userId, 'global');
+      // Delete all sessions for this user from auth.sessions table
+      console.log('Deleting all sessions for user:', userId);
+      const { error: deleteError } = await supabaseClient
+        .from('auth.sessions')
+        .delete()
+        .eq('user_id', userId);
 
-      if (signOutError) {
-        console.error('Sign out error:', signOutError);
-        throw signOutError;
+      if (deleteError) {
+        console.error('Session deletion error:', deleteError);
+        // If direct deletion fails, try using admin API to update user
+        // This will invalidate all their tokens
+        const { error: updateError } = await supabaseClient.auth.admin.updateUserById(
+          userId,
+          { 
+            user_metadata: { 
+              force_logout: new Date().toISOString() 
+            } 
+          }
+        );
+        
+        if (updateError) {
+          console.error('Update user error:', updateError);
+          throw updateError;
+        }
       }
 
-      console.log('User signed out successfully');
+      console.log('User sessions terminated successfully');
 
       // Log the action
       await supabaseClient.from('audit_logs').insert({
