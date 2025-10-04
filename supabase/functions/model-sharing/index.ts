@@ -87,9 +87,35 @@ serve(async (req) => {
         continue;
       }
 
-      // Here you would send an email notification
-      // For now, we'll just log it
-      console.log(`Model "${model.name}" shared with ${email} by ${senderName}`);
+      // Send email notification via send-notification function
+      try {
+        const shareUrl = `${req.headers.get('origin')}/shared/${sharingToken}`;
+        const emailHtml = `
+          <h1>Model został z Tobą udostępniony</h1>
+          <p>${senderName} udostępnił Ci model: <strong>${model.name}</strong></p>
+          ${message ? `<p>Wiadomość: ${message}</p>` : ''}
+          <p>Uprawnienia: ${permissions === 'view' ? 'Podgląd' : permissions === 'download' ? 'Pobieranie' : 'Edycja'}</p>
+          <p><a href="${shareUrl}">Kliknij tutaj, aby zobaczyć model</a></p>
+          <p>Link wygasa za 30 dni.</p>
+        `;
+
+        await supabaseClient.functions.invoke('send-notification', {
+          body: {
+            to: email,
+            subject: `${senderName} udostępnił Ci model "${model.name}"`,
+            html: emailHtml,
+            text: `${senderName} udostępnił Ci model "${model.name}". Odwiedź: ${shareUrl}`,
+          },
+          headers: {
+            Authorization: authHeader,
+          },
+        });
+
+        console.log(`Notification sent to ${email} for model "${model.name}"`);
+      } catch (emailError) {
+        console.error(`Failed to send email to ${email}:`, emailError);
+        // Continue even if email fails
+      }
       
       sharingResults.push({
         email,
