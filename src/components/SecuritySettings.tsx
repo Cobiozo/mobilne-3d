@@ -106,14 +106,18 @@ export const SecuritySettings = () => {
         body: { action: 'list' }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error response from manage-sessions:', error);
+        throw error;
+      }
 
-      setActiveSessions(data.sessions || []);
+      console.log('Sessions data received:', data);
+      setActiveSessions(data?.sessions || []);
     } catch (error) {
       console.error('Error fetching sessions:', error);
       toast({
         title: 'Błąd',
-        description: 'Nie udało się pobrać aktywnych sesji',
+        description: `Nie udało się pobrać aktywnych sesji: ${error.message}`,
         variant: 'destructive',
       });
     }
