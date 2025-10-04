@@ -608,6 +608,42 @@ export type Database = {
         }
         Relationships: []
       }
+      payu_settings: {
+        Row: {
+          client_id: string
+          client_secret_encrypted: string
+          created_at: string
+          environment: string
+          id: string
+          is_active: boolean
+          md5_encrypted: string
+          pos_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          client_secret_encrypted: string
+          created_at?: string
+          environment?: string
+          id?: string
+          is_active?: boolean
+          md5_encrypted: string
+          pos_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          client_secret_encrypted?: string
+          created_at?: string
+          environment?: string
+          id?: string
+          is_active?: boolean
+          md5_encrypted?: string
+          pos_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -988,8 +1024,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      decrypt_payu_credential: {
+        Args: { encrypted_credential: string }
+        Returns: string
+      }
       decrypt_smtp_password: {
         Args: { encrypted_password: string }
+        Returns: string
+      }
+      encrypt_payu_credential: {
+        Args: { credential: string }
         Returns: string
       }
       encrypt_smtp_password: {

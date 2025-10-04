@@ -78,6 +78,12 @@ const adminMenuItems = [
     section: 'payment-methods'
   },
   {
+    title: 'payu_settings',
+    url: '/dashboard?tab=payu-settings',
+    icon: CreditCard,
+    section: 'payu-settings'
+  },
+  {
     title: 'monetization',
     url: '/dashboard?tab=monetization',
     icon: DollarSign,

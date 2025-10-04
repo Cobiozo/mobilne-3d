@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,29 +36,59 @@ serve(async (req) => {
   }
 
   try {
-    const PAYU_POS_ID = Deno.env.get('PAYU_POS_ID');
-    const PAYU_CLIENT_ID = Deno.env.get('PAYU_CLIENT_ID');
-    const PAYU_CLIENT_SECRET = Deno.env.get('PAYU_CLIENT_SECRET');
-    const PAYU_MD5 = Deno.env.get('PAYU_MD5');
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Get PayU settings from database
+    const { data: payuSettings, error: settingsError } = await supabaseClient
+      .from('payu_settings')
+      .select('*')
+      .eq('is_active', true)
+      .single();
+
+    if (settingsError || !payuSettings) {
+      console.error('No active PayU settings found:', settingsError);
+      throw new Error('PayU settings not configured');
+    }
+
+    // Decrypt MD5 and Client Secret
+    const { data: decryptedMd5, error: md5Error } = await supabaseClient.rpc('decrypt_payu_credential', {
+      encrypted_credential: payuSettings.md5_encrypted
+    });
+
+    const { data: decryptedSecret, error: secretError } = await supabaseClient.rpc('decrypt_payu_credential', {
+      encrypted_credential: payuSettings.client_secret_encrypted
+    });
+
+    if (md5Error || secretError || !decryptedMd5 || !decryptedSecret) {
+      console.error('Failed to decrypt PayU credentials');
+      throw new Error('Failed to decrypt PayU credentials');
+    }
+
+    const PAYU_POS_ID = payuSettings.pos_id;
+    const PAYU_CLIENT_ID = payuSettings.client_id;
+    const PAYU_CLIENT_SECRET = decryptedSecret;
+    const PAYU_MD5 = decryptedMd5;
+    const PAYU_ENVIRONMENT = payuSettings.environment || 'sandbox';
+    const PAYU_BASE_URL = PAYU_ENVIRONMENT === 'production' 
+      ? 'https://secure.payu.com' 
+      : 'https://secure.snd.payu.com';
 
     console.log('PayU credentials check:', {
       hasPosId: !!PAYU_POS_ID,
       hasClientId: !!PAYU_CLIENT_ID,
       hasClientSecret: !!PAYU_CLIENT_SECRET,
       hasMD5: !!PAYU_MD5,
-      posId: PAYU_POS_ID,
-      clientId: PAYU_CLIENT_ID
+      environment: PAYU_ENVIRONMENT
     });
-
-    if (!PAYU_POS_ID || !PAYU_CLIENT_ID || !PAYU_CLIENT_SECRET) {
-      throw new Error('PayU credentials not configured');
-    }
 
     const { action, ...data } = await req.json();
     console.log('PayU request:', { action, data });
 
-    // Get OAuth token - using sandbox environment
-    const tokenResponse = await fetch('https://secure.snd.payu.com/pl/standard/user/oauth/authorize', {
+    // Get OAuth token
+    const tokenResponse = await fetch(`${PAYU_BASE_URL}/pl/standard/user/oauth/authorize`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -104,7 +135,7 @@ serve(async (req) => {
 
       console.log('Creating PayU order:', orderData);
 
-      const orderResponse = await fetch('https://secure.snd.payu.com/api/v2_1/orders', {
+      const orderResponse = await fetch(`${PAYU_BASE_URL}/api/v2_1/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -161,7 +192,7 @@ serve(async (req) => {
       // Get order status from PayU
       const orderId = data.orderId;
 
-      const statusResponse = await fetch(`https://secure.snd.payu.com/api/v2_1/orders/${orderId}`, {
+      const statusResponse = await fetch(`${PAYU_BASE_URL}/api/v2_1/orders/${orderId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
