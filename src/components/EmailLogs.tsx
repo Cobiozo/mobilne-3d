@@ -2,7 +2,19 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -28,6 +40,7 @@ export const EmailLogs = () => {
   const { toast } = useToast();
   const [logs, setLogs] = useState<EmailLog[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     fetchLogs();
@@ -57,6 +70,34 @@ export const EmailLogs = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleClearLogs = async () => {
+    setIsClearing(true);
+    try {
+      const { error } = await supabase
+        .from("email_logs")
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+      if (error) throw error;
+
+      toast({
+        title: "Sukces",
+        description: "Historia emaili została wyczyszczona",
+      });
+      
+      setLogs([]);
+    } catch (error) {
+      console.error("Error clearing email logs:", error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się wyczyścić historii emaili",
+        variant: "destructive",
+      });
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -91,8 +132,38 @@ export const EmailLogs = () => {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Historia wysłanych emaili</CardTitle>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive" 
+                size="sm"
+                disabled={isClearing || logs.length === 0}
+              >
+                {isClearing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                <span className="ml-2">Wyczyść historię</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Czy na pewno?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Ta akcja usunie całą historię wysłanych emaili. Nie można jej cofnąć.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                <AlertDialogAction onClick={handleClearLogs}>
+                  Wyczyść historię
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardHeader>
         <CardContent>
           <Table>
