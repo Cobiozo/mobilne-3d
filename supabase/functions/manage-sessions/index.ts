@@ -46,43 +46,74 @@ serve(async (req) => {
     const { action, userId } = await req.json();
 
     if (action === 'list') {
-      // Get all users
+      // Get all users first
       const { data: { users }, error: listError } = await supabaseClient.auth.admin.listUsers();
 
       if (listError) {
+        console.error('Error listing users:', listError);
         throw listError;
       }
 
+      console.log('Total users found:', users.length);
+
       // Get recent analytics events to determine active sessions
-      const { data: events } = await supabaseClient
+      const { data: events, error: eventsError } = await supabaseClient
         .from('analytics_events')
         .select('user_id, ip_address, user_agent, created_at')
         .not('user_id', 'is', null)
         .order('created_at', { ascending: false })
         .limit(100);
 
+      if (eventsError) {
+        console.error('Error fetching analytics events:', eventsError);
+      }
+
+      console.log('Analytics events found:', events?.length || 0);
+
       // Group by user_id to get latest activity
       const sessionsMap = new Map();
       
-      for (const event of events || []) {
-        if (!sessionsMap.has(event.user_id)) {
-          const user = users.find(u => u.id === event.user_id);
-          if (user) {
-            sessionsMap.set(event.user_id, {
-              id: event.user_id,
-              user_id: event.user_id,
+      if (events && events.length > 0) {
+        for (const event of events) {
+          if (!sessionsMap.has(event.user_id)) {
+            const user = users.find(u => u.id === event.user_id);
+            if (user) {
+              sessionsMap.set(event.user_id, {
+                id: event.user_id,
+                user_id: event.user_id,
+                email: user.email || 'Unknown',
+                created_at: user.created_at,
+                last_seen: event.created_at,
+                ip_address: event.ip_address || 'Unknown',
+                user_agent: event.user_agent || 'Unknown'
+              });
+            }
+          }
+        }
+      } else {
+        // If no analytics events, show all users as potential sessions
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        for (const user of users) {
+          // Only show users who logged in within last 24 hours
+          if (user.last_sign_in_at && user.last_sign_in_at > oneDayAgo) {
+            sessionsMap.set(user.id, {
+              id: user.id,
+              user_id: user.id,
               email: user.email || 'Unknown',
               created_at: user.created_at,
-              last_seen: event.created_at,
-              ip_address: event.ip_address || 'Unknown',
-              user_agent: event.user_agent || 'Unknown'
+              last_seen: user.last_sign_in_at,
+              ip_address: 'Unknown',
+              user_agent: 'Unknown'
             });
           }
         }
       }
 
+      const sessions = Array.from(sessionsMap.values());
+      console.log('Sessions to return:', sessions.length);
+
       return new Response(
-        JSON.stringify({ sessions: Array.from(sessionsMap.values()) }),
+        JSON.stringify({ sessions }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }

@@ -231,7 +231,10 @@ export const SecuritySettings = () => {
 
       {/* Stats Cards */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-        <Card>
+        <Card 
+          className="cursor-pointer hover:bg-accent transition-colors"
+          onClick={() => setSeverityFilter('all')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Wszystkie logi</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
@@ -242,7 +245,10 @@ export const SecuritySettings = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer hover:bg-accent transition-colors"
+          onClick={() => setSeverityFilter('warning')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ostrzeżenia</CardTitle>
             <AlertTriangle className="h-4 w-4 text-orange-500" />
@@ -255,7 +261,10 @@ export const SecuritySettings = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer hover:bg-accent transition-colors"
+          onClick={() => setSeverityFilter('critical')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Krytyczne</CardTitle>
             <AlertCircle className="h-4 w-4 text-red-500" />
