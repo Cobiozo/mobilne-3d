@@ -313,6 +313,12 @@ export const translations = {
     saveRating: 'Zapisz ocenę',
     saveSettings: 'Zapisz ustawienia',
     loading: 'Ładowanie...',
+    clickToView: 'Kliknij aby zobaczyć',
+    yourRating: 'Twoja ocena',
+    rateThisModel: 'Oceń ten model',
+    yourRatingHelps: 'Twoja ocena pomoże innym użytkownikom',
+    writeWhatYouThink: 'Napisz co sądzisz o tym modelu...',
+    noRatings: 'Brak ocen',
     
     // General
     error: 'Błąd',
@@ -630,6 +636,12 @@ export const translations = {
     saveRating: 'Save Rating',
     saveSettings: 'Save Settings',
     loading: 'Loading...',
+    clickToView: 'Click to view',
+    yourRating: 'Your Rating',
+    rateThisModel: 'Rate This Model',
+    yourRatingHelps: 'Your rating will help other users',
+    writeWhatYouThink: 'Write what you think about this model...',
+    noRatings: 'No ratings',
     
     // General
     error: 'Error',

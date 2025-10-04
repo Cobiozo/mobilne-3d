@@ -12,6 +12,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from './ui/dialog';
+import { useApp } from '@/contexts/AppContext';
+import { getText } from '@/lib/i18n';
 
 interface ModelRatingProps {
   modelId: string;
@@ -27,6 +29,7 @@ interface Rating {
 }
 
 export const ModelRating = ({ modelId, modelOwnerId, currentUserId, compact = false }: ModelRatingProps) => {
+  const { language } = useApp();
   const [averageRating, setAverageRating] = useState<number>(0);
   const [totalRatings, setTotalRatings] = useState<number>(0);
   const [userRating, setUserRating] = useState<number>(0);
@@ -164,20 +167,20 @@ export const ModelRating = ({ modelId, modelOwnerId, currentUserId, compact = fa
             <DialogTrigger asChild>
               <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
                 <Star className="w-3 h-3 mr-1" />
-                {userRating > 0 ? 'Edytuj' : 'Oceń'}
+                {userRating > 0 ? getText('editRating', language) : getText('rate', language)}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Oceń ten model</DialogTitle>
+                <DialogTitle>{getText('rateThisModel', language)}</DialogTitle>
                 <DialogDescription>
-                  Twoja ocena pomoże innym użytkownikom
+                  {getText('yourRatingHelps', language)}
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Twoja ocena</label>
+                  <label className="text-sm font-medium">{getText('yourRating', language)}</label>
                   {renderStars(userRating, true)}
                 </div>
 
@@ -188,16 +191,16 @@ export const ModelRating = ({ modelId, modelOwnerId, currentUserId, compact = fa
                   <Textarea
                     value={userComment}
                     onChange={(e) => setUserComment(e.target.value)}
-                    placeholder="Napisz co sądzisz o tym modelu..."
+                    placeholder={getText('writeWhatYouThink', language)}
                     rows={4}
                   />
                 </div>
 
                 <div className="flex gap-2 justify-end">
                   <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Anuluj
+                    {getText('cancel', language)}
                   </Button>
-                  <Button onClick={handleRatingSubmit}>Zapisz ocenę</Button>
+                  <Button onClick={handleRatingSubmit}>{getText('saveRating', language)}</Button>
                 </div>
               </div>
             </DialogContent>
@@ -218,7 +221,7 @@ export const ModelRating = ({ modelId, modelOwnerId, currentUserId, compact = fa
               {totalRatings === 1 ? 'ocena' : 'ocen'})
             </>
           ) : (
-            'Brak ocen'
+            getText('noRatings', language)
           )}
         </span>
       </div>
@@ -227,20 +230,20 @@ export const ModelRating = ({ modelId, modelOwnerId, currentUserId, compact = fa
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" size="sm">
-              {userRating > 0 ? 'Edytuj ocenę' : 'Oceń model'}
+              {userRating > 0 ? getText('editYourRating', language) : getText('rateModel', language)}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Oceń ten model</DialogTitle>
-              <DialogDescription>
-                Twoja ocena pomoże innym użytkownikom
-              </DialogDescription>
+                <DialogTitle>{getText('rateThisModel', language)}</DialogTitle>
+                <DialogDescription>
+                  {getText('yourRatingHelps', language)}
+                </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Twoja ocena</label>
+                <label className="text-sm font-medium">{getText('yourRating', language)}</label>
                 {renderStars(userRating, true)}
               </div>
 
@@ -251,16 +254,16 @@ export const ModelRating = ({ modelId, modelOwnerId, currentUserId, compact = fa
                 <Textarea
                   value={userComment}
                   onChange={(e) => setUserComment(e.target.value)}
-                  placeholder="Napisz co sądzisz o tym modelu..."
+                  placeholder={getText('writeWhatYouThink', language)}
                   rows={4}
                 />
               </div>
 
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Anuluj
+                  {getText('cancel', language)}
                 </Button>
-                <Button onClick={handleRatingSubmit}>Zapisz ocenę</Button>
+                <Button onClick={handleRatingSubmit}>{getText('saveRating', language)}</Button>
               </div>
             </div>
           </DialogContent>

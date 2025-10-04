@@ -22,8 +22,18 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [language, setLanguage] = useState<Language>('pl');
+  // Load language from localStorage on init, default to 'pl' if not found
+  const [language, setLanguageState] = useState<Language>(() => {
+    const savedLanguage = localStorage.getItem('preferredLanguage');
+    return (savedLanguage === 'en' || savedLanguage === 'pl') ? savedLanguage : 'pl';
+  });
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
+
+  // Custom setLanguage that also saves to localStorage
+  const setLanguage = (newLanguage: Language) => {
+    setLanguageState(newLanguage);
+    localStorage.setItem('preferredLanguage', newLanguage);
+  };
 
   const fetchSiteSettings = async () => {
     try {

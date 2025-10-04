@@ -387,7 +387,7 @@ export const PublicModels = () => {
                 className="w-full h-64"
               />
               <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
-                Kliknij aby zobaczyć
+                {getText('clickToView', language)}
               </div>
             </CardHeader>
             <CardContent className="p-4">
