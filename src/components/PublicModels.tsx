@@ -332,6 +332,7 @@ export const PublicModels = () => {
                 modelColor={previewModel ? selectedColors[previewModel.id] || '#000000' : '#000000'}
                 onColorChange={(color) => previewModel && handleColorChange(previewModel.id, color)}
                 fileName={previewModel?.name}
+                hideControls={true}
               />
               
               {previewModelData && previewModel && (
