@@ -407,7 +407,7 @@ export const PublicModels = () => {
                     )}
                     {model.profiles?.display_name && (
                       <span className="text-xs text-muted-foreground">
-                        by {model.profiles.display_name}
+                        Dodany przez: {model.profiles.display_name}
                       </span>
                     )}
                   </div>
