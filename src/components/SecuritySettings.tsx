@@ -180,11 +180,18 @@ export const SecuritySettings = () => {
 
   const terminateUserSession = async (userId: string) => {
     try {
+      console.log('Terminating session for user:', userId);
+      
       const { data, error } = await supabase.functions.invoke('manage-sessions', {
         body: { action: 'terminate', userId }
       });
 
-      if (error) throw error;
+      console.log('Terminate response:', { data, error });
+
+      if (error) {
+        console.error('Error from edge function:', error);
+        throw error;
+      }
 
       toast({
         title: 'Sukces',
@@ -196,7 +203,7 @@ export const SecuritySettings = () => {
       console.error('Error terminating session:', error);
       toast({
         title: 'Błąd',
-        description: 'Nie udało się zakończyć sesji użytkownika',
+        description: `Nie udało się zakończyć sesji: ${error.message}`,
         variant: 'destructive',
       });
     }

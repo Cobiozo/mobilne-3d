@@ -121,7 +121,10 @@ serve(async (req) => {
     }
 
     if (action === 'terminate') {
+      console.log('Terminate action called with userId:', userId);
+      
       if (!userId) {
+        console.error('userId is missing');
         return new Response(JSON.stringify({ error: 'userId is required' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -129,11 +132,15 @@ serve(async (req) => {
       }
 
       // Sign out user from all sessions
+      console.log('Attempting to sign out user:', userId);
       const { error: signOutError } = await supabaseClient.auth.admin.signOut(userId);
 
       if (signOutError) {
+        console.error('Sign out error:', signOutError);
         throw signOutError;
       }
+
+      console.log('User signed out successfully');
 
       // Log the action
       await supabaseClient.from('audit_logs').insert({
@@ -144,6 +151,8 @@ serve(async (req) => {
         severity: 'warning',
         details: { terminated_user_id: userId }
       });
+
+      console.log('Audit log created');
 
       return new Response(
         JSON.stringify({ success: true, message: 'User session terminated' }),
