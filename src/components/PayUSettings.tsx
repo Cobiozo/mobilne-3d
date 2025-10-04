@@ -84,14 +84,17 @@ export const PayUSettings = () => {
         updateData.client_secret_encrypted = encryptedSecret;
       }
 
-      const { error } = settings.id
-        ? await supabase
-            .from("payu_settings")
-            .update(updateData)
-            .eq("id", settings.id)
-        : await supabase
-            .from("payu_settings")
-            .insert([updateData]);
+      let error;
+      if (settings.id) {
+        ({ error } = await supabase
+          .from("payu_settings")
+          .update(updateData)
+          .eq("id", settings.id));
+      } else {
+        ({ error } = await supabase
+          .from("payu_settings")
+          .insert([updateData]));
+      }
 
       if (error) throw error;
 

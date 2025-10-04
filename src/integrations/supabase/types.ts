@@ -611,34 +611,34 @@ export type Database = {
       payu_settings: {
         Row: {
           client_id: string
-          client_secret_encrypted: string
+          client_secret_encrypted: string | null
           created_at: string
           environment: string
           id: string
           is_active: boolean
-          md5_encrypted: string
+          md5_encrypted: string | null
           pos_id: string
           updated_at: string
         }
         Insert: {
           client_id: string
-          client_secret_encrypted: string
+          client_secret_encrypted?: string | null
           created_at?: string
           environment?: string
           id?: string
           is_active?: boolean
-          md5_encrypted: string
+          md5_encrypted?: string | null
           pos_id: string
           updated_at?: string
         }
         Update: {
           client_id?: string
-          client_secret_encrypted?: string
+          client_secret_encrypted?: string | null
           created_at?: string
           environment?: string
           id?: string
           is_active?: boolean
-          md5_encrypted?: string
+          md5_encrypted?: string | null
           pos_id?: string
           updated_at?: string
         }
