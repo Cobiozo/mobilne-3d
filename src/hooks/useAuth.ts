@@ -91,7 +91,7 @@ export const useAuth = () => {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -102,9 +102,33 @@ export const useAuth = () => {
         description: error.message,
         variant: "destructive",
       });
+      return { error };
     }
 
-    return { error };
+    // Check if email verification is required
+    const { data: settings } = await supabase
+      .from('site_settings')
+      .select('setting_value')
+      .eq('setting_key', 'email_verification_required')
+      .single();
+
+    const emailVerificationRequired = settings?.setting_value ?? true;
+
+    // If email verification is required and email is not verified
+    if (emailVerificationRequired && data.user && !data.user.email_confirmed_at) {
+      // Sign out the user
+      await supabase.auth.signOut();
+      
+      toast({
+        title: "Wymagana weryfikacja email",
+        description: "Musisz potwierdzić swój adres email przed zalogowaniem. Sprawdź swoją skrzynkę pocztową.",
+        variant: "destructive",
+      });
+      
+      return { error: new Error('Email not verified') };
+    }
+
+    return { error: null };
   };
 
   const signInWithGoogle = async () => {

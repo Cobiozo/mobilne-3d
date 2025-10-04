@@ -6,14 +6,41 @@ import { ThemeSelector } from '@/components/ThemeSelector';
 import { LanguageThemeSelector } from '@/components/LanguageThemeSelector';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { User, LogIn, Layers3, ArrowLeft } from 'lucide-react';
+import { User, LogIn, Layers3, ArrowLeft, Lock } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const PublicModelsPage = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [publicViewingEnabled, setPublicViewingEnabled] = useState<boolean | null>(null);
+
+  // Check if public viewing is enabled
+  useEffect(() => {
+    const checkPublicViewing = async () => {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('setting_value')
+        .eq('setting_key', 'public_model_viewing')
+        .single();
+
+      const enabled = typeof data?.setting_value === 'boolean' ? data.setting_value : true;
+      setPublicViewingEnabled(enabled);
+
+      // If disabled and user is not logged in, redirect to auth
+      if (!enabled && !user && !loading) {
+        toast.error('Przeglądanie modeli wymaga zalogowania');
+        navigate('/auth?returnTo=/models');
+      }
+    };
+
+    if (!loading) {
+      checkPublicViewing();
+    }
+  }, [user, loading, navigate]);
 
   // Load cart from localStorage on mount
   useEffect(() => {
