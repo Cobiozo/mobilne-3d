@@ -279,7 +279,6 @@ const Dashboard = () => {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="hidden sm:flex"
                     onClick={() => navigate('/')}
                   >
                     <Home className="w-4 h-4 md:mr-2" />
@@ -329,7 +328,6 @@ const Dashboard = () => {
               type="button"
               variant="outline"
               size="sm"
-              className="hidden sm:flex"
               onClick={() => navigate('/')}
             >
               <Home className="w-4 h-4 md:mr-2" />
