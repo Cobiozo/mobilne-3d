@@ -64,19 +64,24 @@ serve(async (req) => {
     }: OrderConfirmationRequest = await req.json();
 
     // Get SMTP settings
-    const { data: smtpSettings } = await supabase
+    const { data: smtpSettings, error: settingsError } = await supabase
       .from('smtp_settings')
       .select('*')
       .eq('is_active', true)
       .single();
 
-    if (!smtpSettings) {
+    if (settingsError || !smtpSettings) {
       throw new Error('SMTP settings not configured');
     }
 
-    const smtpPassword = Deno.env.get('SMTP_PASSWORD');
-    if (!smtpPassword) {
-      throw new Error('SMTP password not configured');
+    // Decrypt SMTP password
+    const { data: decryptedPassword, error: decryptError } = await supabase
+      .rpc('decrypt_smtp_password', {
+        encrypted_password: smtpSettings.smtp_password_encrypted
+      });
+
+    if (decryptError || !decryptedPassword) {
+      throw new Error('Failed to decrypt SMTP password');
     }
 
     // Build email content
@@ -171,15 +176,13 @@ serve(async (req) => {
       html: htmlContent,
     };
 
-    const smtpUrl = `smtp${smtpSettings.smtp_secure ? 's' : ''}://${smtpSettings.smtp_user}:${smtpPassword}@${smtpSettings.smtp_host}:${smtpSettings.smtp_port}`;
-    
     const response = await fetch('https://api.smtp2go.com/v3/email/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        api_key: smtpPassword,
+        api_key: decryptedPassword,
         to: [customerEmail],
         sender: smtpSettings.from_email,
         subject: emailData.subject,
