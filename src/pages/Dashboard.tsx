@@ -78,14 +78,11 @@ const Dashboard = () => {
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    if (cartItems.length > 0) {
-      localStorage.setItem('cartItems', JSON.stringify(cartItems));
-      // Notify other components about the change
-      window.dispatchEvent(new CustomEvent('cartUpdated', { 
-        detail: { cartItems } 
-      }));
-    }
-    // Don't remove from localStorage when empty - only when explicitly cleared
+    localStorage.setItem('cartItems', JSON.stringify(cartItems));
+    // Notify other components about the change
+    window.dispatchEvent(new CustomEvent('cartUpdated', { 
+      detail: { cartItems } 
+    }));
   }, [cartItems]);
 
   const handleUpdateQuantity = (id: string, quantity: number) => {
@@ -104,6 +101,10 @@ const Dashboard = () => {
 
   const handleClearCart = () => {
     setCartItems([]);
+    localStorage.removeItem('cartItems');
+    window.dispatchEvent(new CustomEvent('cartUpdated', { 
+      detail: { cartItems: [] } 
+    }));
   };
 
   useEffect(() => {
