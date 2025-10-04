@@ -25,6 +25,7 @@ export const EmailSettings = () => {
     last_test_status: "",
     last_test_at: "",
   });
+  const [smtpPassword, setSmtpPassword] = useState("");
 
   useEffect(() => {
     fetchSettings();
@@ -71,9 +72,35 @@ export const EmailSettings = () => {
 
       if (error) throw error;
 
+      // Update SMTP password secret if provided
+      if (smtpPassword.trim()) {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        const { error: secretError } = await supabase.functions.invoke('update-smtp-password', {
+          body: { password: smtpPassword },
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+        });
+
+        if (secretError) {
+          console.error("Error updating SMTP password:", secretError);
+          toast({
+            title: "Ostrzeżenie",
+            description: "Ustawienia zapisane, ale nie udało się zaktualizować hasła SMTP",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        setSmtpPassword(""); // Clear password field after successful update
+      }
+
       toast({
         title: "Sukces",
-        description: "Ustawienia SMTP zostały zapisane",
+        description: smtpPassword.trim() 
+          ? "Ustawienia SMTP i hasło zostały zapisane" 
+          : "Ustawienia SMTP zostały zapisane",
       });
       
       await fetchSettings();
@@ -226,6 +253,17 @@ export const EmailSettings = () => {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="smtp_password">Hasło SMTP</Label>
+              <Input
+                id="smtp_password"
+                type="password"
+                value={smtpPassword}
+                onChange={(e) => setSmtpPassword(e.target.value)}
+                placeholder="Wpisz nowe hasło aby je zmienić"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="from_email">Email nadawcy</Label>
               <Input
                 id="from_email"
@@ -265,18 +303,6 @@ export const EmailSettings = () => {
             </div>
           </div>
 
-          <Alert>
-            <AlertDescription className="flex items-center justify-between">
-              <span>Hasło SMTP jest przechowywane bezpiecznie w sekretach Supabase jako SMTP_PASSWORD</span>
-              <Button
-                variant="link"
-                size="sm"
-                onClick={() => window.open('https://supabase.com/dashboard/project/rzupsyhyoztaekcwmels/settings/functions', '_blank')}
-              >
-                Zaktualizuj hasło
-              </Button>
-            </AlertDescription>
-          </Alert>
 
           <div className="flex gap-2">
             <Button onClick={handleSave} disabled={isLoading}>
