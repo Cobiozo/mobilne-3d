@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import nodemailer from 'npm:nodemailer@6.9.7';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -85,11 +86,6 @@ serve(async (req) => {
       throw new Error('Failed to decrypt SMTP password');
     }
 
-    console.log('Decrypted password format check:', {
-      length: decryptedPassword.length,
-      startsWithApi: decryptedPassword.startsWith('api-')
-    });
-
     // Build email content
     const itemsList = items.map(item => 
       `<li>${item.name} - ${item.quantity} szt. × ${(item.price / item.quantity).toFixed(2)} zł = ${item.price.toFixed(2)} zł</li>`
@@ -168,52 +164,48 @@ serve(async (req) => {
               <p style="margin: 5px 0;"><strong>Kraj:</strong> ${invoiceData.country}</p>
             </div>
           </div>
-          ` : ''}
+    ` : ''}
         </div>
       </body>
     </html>
   `;
 
-    // Send email using SMTP
-    const emailData = {
+    // Create nodemailer transporter
+    const transporter = nodemailer.createTransport({
+      host: smtpSettings.smtp_host,
+      port: smtpSettings.smtp_port,
+      secure: smtpSettings.smtp_secure,
+      auth: {
+        user: smtpSettings.smtp_user,
+        pass: decryptedPassword,
+      },
+    });
+
+    console.log('Attempting to send order confirmation email via nodemailer...');
+
+    // Send email using nodemailer
+    const info = await transporter.sendMail({
       from: `${smtpSettings.from_name} <${smtpSettings.from_email}>`,
       to: customerEmail,
       subject: `Potwierdzenie zamówienia ${orderNumber}`,
       html: htmlContent,
-    };
-
-    const response = await fetch('https://api.smtp2go.com/v3/email/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        api_key: decryptedPassword,
-        to: [customerEmail],
-        sender: smtpSettings.from_email,
-        subject: emailData.subject,
-        html_body: htmlContent,
-      })
     });
 
-    const responseData = await response.json();
-
-    if (!response.ok) {
-      console.error('SMTP send failed:', responseData);
-    }
+    console.log('Email sent successfully:', info.messageId);
 
     // Log email
     await supabase.from('email_logs').insert({
       user_id: null,
       recipient_email: customerEmail,
-      subject: emailData.subject,
+      subject: `Potwierdzenie zamówienia ${orderNumber}`,
       template_type: 'order_confirmation',
-      status: response.ok ? 'sent' : 'failed',
-      sent_at: response.ok ? new Date().toISOString() : null,
-      error_message: response.ok ? null : JSON.stringify(responseData),
+      status: 'sent',
+      sent_at: new Date().toISOString(),
+      error_message: null,
       metadata: {
         order_id: orderId,
         order_number: orderNumber,
+        message_id: info.messageId,
       }
     });
 
