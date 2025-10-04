@@ -51,6 +51,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const [editingModel, setEditingModel] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
   const [availableColors, setAvailableColors] = useState<Array<{ color_hex: string; color_name: string }>>([]);
@@ -164,6 +165,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
   const openEditDialog = (model: Model) => {
     setEditingModel(model.id);
     setEditName(model.name);
+    setEditDescription(model.description || '');
     setShowEditDialog(true);
   };
 
@@ -173,7 +175,8 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
     const { error } = await supabase
       .from('models')
       .update({ 
-        name: editName.trim()
+        name: editName.trim(),
+        description: editDescription.trim() || null
       })
       .eq('id', editingModel);
 
@@ -181,7 +184,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
       sonnerToast.error('Nie udało się zaktualizować modelu');
     } else {
       setModels(models.map(m => 
-        m.id === editingModel ? { ...m, name: editName.trim() } : m
+        m.id === editingModel ? { ...m, name: editName.trim(), description: editDescription.trim() || null } : m
       ));
       sonnerToast.success('Model zaktualizowany pomyślnie');
       setShowEditDialog(false);
@@ -399,11 +402,30 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                   </div>
                 </div>
                 
-                {model.description && (
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                    {model.description}
-                  </p>
-                )}
+                {/* Description with edit button */}
+                <div className="mb-4">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <span className="text-xs font-medium text-muted-foreground">Opis:</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEditDialog(model)}
+                      className="h-6 px-2"
+                    >
+                      <Edit className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  {model.description ? (
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {model.description}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground/50 italic">
+                      Brak opisu
+                    </p>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   <Button 
                     type="button"
@@ -486,9 +508,9 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edytuj nazwę modelu</DialogTitle>
+            <DialogTitle>Edytuj model</DialogTitle>
             <DialogDescription>
-              Zmień nazwę swojego modelu
+              Zmień nazwę i opis swojego modelu
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -499,6 +521,16 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 placeholder="Nazwa modelu"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="model-description">Opis modelu</Label>
+              <textarea
+                id="model-description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Dodaj opis modelu..."
+                className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
           </div>
