@@ -102,39 +102,20 @@ export const SecuritySettings = () => {
 
   const fetchActiveSessions = async () => {
     try {
-      // Fetch recent analytics events to show active sessions
-      const { data, error } = await supabase
-        .from('analytics_events')
-        .select('user_id, ip_address, user_agent, created_at')
-        .not('user_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      const { data, error } = await supabase.functions.invoke('manage-sessions', {
+        body: { action: 'list' }
+      });
 
       if (error) throw error;
 
-      // Get unique users with their latest activity
-      const sessionsMap = new Map<string, ActiveSession>();
-      
-      for (const event of data || []) {
-        if (!sessionsMap.has(event.user_id)) {
-          // Fetch user email
-          const { data: { user } } = await supabase.auth.admin.getUserById(event.user_id);
-          
-          sessionsMap.set(event.user_id, {
-            id: event.user_id,
-            user_id: event.user_id,
-            email: user?.email || 'Unknown',
-            created_at: event.created_at,
-            last_seen: event.created_at,
-            ip_address: (event.ip_address as string) || 'Unknown',
-            user_agent: (event.user_agent as string) || 'Unknown'
-          });
-        }
-      }
-
-      setActiveSessions(Array.from(sessionsMap.values()));
+      setActiveSessions(data.sessions || []);
     } catch (error) {
       console.error('Error fetching sessions:', error);
+      toast({
+        title: 'Błąd',
+        description: 'Nie udało się pobrać aktywnych sesji',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -195,7 +176,9 @@ export const SecuritySettings = () => {
 
   const terminateUserSession = async (userId: string) => {
     try {
-      const { error } = await supabase.auth.admin.signOut(userId);
+      const { data, error } = await supabase.functions.invoke('manage-sessions', {
+        body: { action: 'terminate', userId }
+      });
 
       if (error) throw error;
 

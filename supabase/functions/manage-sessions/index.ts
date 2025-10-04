@@ -1,0 +1,137 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Verify user is authenticated and is admin
+    const authHeader = req.headers.get('Authorization')!;
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check if user is admin
+    const { data: roleData, error: roleError } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (roleError || roleData?.role !== 'admin') {
+      return new Response(JSON.stringify({ error: 'Forbidden - Admin access required' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { action, userId } = await req.json();
+
+    if (action === 'list') {
+      // Get all users
+      const { data: { users }, error: listError } = await supabaseClient.auth.admin.listUsers();
+
+      if (listError) {
+        throw listError;
+      }
+
+      // Get recent analytics events to determine active sessions
+      const { data: events } = await supabaseClient
+        .from('analytics_events')
+        .select('user_id, ip_address, user_agent, created_at')
+        .not('user_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      // Group by user_id to get latest activity
+      const sessionsMap = new Map();
+      
+      for (const event of events || []) {
+        if (!sessionsMap.has(event.user_id)) {
+          const user = users.find(u => u.id === event.user_id);
+          if (user) {
+            sessionsMap.set(event.user_id, {
+              id: event.user_id,
+              user_id: event.user_id,
+              email: user.email || 'Unknown',
+              created_at: user.created_at,
+              last_seen: event.created_at,
+              ip_address: event.ip_address || 'Unknown',
+              user_agent: event.user_agent || 'Unknown'
+            });
+          }
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ sessions: Array.from(sessionsMap.values()) }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    if (action === 'terminate') {
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'userId is required' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Sign out user from all sessions
+      const { error: signOutError } = await supabaseClient.auth.admin.signOut(userId);
+
+      if (signOutError) {
+        throw signOutError;
+      }
+
+      // Log the action
+      await supabaseClient.from('audit_logs').insert({
+        user_id: user.id,
+        action: 'terminate_session',
+        resource_type: 'user_session',
+        resource_id: userId,
+        severity: 'warning',
+        details: { terminated_user_id: userId }
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'User session terminated' }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    return new Response(JSON.stringify({ error: 'Invalid action' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error in manage-sessions:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
