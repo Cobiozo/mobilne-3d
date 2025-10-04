@@ -6,6 +6,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Separator } from "@/components/ui/separator";
 import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
+import { useApp } from "@/contexts/AppContext";
+import { getText } from "@/lib/i18n";
 
 export interface CartItem {
   id: string;
@@ -28,6 +30,7 @@ interface ShoppingCartProps {
 export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, onClearCart, calculateItemPrice }: ShoppingCartProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const { language } = useApp();
   
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   
@@ -42,17 +45,21 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
   const totalPrice = items.reduce((sum, item) => sum + getItemPrice(item), 0);
 
   const getColorName = (color: string) => {
-    const colorNames: { [key: string]: string } = {
-      '#FFFFFF': 'Biały',
-      '#000000': 'Czarny',
-      '#FF0000': 'Czerwony',
-      '#00FF00': 'Zielony',
-      '#0000FF': 'Niebieski',
-      '#FFFF00': 'Żółty',
-      '#FF00FF': 'Magenta',
-      '#00FFFF': 'Cyjan'
+    const colorNames: { [key: string]: { pl: string; en: string } } = {
+      '#FFFFFF': { pl: 'Biały', en: 'White' },
+      '#000000': { pl: 'Czarny', en: 'Black' },
+      '#FF0000': { pl: 'Czerwony', en: 'Red' },
+      '#00FF00': { pl: 'Zielony', en: 'Green' },
+      '#0000FF': { pl: 'Niebieski', en: 'Blue' },
+      '#FFFF00': { pl: 'Żółty', en: 'Yellow' },
+      '#FF00FF': { pl: 'Magenta', en: 'Magenta' },
+      '#00FFFF': { pl: 'Cyjan', en: 'Cyan' }
     };
-    return colorNames[color.toUpperCase()] || `Niestandardowy (${color})`;
+    const colorKey = color.toUpperCase();
+    if (colorNames[colorKey]) {
+      return colorNames[colorKey][language];
+    }
+    return `${getText('customColor', language)} (${color})`;
   };
 
   return (
@@ -68,7 +75,7 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
               {totalItems}
             </Badge>
           )}
-          <span className="hidden sm:inline ml-2">Koszyk</span>
+          <span className="hidden sm:inline ml-2">{getText('cart', language)}</span>
         </Button>
       </SheetTrigger>
       
@@ -76,7 +83,7 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <ShoppingCart className="w-5 h-5" />
-            Koszyk ({totalItems} {totalItems === 1 ? 'element' : 'elementy'})
+            {getText('cart', language)} ({totalItems} {totalItems === 1 ? getText('cartItem', language) : getText('cartItems', language)})
           </SheetTitle>
         </SheetHeader>
         
@@ -84,9 +91,9 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
           {items.length === 0 ? (
             <div className="text-center py-8">
               <ShoppingCart className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Koszyk jest pusty</p>
+              <p className="text-muted-foreground">{getText('cartEmpty', language)}</p>
               <p className="text-sm text-muted-foreground mt-2">
-                Dodaj modele 3D do koszyka, aby kontynuować
+                {getText('cartEmptyDesc', language)}
               </p>
             </div>
           ) : (
@@ -176,7 +183,7 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
               <div className="space-y-4">
                 {calculateItemPrice && totalPrice > 0 && (
                   <div className="flex justify-between items-center font-medium">
-                    <span>Całkowita wartość:</span>
+                    <span>{getText('totalPrice', language)}:</span>
                     <span>{totalPrice.toFixed(2)} zł</span>
                   </div>
                 )}
@@ -184,7 +191,7 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
                 {!calculateItemPrice && (
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground text-center">
-                      💡 Ceny zostaną obliczone na podstawie wymiarów i materiału w następnym kroku
+                      💡 {getText('priceNote', language)}
                     </p>
                   </div>
                 )}
@@ -195,13 +202,13 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
                     className="flex-1"
                     onClick={onClearCart}
                   >
-                    Wyczyść koszyk
+                    {getText('clearCart', language)}
                   </Button>
                   <Button 
                     className="flex-1"
                     onClick={() => {
                       if (items.length === 0) {
-                        toast.error('Koszyk jest pusty');
+                        toast.error(getText('cartEmpty', language));
                         return;
                       }
                       // Cart is already saved to localStorage by parent component
@@ -211,7 +218,7 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
                       setIsOpen(false);
                     }}
                   >
-                    Przejdź do płatności
+                    {getText('proceedToPayment', language)}
                   </Button>
                 </div>
               </div>

@@ -263,9 +263,9 @@ const Dashboard = () => {
                   <SidebarTrigger />
                   <div className="hidden sm:block">
                     <h1 className="text-xl font-bold">
-                      Panel administratora
+                      {getText('adminPanel', language)}
                     </h1>
-                    <Badge variant="secondary" className="hidden sm:inline-flex">Admin</Badge>
+                    <Badge variant="secondary" className="hidden sm:inline-flex">{getText('admin', language)}</Badge>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -314,7 +314,7 @@ const Dashboard = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-lg md:text-2xl font-bold">
-              Moje konto
+              {getText('myAccount', language)}
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -364,7 +364,7 @@ const Dashboard = () => {
             className="flex-col h-auto py-3"
           >
             <Package className="w-5 h-5 mb-1" />
-            <span className="text-xs md:text-sm">Zamówienia</span>
+            <span className="text-xs md:text-sm">{getText('orders', language)}</span>
           </Button>
           <Button
             type="button"
@@ -373,7 +373,7 @@ const Dashboard = () => {
             className="flex-col h-auto py-3"
           >
             <MapPin className="w-5 h-5 mb-1" />
-            <span className="text-xs md:text-sm">Adresy</span>
+            <span className="text-xs md:text-sm">{getText('addresses', language)}</span>
           </Button>
           <Button
             type="button"
@@ -382,7 +382,7 @@ const Dashboard = () => {
             className="flex-col h-auto py-3"
           >
             <Lock className="w-5 h-5 mb-1" />
-            <span className="text-xs md:text-sm">Hasło</span>
+            <span className="text-xs md:text-sm">{getText('password', language)}</span>
           </Button>
           <Button
             type="button"

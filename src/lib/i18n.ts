@@ -320,6 +320,34 @@ export const translations = {
     writeWhatYouThink: 'Napisz co sądzisz o tym modelu...',
     noRatings: 'Brak ocen',
     
+    // Cart
+    cart: 'Koszyk',
+    cartEmpty: 'Koszyk jest pusty',
+    cartEmptyDesc: 'Dodaj modele 3D do koszyka, aby kontynuować',
+    cartItems: 'elementy',
+    cartItem: 'element',
+    clearCart: 'Wyczyść koszyk',
+    proceedToPayment: 'Przejdź do płatności',
+    totalPrice: 'Całkowita wartość',
+    priceCalculated: 'Cena zostanie obliczona w checkout',
+    priceNote: 'Ceny zostaną obliczone na podstawie wymiarów i materiału w następnym kroku',
+    
+    // Colors
+    white: 'Biały',
+    black: 'Czarny',
+    red: 'Czerwony',
+    green: 'Zielony',
+    blue: 'Niebieski',
+    yellow: 'Żółty',
+    magenta: 'Magenta',
+    cyan: 'Cyjan',
+    customColor: 'Niestandardowy',
+    
+    // User
+    myAccount: 'Moje konto',
+    addresses: 'Adresy',
+    admin: 'Admin',
+    
     // General
     error: 'Błąd',
     success: 'Sukces'
@@ -642,6 +670,34 @@ export const translations = {
     yourRatingHelps: 'Your rating will help other users',
     writeWhatYouThink: 'Write what you think about this model...',
     noRatings: 'No ratings',
+    
+    // Cart
+    cart: 'Cart',
+    cartEmpty: 'Cart is empty',
+    cartEmptyDesc: 'Add 3D models to cart to continue',
+    cartItems: 'items',
+    cartItem: 'item',
+    clearCart: 'Clear Cart',
+    proceedToPayment: 'Proceed to Payment',
+    totalPrice: 'Total Value',
+    priceCalculated: 'Price will be calculated at checkout',
+    priceNote: 'Prices will be calculated based on dimensions and material in the next step',
+    
+    // Colors
+    white: 'White',
+    black: 'Black',
+    red: 'Red',
+    green: 'Green',
+    blue: 'Blue',
+    yellow: 'Yellow',
+    magenta: 'Magenta',
+    cyan: 'Cyan',
+    customColor: 'Custom',
+    
+    // User
+    myAccount: 'My Account',
+    addresses: 'Addresses',
+    admin: 'Admin',
     
     // General
     error: 'Error',
