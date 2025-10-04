@@ -747,8 +747,8 @@ const Index = () => {
                 onClearCart={handleClearCart}
               />
               
-              {/* Public Models Link - tylko gdy public_model_viewing jest włączone */}
-              {siteSettings.public_model_viewing !== false && (
+              {/* Public Models Link - zawsze widoczne dla zalogowanych, dla niezalogowanych tylko gdy public_model_viewing włączone */}
+              {(user || siteSettings.public_model_viewing !== false) && (
                 <Button
                   variant="ghost"
                   size="sm"
