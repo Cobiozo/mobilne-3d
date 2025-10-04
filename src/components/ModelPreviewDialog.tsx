@@ -233,7 +233,7 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                    <p>Ładowanie...</p>
+                    <p>{getText('loading', language)}</p>
                   </div>
                 </div>
               ) : modelData ? (
@@ -267,14 +267,14 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
                     disabled={!modelData}
                   >
                     <ShoppingCart className="w-4 h-4 mr-2" />
-                    Dodaj do koszyka
+                    {getText('addToCart', language)}
                   </Button>
                 </div>
               )}
 
               {model?.description && (
                 <div className="mt-4 pt-4 border-t">
-                  <h4 className="font-semibold mb-2">Opis</h4>
+                  <h4 className="font-semibold mb-2">{getText('description', language)}</h4>
                   <p className="text-sm text-muted-foreground">
                     {model.description}
                   </p>

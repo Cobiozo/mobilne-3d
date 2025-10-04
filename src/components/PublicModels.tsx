@@ -12,6 +12,8 @@ import { ShoppingCart, Palette, Package, Coins, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { CartItem } from '@/components/ShoppingCart';
 import { ModelRating } from '@/components/ModelRating';
+import { useApp } from '@/contexts/AppContext';
+import { getText } from '@/lib/i18n';
 
 interface PublicModel {
   id: string;
@@ -28,6 +30,7 @@ interface PublicModel {
 }
 
 export const PublicModels = () => {
+  const { language } = useApp();
   const [models, setModels] = useState<PublicModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
@@ -314,7 +317,7 @@ export const PublicModels = () => {
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-                    <p>Ładowanie...</p>
+                    <p>{getText('loading', language)}</p>
                   </div>
                 </div>
               ) : (
@@ -348,12 +351,12 @@ export const PublicModels = () => {
                     {addingToCart === previewModel.id ? (
                       <>
                         <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        Dodawanie...
+                        {getText('adding', language)}
                       </>
                     ) : (
                       <>
                         <ShoppingCart className="w-4 h-4 mr-2" />
-                        Dodaj do koszyka
+                        {getText('addToCart', language)}
                       </>
                     )}
                   </Button>
@@ -362,7 +365,7 @@ export const PublicModels = () => {
 
               {previewModel?.description && (
                 <div className="mt-4 pt-4 border-t">
-                  <h4 className="font-semibold mb-2">Opis</h4>
+                  <h4 className="font-semibold mb-2">{getText('description', language)}</h4>
                   <p className="text-sm text-muted-foreground">
                     {previewModel.description}
                   </p>

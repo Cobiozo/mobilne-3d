@@ -383,7 +383,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2">
                     <Palette className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-xs font-medium">Wybierz kolor</span>
+                    <span className="text-xs font-medium">{getText('selectColor', language)}</span>
                   </div>
                   <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5">
                     {availableColors.map((color) => (
@@ -405,7 +405,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                 {/* Description with edit button */}
                 <div className="mb-4">
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <span className="text-xs font-medium text-muted-foreground">Opis:</span>
+                    <span className="text-xs font-medium text-muted-foreground">{getText('description', language)}:</span>
                     <Button
                       type="button"
                       variant="ghost"
@@ -422,7 +422,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                     </p>
                   ) : (
                     <p className="text-sm text-muted-foreground/50 italic">
-                      Brak opisu
+                      {getText('noDescription', language)}
                     </p>
                   )}
                 </div>
@@ -449,12 +449,12 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                     {addingToCart === model.id ? (
                       <>
                         <div className="w-4 h-4 mr-1 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        Dodawanie...
+                        {getText('adding', language)}
                       </>
                     ) : (
                       <>
                         <ShoppingCart className="w-4 h-4 mr-1" />
-                        Do koszyka
+                        {getText('addToCart', language)}
                       </>
                     )}
                   </Button>
@@ -508,39 +508,39 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edytuj model</DialogTitle>
+            <DialogTitle>{getText('editModel', language)}</DialogTitle>
             <DialogDescription>
-              Zmień nazwę i opis swojego modelu
+              {getText('editModelDescription', language)}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="model-name">Nazwa modelu</Label>
+              <Label htmlFor="model-name">{getText('modelName', language)}</Label>
               <Input
                 id="model-name"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                placeholder="Nazwa modelu"
+                placeholder={getText('modelName', language)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="model-description">Opis modelu</Label>
+              <Label htmlFor="model-description">{getText('modelDescription', language)}</Label>
               <textarea
                 id="model-description"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                placeholder="Dodaj opis modelu..."
+                placeholder={getText('addModelDescription', language)}
                 className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-              Anuluj
+              {getText('cancel', language)}
             </Button>
             <Button onClick={saveModelEdit}>
               <Check className="w-4 h-4 mr-1" />
-              Zapisz
+              {getText('save', language)}
             </Button>
           </DialogFooter>
         </DialogContent>

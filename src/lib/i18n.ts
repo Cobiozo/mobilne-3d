@@ -291,6 +291,29 @@ export const translations = {
     discount: 'Rabat (wirtualne PLN)',
     max: 'Max',
     
+    // Buttons and Actions
+    addToCart: 'Dodaj do koszyka',
+    adding: 'Dodawanie...',
+    edit: 'Edytuj',
+    save: 'Zapisz',
+    cancel: 'Anuluj',
+    description: 'Opis',
+    editModel: 'Edytuj model',
+    editModelDescription: 'Zmień nazwę i opis swojego modelu',
+    modelDescription: 'Opis modelu',
+    addModelDescription: 'Dodaj opis modelu...',
+    noDescription: 'Brak opisu',
+    selectColor: 'Wybierz kolor',
+    buyFor: 'Kup za',
+    coins: 'monet',
+    rate: 'Oceń',
+    editRating: 'Edytuj',
+    rateModel: 'Oceń model',
+    editYourRating: 'Edytuj ocenę',
+    saveRating: 'Zapisz ocenę',
+    saveSettings: 'Zapisz ustawienia',
+    loading: 'Ładowanie...',
+    
     // General
     error: 'Błąd',
     success: 'Sukces'
@@ -578,6 +601,35 @@ export const translations = {
     // Settings
     manageAccountSettings: 'Manage your account settings',
     settingsComingSoon: 'Settings panel coming soon...',
+    
+    // Checkout
+    availableVirtualPLN: 'Available virtual PLN',
+    useVirtualPLN: 'Use virtual PLN',
+    discount: 'Discount (virtual PLN)',
+    max: 'Max',
+    
+    // Buttons and Actions
+    addToCart: 'Add to Cart',
+    adding: 'Adding...',
+    edit: 'Edit',
+    save: 'Save',
+    cancel: 'Cancel',
+    description: 'Description',
+    editModel: 'Edit Model',
+    editModelDescription: 'Change your model name and description',
+    modelDescription: 'Model Description',
+    addModelDescription: 'Add model description...',
+    noDescription: 'No description',
+    selectColor: 'Select Color',
+    buyFor: 'Buy for',
+    coins: 'coins',
+    rate: 'Rate',
+    editRating: 'Edit',
+    rateModel: 'Rate Model',
+    editYourRating: 'Edit Rating',
+    saveRating: 'Save Rating',
+    saveSettings: 'Save Settings',
+    loading: 'Loading...',
     
     // General
     error: 'Error',
