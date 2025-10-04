@@ -63,6 +63,17 @@ serve(async (req) => {
       throw new Error('SMTP settings not configured');
     }
 
+    // Decrypt SMTP password
+    const { data: decryptedPassword, error: decryptError } = await supabaseClient
+      .rpc('decrypt_smtp_password', { 
+        encrypted_password: smtpSettings.smtp_password_encrypted 
+      });
+
+    if (decryptError || !decryptedPassword) {
+      console.error('Failed to decrypt SMTP password:', decryptError);
+      throw new Error('Failed to decrypt SMTP password');
+    }
+
     let emailSubject = subject;
     let emailHtml = html;
     let emailText = text;
@@ -112,7 +123,7 @@ serve(async (req) => {
         secure: smtpSettings.smtp_secure, // true for 465, false for other ports
         auth: {
           user: smtpSettings.smtp_user,
-          pass: Deno.env.get('SMTP_PASSWORD') ?? '',
+          pass: decryptedPassword,
         },
       });
 

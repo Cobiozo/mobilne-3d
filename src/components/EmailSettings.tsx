@@ -61,6 +61,15 @@ export const EmailSettings = () => {
       // Prepare data without id for insert
       const { id, last_test_status, last_test_at, ...dataToSave } = settings;
       
+      // If password is provided, encrypt it first
+      if (smtpPassword.trim()) {
+        const { data: encryptedPassword, error: encryptError } = await supabase
+          .rpc('encrypt_smtp_password', { password: smtpPassword });
+        
+        if (encryptError) throw encryptError;
+        (dataToSave as any).smtp_password_encrypted = encryptedPassword;
+      }
+      
       const { error } = id
         ? await supabase
             .from("smtp_settings")
@@ -72,34 +81,14 @@ export const EmailSettings = () => {
 
       if (error) throw error;
 
-      // Update SMTP password secret if provided
       if (smtpPassword.trim()) {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        const { error: secretError } = await supabase.functions.invoke('update-smtp-password', {
-          body: { password: smtpPassword },
-          headers: {
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-        });
-
-        if (secretError) {
-          console.error("Error updating SMTP password:", secretError);
-          toast({
-            title: "Ostrzeżenie",
-            description: "Ustawienia zapisane, ale nie udało się zaktualizować hasła SMTP",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        setSmtpPassword(""); // Clear password field after successful update
+        setSmtpPassword(""); // Clear password field after successful save
       }
 
       toast({
         title: "Sukces",
         description: smtpPassword.trim() 
-          ? "Ustawienia SMTP i hasło zostały zapisane" 
+          ? "Ustawienia SMTP i zaszyfrowane hasło zostały zapisane" 
           : "Ustawienia SMTP zostały zapisane",
       });
       

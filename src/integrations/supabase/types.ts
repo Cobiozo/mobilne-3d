@@ -988,6 +988,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      decrypt_smtp_password: {
+        Args: { encrypted_password: string }
+        Returns: string
+      }
+      encrypt_smtp_password: {
+        Args: { password: string }
+        Returns: string
+      }
       exchange_coins_to_currency: {
         Args: { p_coins: number }
         Returns: Json
