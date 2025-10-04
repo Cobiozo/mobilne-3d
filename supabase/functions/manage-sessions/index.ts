@@ -133,7 +133,7 @@ serve(async (req) => {
 
       // Sign out user from all sessions
       console.log('Attempting to sign out user:', userId);
-      const { error: signOutError } = await supabaseClient.auth.admin.signOut(userId);
+      const { error: signOutError } = await supabaseClient.auth.admin.signOut(userId, 'global');
 
       if (signOutError) {
         console.error('Sign out error:', signOutError);
