@@ -22,6 +22,8 @@ interface ControlPanelProps {
   onModelSelect?: (index: number) => void;
   // Nowa prop do określenia czy to model z obrazu
   isImageGenerated?: boolean;
+  // Nowa prop do ukrycia przycisków eksportu i resetu
+  hideControls?: boolean;
 }
 
 export const ControlPanel = ({ 
@@ -34,7 +36,8 @@ export const ControlPanel = ({
   availableModels = [],
   selectedModelIndex = 0,
   onModelSelect,
-  isImageGenerated = false
+  isImageGenerated = false,
+  hideControls = false
 }: ControlPanelProps) => {
   const { language } = useApp();
   const { t } = useTranslation(language);
@@ -172,92 +175,96 @@ export const ControlPanel = ({
           </div>
         </div>
 
-        <Separator />
+        {!hideControls && (
+          <>
+            <Separator />
 
-        {/* Controls */}
-        <div className="space-y-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-xs"
-              onClick={onReset}
-            >
-              <RotateCcw className="w-3 h-3 mr-1" />
-              {t('reset')}
-            </Button>
-            
-            {isImageGenerated ? (
-              // For image-generated 3D models, show STL export
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-xs"
-                disabled={!fileName}
-                onClick={onExportSTL}
-              >
-                <Download className="w-3 h-3 mr-1" />
-                {t('exportSTL')}
-              </Button>
-            ) : (
-              // For STL/3MF models, show 2D export options
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+            {/* Controls */}
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-xs"
+                  onClick={onReset}
+                >
+                  <RotateCcw className="w-3 h-3 mr-1" />
+                  {t('reset')}
+                </Button>
+                
+                {isImageGenerated ? (
+                  // For image-generated 3D models, show STL export
                   <Button 
                     variant="outline" 
                     size="sm" 
                     className="text-xs"
                     disabled={!fileName}
+                    onClick={onExportSTL}
                   >
                     <Download className="w-3 h-3 mr-1" />
-                    {t('export')}
-                    <ChevronDown className="w-3 h-3 ml-1" />
+                    {t('exportSTL')}
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
-                    {t('exportViewFront')}
-                  </div>
-                  <DropdownMenuItem onClick={() => onExport?.('png', '2d-front')}>
-                    {t('exportPNG')} - {t('front')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onExport?.('jpg', '2d-front')}>
-                    {t('exportJPG')} - {t('front')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onExport?.('pdf', '2d-front')}>
-                    {t('exportPDF')} - {t('front')}
-                  </DropdownMenuItem>
-                  
-                  <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground border-t mt-1 pt-2">
-                    {t('exportViewTop')}
-                  </div>
-                  <DropdownMenuItem onClick={() => onExport?.('png', '2d-top')}>
-                    {t('exportPNG')} - {t('top')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onExport?.('jpg', '2d-top')}>
-                    {t('exportJPG')} - {t('top')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onExport?.('pdf', '2d-top')}>
-                    {t('exportPDF')} - {t('top')}
-                  </DropdownMenuItem>
-                  
-                  <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground border-t mt-1 pt-2">
-                    {t('exportViewSide')}
-                  </div>
-                  <DropdownMenuItem onClick={() => onExport?.('png', '2d-side')}>
-                    {t('exportPNG')} - {t('side')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onExport?.('jpg', '2d-side')}>
-                    {t('exportJPG')} - {t('side')}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onExport?.('pdf', '2d-side')}>
-                    {t('exportPDF')} - {t('side')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-        </div>
+                ) : (
+                  // For STL/3MF models, show 2D export options
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-xs"
+                        disabled={!fileName}
+                      >
+                        <Download className="w-3 h-3 mr-1" />
+                        {t('export')}
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                        {t('exportViewFront')}
+                      </div>
+                      <DropdownMenuItem onClick={() => onExport?.('png', '2d-front')}>
+                        {t('exportPNG')} - {t('front')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onExport?.('jpg', '2d-front')}>
+                        {t('exportJPG')} - {t('front')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onExport?.('pdf', '2d-front')}>
+                        {t('exportPDF')} - {t('front')}
+                      </DropdownMenuItem>
+                      
+                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground border-t mt-1 pt-2">
+                        {t('exportViewTop')}
+                      </div>
+                      <DropdownMenuItem onClick={() => onExport?.('png', '2d-top')}>
+                        {t('exportPNG')} - {t('top')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onExport?.('jpg', '2d-top')}>
+                        {t('exportJPG')} - {t('top')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onExport?.('pdf', '2d-top')}>
+                        {t('exportPDF')} - {t('top')}
+                      </DropdownMenuItem>
+                      
+                      <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground border-t mt-1 pt-2">
+                        {t('exportViewSide')}
+                      </div>
+                      <DropdownMenuItem onClick={() => onExport?.('png', '2d-side')}>
+                        {t('exportPNG')} - {t('side')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onExport?.('jpg', '2d-side')}>
+                        {t('exportJPG')} - {t('side')}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onExport?.('pdf', '2d-side')}>
+                        {t('exportPDF')} - {t('side')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            </div>
+          </>
+        )}
 
       </div>
     </Card>

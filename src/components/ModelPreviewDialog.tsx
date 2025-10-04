@@ -256,6 +256,7 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
                 onColorChange={setModelColor}
                 onExport={() => {}}
                 fileName={model?.name}
+                hideControls={true}
               />
               
               {modelData && (
