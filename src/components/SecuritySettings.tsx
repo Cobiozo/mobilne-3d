@@ -178,12 +178,12 @@ export const SecuritySettings = () => {
     }
   };
 
-  const terminateUserSession = async (userId: string) => {
+  const terminateUserSession = async (sessionId: string) => {
     try {
-      console.log('Terminating session for user:', userId);
+      console.log('Terminating session for session ID:', sessionId);
       
       const { data, error } = await supabase.functions.invoke('manage-sessions', {
-        body: { action: 'terminate', userId }
+        body: { action: 'terminate', userId: sessionId }  // userId parameter is actually session ID
       });
 
       console.log('Terminate response:', { data, error });
@@ -195,7 +195,7 @@ export const SecuritySettings = () => {
 
       toast({
         title: 'Sukces',
-        description: 'Sesja użytkownika została zakończona',
+        description: 'Sesja została zakończona',
       });
 
       fetchActiveSessions();
@@ -440,7 +440,7 @@ export const SecuritySettings = () => {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Anuluj</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => terminateUserSession(session.user_id)}>
+                          <AlertDialogAction onClick={() => terminateUserSession(session.id)}>
                             Zakończ sesję
                           </AlertDialogAction>
                         </AlertDialogFooter>

@@ -20,6 +20,7 @@ export type Database = {
           id: string
           ip_address: unknown | null
           last_activity: string
+          session_id: string
           user_agent: string | null
           user_id: string
         }
@@ -28,6 +29,7 @@ export type Database = {
           id?: string
           ip_address?: unknown | null
           last_activity?: string
+          session_id: string
           user_agent?: string | null
           user_id: string
         }
@@ -36,6 +38,7 @@ export type Database = {
           id?: string
           ip_address?: unknown | null
           last_activity?: string
+          session_id?: string
           user_agent?: string | null
           user_id?: string
         }

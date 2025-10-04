@@ -53,6 +53,7 @@ serve(async (req) => {
         .select(`
           id,
           user_id,
+          session_id,
           ip_address,
           user_agent,
           last_activity,
@@ -83,7 +84,7 @@ serve(async (req) => {
           id: session.id,
           user_id: session.user_id,
           email: user?.email || 'Unknown',
-          created_at: user?.created_at || session.created_at,
+          created_at: session.created_at,
           last_seen: session.last_activity,
           ip_address: session.ip_address ? session.ip_address.toString() : 'Unknown',
           user_agent: session.user_agent || 'Unknown'
@@ -101,29 +102,29 @@ serve(async (req) => {
     }
 
     if (action === 'terminate') {
-      console.log('Terminate action called with userId:', userId);
+      console.log('Terminate action called with session ID:', userId);
       
       if (!userId) {
-        console.error('userId is missing');
-        return new Response(JSON.stringify({ error: 'userId is required' }), {
+        console.error('session ID is missing');
+        return new Response(JSON.stringify({ error: 'session ID is required' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      // Delete all sessions for this user from our tracking table
-      console.log('Deleting all sessions for user:', userId);
+      // Delete specific session by ID
+      console.log('Deleting session:', userId);
       const { error: deleteError } = await supabaseClient
         .from('active_sessions')
         .delete()
-        .eq('user_id', userId);
+        .eq('id', userId);
 
       if (deleteError) {
         console.error('Session deletion error:', deleteError);
         throw deleteError;
       }
 
-      console.log('User sessions terminated successfully');
+      console.log('Session terminated successfully');
 
       // Log the action
       await supabaseClient.from('audit_logs').insert({
@@ -132,13 +133,13 @@ serve(async (req) => {
         resource_type: 'user_session',
         resource_id: userId,
         severity: 'warning',
-        details: { terminated_user_id: userId }
+        details: { terminated_session_id: userId }
       });
 
       console.log('Audit log created');
 
       return new Response(
-        JSON.stringify({ success: true, message: 'User session terminated' }),
+        JSON.stringify({ success: true, message: 'Session terminated' }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }

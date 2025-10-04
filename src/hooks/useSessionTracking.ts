@@ -1,6 +1,16 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Generate or retrieve session ID
+const getSessionId = () => {
+  let sessionId = sessionStorage.getItem('session_id');
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
+    sessionStorage.setItem('session_id', sessionId);
+  }
+  return sessionId;
+};
+
 export const useSessionTracking = () => {
   useEffect(() => {
     const trackSession = async () => {
@@ -8,7 +18,7 @@ export const useSessionTracking = () => {
       
       if (!user) return;
 
-      // Get user's IP and user agent (user agent from browser)
+      const sessionId = getSessionId();
       const userAgent = navigator.userAgent;
       
       // Update or create session
@@ -16,10 +26,11 @@ export const useSessionTracking = () => {
         .from('active_sessions')
         .upsert({
           user_id: user.id,
+          session_id: sessionId,
           user_agent: userAgent,
           last_activity: new Date().toISOString(),
         }, {
-          onConflict: 'user_id',
+          onConflict: 'session_id',
           ignoreDuplicates: false
         });
 
