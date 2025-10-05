@@ -44,6 +44,7 @@ export const SecuritySettings = () => {
   const [resourceFilter, setResourceFilter] = useState<string>('all');
   const [daysToKeep, setDaysToKeep] = useState<number>(30);
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
   const { language } = useApp();
 
@@ -230,14 +231,20 @@ export const SecuritySettings = () => {
             Eksportuj logi
           </Button>
           <Button 
-            onClick={() => { 
-              fetchLogs(); 
-              fetchActiveSessions(); 
+            onClick={async () => { 
+              setIsRefreshing(true);
+              await Promise.all([fetchLogs(), fetchActiveSessions()]);
+              setIsRefreshing(false);
+              toast({
+                title: 'Odświeżono',
+                description: 'Dane zostały zaktualizowane',
+              });
             }} 
             variant="outline"
+            disabled={isRefreshing}
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Odśwież
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Odświeżanie...' : 'Odśwież'}
           </Button>
         </div>
       </div>
