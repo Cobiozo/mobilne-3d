@@ -674,6 +674,36 @@ export type Database = {
         }
         Relationships: []
       }
+      price_coefficients: {
+        Row: {
+          coefficient_name: string
+          coefficient_value: number
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          updated_at: string
+        }
+        Insert: {
+          coefficient_name: string
+          coefficient_value?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Update: {
+          coefficient_name?: string
+          coefficient_value?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null

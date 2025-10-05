@@ -11,6 +11,7 @@ import { FileText, Trash2 } from 'lucide-react';
 import { UsersManagement } from '@/components/UsersManagement';
 import { ColorsManagement } from '@/components/ColorsManagement';
 import PaymentMethodsManagement from '@/components/PaymentMethodsManagement';
+import { PriceCoefficientsManagement } from '@/components/PriceCoefficientsManagement';
 
 
 interface Model {
@@ -105,6 +106,9 @@ export const AdminPanel = () => {
 
       {/* Payment Methods Management */}
       <PaymentMethodsManagement />
+
+      {/* Price Coefficients Management */}
+      <PriceCoefficientsManagement />
 
       {/* Models Management */}
       <Card>

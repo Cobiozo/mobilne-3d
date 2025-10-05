@@ -229,7 +229,13 @@ export const SecuritySettings = () => {
             <Download className="w-4 h-4 mr-2" />
             Eksportuj logi
           </Button>
-          <Button onClick={() => { fetchLogs(); fetchActiveSessions(); }} variant="outline">
+          <Button 
+            onClick={() => { 
+              fetchLogs(); 
+              fetchActiveSessions(); 
+            }} 
+            variant="outline"
+          >
             <RefreshCw className="w-4 h-4 mr-2" />
             Odśwież
           </Button>
