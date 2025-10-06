@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, Save, RefreshCw, Shield, Mail, Users, Database } from 'lucide-react';
+import { Settings, Save, RefreshCw, Shield, Mail, Users, Database, Folder } from 'lucide-react';
 
 export const SiteSettings = () => {
   const [settings, setSettings] = useState<Record<string, any>>({});
@@ -372,6 +372,33 @@ export const SiteSettings = () => {
                 onChange={(e) => handleInputChange('email_sender_name', e.target.value)}
                 placeholder="3D Model Platform"
               />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Storage Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Folder className="w-5 h-5" />
+              Przechowywanie plików
+            </CardTitle>
+            <CardDescription>
+              Konfiguracja ścieżek i organizacji plików modeli
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Folder dla modeli użytkowników</Label>
+              <Input
+                value={settings.models_storage_folder || ''}
+                onChange={(e) => handleInputChange('models_storage_folder', e.target.value)}
+                placeholder="models (domyślny folder główny)"
+              />
+              <p className="text-xs text-muted-foreground">
+                Podaj nazwę subfolderu w bucket "models". Zostaw puste dla folderu głównego. 
+                Modele będą zapisywane jako: {settings.models_storage_folder || 'models'}/[user_id]/[timestamp].[ext]
+              </p>
             </div>
           </CardContent>
         </Card>

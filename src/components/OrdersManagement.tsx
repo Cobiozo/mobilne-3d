@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ShoppingCart, Package, Clock, CheckCircle, XCircle, Truck, Eye, Edit, Download, FileText } from 'lucide-react';
+import { ShoppingCart, Package, Clock, CheckCircle, XCircle, Truck, Eye, Edit, Download, FileText, Trash2 } from 'lucide-react';
 import * as THREE from 'three';
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 
@@ -383,6 +383,48 @@ export const OrdersManagement = () => {
       toast({
         title: 'Błąd',
         description: error instanceof Error ? error.message : 'Nie udało się pobrać modelu',
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!confirm('Czy na pewno chcesz usunąć to zamówienie? Ta operacja jest nieodwracalna.')) {
+      return;
+    }
+
+    try {
+      // First delete order items
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .delete()
+        .eq('order_id', orderId);
+
+      if (itemsError) throw itemsError;
+
+      // Then delete the order
+      const { error: orderError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+
+      if (orderError) throw orderError;
+
+      // Update local state
+      setOrders(orders.filter(order => order.id !== orderId));
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder(null);
+      }
+
+      toast({
+        title: "Sukces",
+        description: "Zamówienie zostało usunięte",
+      });
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się usunąć zamówienia",
         variant: "destructive",
       });
     }
@@ -798,6 +840,17 @@ export const OrdersManagement = () => {
                     <p>Utworzone: {new Date(selectedOrder.created_at).toLocaleString()}</p>
                     <p>Zaktualizowane: {new Date(selectedOrder.updated_at).toLocaleString()}</p>
                   </div>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={() => handleDeleteOrder(selectedOrder.id)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Usuń zamówienie
+                  </Button>
                 </div>
               </CardContent>
             </Card>

@@ -45,9 +45,19 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
     setIsUploading(true);
 
     try {
+      // Fetch storage folder setting
+      const { data: settingsData } = await supabase
+        .from('site_settings')
+        .select('setting_value')
+        .eq('setting_key', 'models_storage_folder')
+        .maybeSingle();
+
+      const storageFolder = settingsData?.setting_value || '';
+      
       // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const basePath = storageFolder ? `${storageFolder}/${user.id}` : user.id;
+      const fileName = `${basePath}/${Date.now()}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('models')
