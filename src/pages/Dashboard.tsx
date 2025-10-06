@@ -31,6 +31,7 @@ import { ColorsManagement } from '@/components/ColorsManagement';
 import PaymentMethodsManagement from '@/components/PaymentMethodsManagement';
 import { MonetizationManagement } from '@/components/MonetizationManagement';
 import { PayUSettings } from '@/components/PayUSettings';
+import { PriceCoefficientManagement } from '@/components/PriceCoefficientManagement';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { User, LogOut, Upload, Settings, Home, Package, MapPin, Lock } from 'lucide-react';
 
@@ -199,6 +200,8 @@ const Dashboard = () => {
         return <PaymentMethodsManagement />;
       case 'payu-settings':
         return <PayUSettings />;
+      case 'price-coefficient':
+        return <PriceCoefficientManagement />;
       case 'notes':
         return <NotesManagement />;
       case 'notifications':

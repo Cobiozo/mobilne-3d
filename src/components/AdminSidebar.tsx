@@ -28,7 +28,8 @@ import {
   Mail,
   History,
   CreditCard,
-  DollarSign
+  DollarSign,
+  Calculator
 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
@@ -82,6 +83,12 @@ const adminMenuItems = [
     url: '/dashboard?tab=payu-settings',
     icon: CreditCard,
     section: 'payu-settings'
+  },
+  {
+    title: 'priceCoefficient',
+    url: '/dashboard?tab=price-coefficient',
+    icon: Calculator,
+    section: 'price-coefficient'
   },
   {
     title: 'monetization',
