@@ -98,6 +98,7 @@ export const PriceCoefficientManagement = () => {
     );
   }
 
+
   return (
     <Card>
       <CardHeader>
@@ -105,10 +106,10 @@ export const PriceCoefficientManagement = () => {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Calculator className="w-5 h-5" />
-              Współczynnik cen
+              Współczynnik ceny
             </CardTitle>
             <CardDescription>
-              Zarządzaj współczynnikami cenowymi używanymi do obliczania cen końcowych
+              Zarządzaj współczynnikiem cenowym używanym do obliczania cen końcowych
             </CardDescription>
           </div>
           <Button onClick={fetchCoefficients} variant="outline" size="sm">
@@ -118,7 +119,12 @@ export const PriceCoefficientManagement = () => {
         </div>
       </CardHeader>
       <CardContent>
-        {editingCoefficient && (
+        {!editingCoefficient && coefficients.length === 0 ? (
+          <div className="py-8 text-center">
+            <Calculator className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">Brak współczynników cen w systemie</p>
+          </div>
+        ) : editingCoefficient ? (
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="coefficient-name">Nazwa współczynnika</Label>
@@ -136,7 +142,7 @@ export const PriceCoefficientManagement = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="coefficient-value">Wartość współczynnika (PLN)</Label>
+              <Label htmlFor="coefficient-value">Wartość współczynnika (PLN za cm³)</Label>
               <Input
                 id="coefficient-value"
                 type="number"
@@ -149,10 +155,10 @@ export const PriceCoefficientManagement = () => {
                     coefficient_value: parseFloat(e.target.value) || 0,
                   })
                 }
-                placeholder="0.10"
+                placeholder="0.20"
               />
               <p className="text-xs text-muted-foreground">
-                Cena za jednostkę objętości (np. 0.10 PLN za cm³)
+                Aktualna wartość: {editingCoefficient.coefficient_value} PLN za cm³
               </p>
             </div>
 
@@ -198,24 +204,33 @@ export const PriceCoefficientManagement = () => {
               </Button>
             </div>
 
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-              <h4 className="text-sm font-medium mb-2">Podgląd obliczeń</h4>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <p>Przykładowa objętość: 100 cm³</p>
-                <p>
-                  Cena końcowa: {(100 * editingCoefficient.coefficient_value).toFixed(2)} PLN
-                </p>
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-3">
+              <h4 className="text-sm font-medium">Podgląd obliczeń</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Przykładowa objętość:</span>
+                  <span className="font-medium">100 cm³</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Cena końcowa:</span>
+                  <span className="font-medium">
+                    {(100 * editingCoefficient.coefficient_value).toFixed(2)} PLN
+                  </span>
+                </div>
+                <div className="flex justify-between pt-2 border-t">
+                  <span className="text-muted-foreground">Przykładowa objętość:</span>
+                  <span className="font-medium">500 cm³</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Cena końcowa:</span>
+                  <span className="font-medium">
+                    {(500 * editingCoefficient.coefficient_value).toFixed(2)} PLN
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        )}
-
-        {coefficients.length === 0 && (
-          <div className="py-8 text-center">
-            <Calculator className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">Brak współczynników cen</p>
-          </div>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );
