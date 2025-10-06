@@ -49,9 +49,7 @@ const Checkout = () => {
     country: 'Polska'
   });
   
-  // Stała referencja cenowa: model 190mm x 109mm x 9.8mm = 39 zł z PLA
-  const REFERENCE_VOLUME_MM3 = 190 * 109 * 9.8; // = 203,042 mm³
-  const REFERENCE_PRICE_PLA = 39.0;
+  const [priceCoefficient, setPriceCoefficient] = useState<number>(0.2); // PLN per cm³
   const [loadingDimensions, setLoadingDimensions] = useState(true);
   
   // Form data
@@ -88,6 +86,23 @@ const Checkout = () => {
     'inpost-courier': 15.99,
     'paczkomaty': 17.22
   };
+
+  useEffect(() => {
+    const fetchPriceCoefficient = async () => {
+      const { data, error } = await supabase
+        .from('price_coefficients')
+        .select('coefficient_value')
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (data && !error) {
+        setPriceCoefficient(data.coefficient_value);
+        console.log('Loaded price coefficient:', data.coefficient_value, 'PLN/cm³');
+      }
+    };
+
+    fetchPriceCoefficient();
+  }, []);
 
   useEffect(() => {
     const loadProfileData = async () => {
@@ -387,31 +402,28 @@ const Checkout = () => {
     const size = itemSizes[item.id] || { x: 100, y: 100, z: 100 };
     const material = itemMaterials[item.id] || 'PLA';
     
-    // Calculate volume in mm³ for current item's size
-    const currentVolumeMm3 = size.x * size.y * size.z;
+    // Calculate volume in cm³ (convert from mm to cm)
+    const volumeCm3 = (size.x / 10) * (size.y / 10) * (size.z / 10);
     
-    // Reference: Model 190mm x 109mm x 9.8mm with PLA = 39 zł
-    // This represents ~203,042 mm³
-    
-    // Calculate price based on volume ratio
-    // Smaller volume = cheaper, larger volume = more expensive
-    const volumeRatio = currentVolumeMm3 / REFERENCE_VOLUME_MM3;
+    // Base price = volume * coefficient
+    const basePrice = volumeCm3 * priceCoefficient;
     
     // Apply material multiplier
     const materialMultiplier = getMaterialMultiplier(material);
     
-    // Calculate final price: reference price * volume ratio * material multiplier
-    const pricePerUnit = REFERENCE_PRICE_PLA * volumeRatio * materialMultiplier;
+    // Calculate final price: base price * material multiplier
+    const pricePerUnit = basePrice * materialMultiplier;
     
     console.log(`Price calculation for ${item.name}:`, {
-      currentSize: `${size.x.toFixed(1)} × ${size.y.toFixed(1)} × ${size.z.toFixed(1)} mm`,
-      currentVolume: currentVolumeMm3.toFixed(0) + ' mm³',
-      referenceVolume: REFERENCE_VOLUME_MM3.toFixed(0) + ' mm³ (190×109×9.8)',
-      volumeRatio: volumeRatio.toFixed(3),
+      size: `${size.x.toFixed(1)} × ${size.y.toFixed(1)} × ${size.z.toFixed(1)} mm`,
+      volume: volumeCm3.toFixed(2) + ' cm³',
+      coefficient: priceCoefficient + ' PLN/cm³',
+      basePrice: basePrice.toFixed(2) + ' PLN',
       material,
-      materialMultiplier,
-      basePricePLA: (REFERENCE_PRICE_PLA * volumeRatio).toFixed(2) + ' zł',
-      finalPrice: pricePerUnit.toFixed(2) + ' zł'
+      materialMultiplier: materialMultiplier + 'x',
+      finalPricePerUnit: pricePerUnit.toFixed(2) + ' PLN',
+      quantity: item.quantity,
+      totalPrice: (pricePerUnit * item.quantity).toFixed(2) + ' PLN'
     });
     
     return pricePerUnit * item.quantity;
