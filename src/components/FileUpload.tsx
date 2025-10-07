@@ -1,8 +1,8 @@
 import { useCallback } from "react";
-import { Upload, FileText } from "lucide-react";
+import { Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
-import { useTranslation } from "@/lib/i18n";
+import { getText } from "@/lib/i18n";
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
@@ -11,7 +11,6 @@ interface FileUploadProps {
 
 export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
   const { language } = useApp();
-  const { t } = useTranslation(language);
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
@@ -67,9 +66,9 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
         </div>
         
         <div className="space-y-1 sm:space-y-2">
-          <h3 className="text-base sm:text-lg font-semibold">{t('uploadTitle')}</h3>
+          <h3 className="text-base sm:text-lg font-semibold">{getText('uploadTitle', language)}</h3>
           <p className="text-muted-foreground text-sm sm:text-base">
-            {t('uploadSubtitle')}
+            {getText('uploadSubtitle', language)}
           </p>
         </div>
       </div>
