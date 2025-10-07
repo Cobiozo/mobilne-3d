@@ -21,17 +21,21 @@ export const useSessionTracking = () => {
       const sessionId = getSessionId();
       const userAgent = navigator.userAgent;
       
-      // Update or create session
+      // Delete any existing sessions for this user to prevent duplicates
+      await supabase
+        .from('active_sessions')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('session_id', sessionId);
+
+      // Create new session
       const { error } = await supabase
         .from('active_sessions')
-        .upsert({
+        .insert({
           user_id: user.id,
           session_id: sessionId,
           user_agent: userAgent,
           last_activity: new Date().toISOString(),
-        }, {
-          onConflict: 'session_id',
-          ignoreDuplicates: false
         });
 
       if (error) {

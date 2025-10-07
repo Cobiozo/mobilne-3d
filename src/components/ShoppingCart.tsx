@@ -200,7 +200,20 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
                   <Button
                     variant="outline"
                     className="flex-1"
-                    onClick={onClearCart}
+                    onClick={() => {
+                      // Clear localStorage directly
+                      localStorage.removeItem('cartItems');
+                      
+                      // Notify parent component
+                      onClearCart();
+                      
+                      // Dispatch event to sync across all components
+                      window.dispatchEvent(new CustomEvent('cartUpdated', { 
+                        detail: { cartItems: [] } 
+                      }));
+                      
+                      toast.success(language === 'pl' ? 'Koszyk został wyczyszczony' : 'Cart has been cleared');
+                    }}
                   >
                     {getText('clearCart', language)}
                   </Button>

@@ -172,6 +172,10 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
   const saveModelEdit = async () => {
     if (!editingModel) return;
     
+    const model = models.find(m => m.id === editingModel);
+    if (!model) return;
+
+    // Update model metadata in database
     const { error } = await supabase
       .from('models')
       .update({ 
@@ -183,6 +187,23 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
     if (error) {
       sonnerToast.error('Nie udało się zaktualizować modelu');
     } else {
+      // Update localStorage cart if this model is in cart
+      const savedCart = localStorage.getItem('cartItems');
+      if (savedCart) {
+        try {
+          const cartItems = JSON.parse(savedCart);
+          const updatedCart = cartItems.map((item: CartItem) => 
+            item.id === editingModel ? { ...item, name: editName.trim() } : item
+          );
+          localStorage.setItem('cartItems', JSON.stringify(updatedCart));
+          window.dispatchEvent(new CustomEvent('cartUpdated', { 
+            detail: { cartItems: updatedCart } 
+          }));
+        } catch (e) {
+          console.error('Error updating cart:', e);
+        }
+      }
+
       setModels(models.map(m => 
         m.id === editingModel ? { ...m, name: editName.trim(), description: editDescription.trim() || null } : m
       ));
