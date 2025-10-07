@@ -52,10 +52,17 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
         .eq('setting_key', 'models_storage_folder')
         .maybeSingle();
 
-      // Extract string value from jsonb field
-      const storageFolder = typeof settingsData?.setting_value === 'string' 
-        ? settingsData.setting_value 
-        : (settingsData?.setting_value as any)?.value || '';
+      // Extract string value from jsonb field - handle both direct string and nested object
+      let storageFolder = '';
+      if (settingsData?.setting_value) {
+        if (typeof settingsData.setting_value === 'string') {
+          storageFolder = settingsData.setting_value;
+        } else if (typeof settingsData.setting_value === 'object') {
+          // Check if it's a nested object with 'value' property
+          const valueObj = settingsData.setting_value as any;
+          storageFolder = valueObj.value || valueObj.folder || '';
+        }
+      }
       
       // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop();

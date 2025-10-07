@@ -189,7 +189,7 @@ export const OrdersManagement = () => {
         customer_name: order.customer_first_name && order.customer_last_name 
           ? `${order.customer_first_name} ${order.customer_last_name}`
           : 'Klient',
-        model_name: modelNames[order.model_id] || 'Model 3D'
+        model_name: order.model_id ? (modelNames[order.model_id] || order.model_id) : 'Model 3D'
       })) || [];
 
       setOrders(formattedOrders);
