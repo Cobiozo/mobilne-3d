@@ -151,6 +151,25 @@ export const useAuth = () => {
   };
 
   const signOut = async () => {
+    try {
+      // Save cart to database before logout
+      if (user) {
+        const savedCart = localStorage.getItem('cartItems');
+        const cartData = savedCart ? JSON.parse(savedCart) : [];
+        
+        await supabase
+          .from('user_carts')
+          .upsert({
+            user_id: user.id,
+            cart_data: cartData
+          }, {
+            onConflict: 'user_id'
+          });
+      }
+    } catch (error) {
+      console.error('Error saving cart before logout:', error);
+    }
+
     const { error } = await supabase.auth.signOut();
     
     if (error) {

@@ -161,11 +161,27 @@ export const OrdersManagement = () => {
           shipping_country,
           delivery_method,
           payment_method,
-          invoice_data
+          invoice_data,
+          model_id
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+
+      // Fetch model names for all orders
+      const modelIds = [...new Set(data?.map(o => o.model_id).filter(Boolean))];
+      const modelNames: { [key: string]: string } = {};
+      
+      if (modelIds.length > 0) {
+        const { data: models } = await supabase
+          .from('models')
+          .select('id, name')
+          .in('id', modelIds);
+        
+        models?.forEach(model => {
+          modelNames[model.id] = model.name;
+        });
+      }
 
       const formattedOrders = data?.map(order => ({
         ...order,
@@ -173,7 +189,7 @@ export const OrdersManagement = () => {
         customer_name: order.customer_first_name && order.customer_last_name 
           ? `${order.customer_first_name} ${order.customer_last_name}`
           : 'Klient',
-        model_name: 'Model 3D'
+        model_name: modelNames[order.model_id] || 'Model 3D'
       })) || [];
 
       setOrders(formattedOrders);
