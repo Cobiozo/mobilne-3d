@@ -10,7 +10,7 @@ import { FileUpload } from '@/components/FileUpload';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useApp } from '@/contexts/AppContext';
-import { getText } from '@/lib/i18n';
+import { translations } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { Upload, Save } from 'lucide-react';
 
@@ -38,7 +38,7 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
 
   const handleUpload = async () => {
     if (!selectedFile || !user || !modelName.trim()) {
-      toast.error(getText('fillAllFields', language));
+      toast.error(translations[language].fillAllFields);
       return;
     }
 
@@ -99,7 +99,7 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
         throw dbError;
       }
 
-      toast.success(getText('modelUploadedSuccessfully', language));
+      toast.success(translations[language].modelUploadedSuccessfully);
       
       // Reset form
       setSelectedFile(null);
@@ -111,7 +111,7 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
 
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error(getText('uploadError', language));
+      toast.error(translations[language].uploadError);
     } finally {
       setIsUploading(false);
     }
@@ -122,32 +122,32 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload className="w-5 h-5" />
-          {getText('uploadModel', language)}
+          {translations[language].uploadModel}
         </CardTitle>
         <CardDescription>
-          {getText('uploadModelDescription', language)}
+          {translations[language].uploadModelDescription}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* File Upload */}
         <div className="space-y-2">
-          <Label>{getText('selectFile', language)}</Label>
+          <Label>{translations[language].selectFile}</Label>
           <FileUpload onFileSelect={handleFileSelect} />
           {selectedFile && (
             <p className="text-sm text-muted-foreground">
-              {getText('selectedFile', language)}: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+              {translations[language].selectedFile}: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
             </p>
           )}
         </div>
 
         {/* Model Name */}
         <div className="space-y-2">
-          <Label htmlFor="modelName">{getText('modelName', language)} *</Label>
+          <Label htmlFor="modelName">{translations[language].modelName} *</Label>
           <Input
             id="modelName"
             value={modelName}
             onChange={(e) => setModelName(e.target.value)}
-            placeholder={getText('enterModelName', language)}
+            placeholder={translations[language].enterModelName}
           />
         </div>
 
@@ -158,7 +158,7 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder={getText('enterDescription', language)}
+            placeholder={translations[language].enterDescription}
             rows={3}
           />
         </div>
@@ -171,7 +171,7 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
             onCheckedChange={setIsPublic}
           />
           <Label htmlFor="isPublic">
-            {getText('makeModelPublic', language)}
+            {translations[language].makeModelPublic}
           </Label>
         </div>
 
@@ -184,12 +184,12 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
           {isUploading ? (
             <>
               <div className="w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              {getText('uploading', language)}
+              {translations[language].uploading}
             </>
           ) : (
             <>
               <Save className="w-4 h-4 mr-2" />
-              {getText('uploadModel', language)}
+              {translations[language].uploadModel}
             </>
           )}
         </Button>

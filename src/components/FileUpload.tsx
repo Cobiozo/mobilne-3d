@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
-import { getText } from "@/lib/i18n";
+import { translations } from "@/lib/i18n";
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
@@ -66,9 +66,9 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
         </div>
         
         <div className="space-y-1 sm:space-y-2">
-          <h3 className="text-base sm:text-lg font-semibold">{getText('uploadTitle', language)}</h3>
+          <h3 className="text-base sm:text-lg font-semibold">{translations[language].uploadTitle}</h3>
           <p className="text-muted-foreground text-sm sm:text-base">
-            {getText('uploadSubtitle', language)}
+            {translations[language].uploadSubtitle}
           </p>
         </div>
       </div>

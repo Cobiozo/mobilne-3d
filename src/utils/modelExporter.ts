@@ -47,8 +47,11 @@ export const downloadModelWithSettings = async (
     const exporter = new STLExporter();
     const stlString = exporter.parse(mesh, { binary: true });
     
-    // Create blob and download
-    const blob = new Blob([stlString], { type: 'application/octet-stream' });
+    // Create blob and download - convert to proper ArrayBuffer
+    const stlData = stlString instanceof DataView 
+      ? new Uint8Array(stlString.buffer as ArrayBuffer)
+      : stlString;
+    const blob = new Blob([stlData], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
