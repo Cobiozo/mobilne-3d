@@ -10,7 +10,7 @@ import { FileUpload } from '@/components/FileUpload';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useApp } from '@/contexts/AppContext';
-import { translations } from '@/lib/i18n';
+import { getText } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { Upload, Save } from 'lucide-react';
 
@@ -28,29 +28,41 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
 
   const handleFileSelect = (file: File) => {
+    console.log('[ModelUpload] File selected:', file.name, file.size);
     setSelectedFile(file);
     if (!modelName) {
       // Auto-fill name from filename
       const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, '');
       setModelName(nameWithoutExtension);
+      console.log('[ModelUpload] Auto-filled model name:', nameWithoutExtension);
     }
   };
 
   const handleUpload = async () => {
+    console.log('[ModelUpload] handleUpload called');
+    console.log('[ModelUpload] selectedFile:', selectedFile);
+    console.log('[ModelUpload] user:', user);
+    console.log('[ModelUpload] modelName:', modelName);
+    
     if (!selectedFile || !user || !modelName.trim()) {
-      toast.error(translations[language].fillAllFields);
+      console.log('[ModelUpload] Validation failed');
+      toast.error(getText('fillAllFields', language));
       return;
     }
 
+    console.log('[ModelUpload] Starting upload...');
     setIsUploading(true);
 
     try {
       // Fetch storage folder setting
-      const { data: settingsData } = await supabase
+      console.log('[ModelUpload] Fetching storage folder setting...');
+      const { data: settingsData, error: settingsError } = await supabase
         .from('site_settings')
         .select('setting_value')
         .eq('setting_key', 'models_storage_folder')
         .maybeSingle();
+
+      console.log('[ModelUpload] Settings data:', settingsData, 'Error:', settingsError);
 
       // Extract string value from jsonb field - handle both direct string and nested object
       let storageFolder = '';
@@ -64,14 +76,19 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
         }
       }
       
+      console.log('[ModelUpload] Storage folder:', storageFolder);
+      
       // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop();
       const basePath = storageFolder ? `${storageFolder}/${user.id}` : user.id;
       const fileName = `${basePath}/${Date.now()}.${fileExt}`;
       
+      console.log('[ModelUpload] Uploading to path:', fileName);
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('models')
         .upload(fileName, selectedFile);
+
+      console.log('[ModelUpload] Upload result:', uploadData, 'Error:', uploadError);
 
       if (uploadError) {
         throw uploadError;
@@ -82,7 +99,10 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
         .from('models')
         .getPublicUrl(uploadData.path);
 
+      console.log('[ModelUpload] Public URL:', publicUrl);
+
       // Save model metadata to database
+      console.log('[ModelUpload] Saving metadata to database...');
       const { error: dbError } = await supabase
         .from('models')
         .insert({
@@ -95,11 +115,13 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
           is_public: isPublic
         });
 
+      console.log('[ModelUpload] DB insert error:', dbError);
+
       if (dbError) {
         throw dbError;
       }
 
-      toast.success(translations[language].modelUploadedSuccessfully);
+      toast.success(getText('modelUploadedSuccessfully', language));
       
       // Reset form
       setSelectedFile(null);
@@ -107,11 +129,12 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
       setDescription('');
       setIsPublic(false);
       
+      console.log('[ModelUpload] Upload completed successfully');
       onUploadComplete?.();
 
     } catch (error) {
-      console.error('Upload error:', error);
-      toast.error(translations[language].uploadError);
+      console.error('[ModelUpload] Upload error:', error);
+      toast.error(getText('uploadError', language));
     } finally {
       setIsUploading(false);
     }
@@ -122,32 +145,32 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload className="w-5 h-5" />
-          {translations[language].uploadModel}
+          {getText('uploadModel', language)}
         </CardTitle>
         <CardDescription>
-          {translations[language].uploadModelDescription}
+          {getText('uploadModelDescription', language)}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* File Upload */}
         <div className="space-y-2">
-          <Label>{translations[language].selectFile}</Label>
+          <Label>{getText('selectFile', language)}</Label>
           <FileUpload onFileSelect={handleFileSelect} />
           {selectedFile && (
             <p className="text-sm text-muted-foreground">
-              {translations[language].selectedFile}: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+              {getText('selectedFile', language)}: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
             </p>
           )}
         </div>
 
         {/* Model Name */}
         <div className="space-y-2">
-          <Label htmlFor="modelName">{translations[language].modelName} *</Label>
+          <Label htmlFor="modelName">{getText('modelName', language)} *</Label>
           <Input
             id="modelName"
             value={modelName}
             onChange={(e) => setModelName(e.target.value)}
-            placeholder={translations[language].enterModelName}
+            placeholder={getText('enterModelName', language)}
           />
         </div>
 
@@ -158,7 +181,7 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder={translations[language].enterDescription}
+            placeholder={getText('enterDescription', language)}
             rows={3}
           />
         </div>
@@ -171,7 +194,7 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
             onCheckedChange={setIsPublic}
           />
           <Label htmlFor="isPublic">
-            {translations[language].makeModelPublic}
+            {getText('makeModelPublic', language)}
           </Label>
         </div>
 
@@ -184,12 +207,12 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
           {isUploading ? (
             <>
               <div className="w-4 h-4 mr-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              {translations[language].uploading}
+              {getText('uploading', language)}
             </>
           ) : (
             <>
               <Save className="w-4 h-4 mr-2" />
-              {translations[language].uploadModel}
+              {getText('uploadModel', language)}
             </>
           )}
         </Button>
