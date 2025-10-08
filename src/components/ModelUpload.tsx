@@ -27,6 +27,9 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
   const [isPublic, setIsPublic] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  console.log('[ModelUpload] Component rendered');
+  console.log('[ModelUpload] State:', { selectedFile: selectedFile?.name, modelName, user: user?.email });
+
   const handleFileSelect = (file: File) => {
     console.log('[ModelUpload] File selected:', file.name, file.size);
     setSelectedFile(file);

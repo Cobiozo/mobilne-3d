@@ -11,6 +11,7 @@ interface FileUploadProps {
 
 export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
   const { language } = useApp();
+  console.log('[FileUpload] Component rendered');
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
