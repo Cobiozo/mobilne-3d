@@ -14,14 +14,19 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
+      console.log('[FileUpload] Drop event triggered');
       const files = Array.from(e.dataTransfer.files);
+      console.log('[FileUpload] Files dropped:', files.length);
       const validFile = files.find(file => 
         file.name.toLowerCase().endsWith('.stl') || 
         file.name.toLowerCase().endsWith('.3mf')
       );
       
       if (validFile) {
+        console.log('[FileUpload] Valid file found:', validFile.name);
         onFileSelect(validFile);
+      } else {
+        console.log('[FileUpload] No valid file found in dropped files');
       }
     },
     [onFileSelect]
@@ -33,9 +38,13 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
+      console.log('[FileUpload] File input change triggered');
       const file = e.target.files?.[0];
+      console.log('[FileUpload] File selected:', file?.name, file?.size);
       if (file) {
         onFileSelect(file);
+      } else {
+        console.log('[FileUpload] No file selected');
       }
     },
     [onFileSelect]
