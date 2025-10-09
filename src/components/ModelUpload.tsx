@@ -282,21 +282,33 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* File Upload */}
-        <div className="space-y-2">
-          <Label>{getText('selectFile', language)}</Label>
-          <FileUpload onFileSelect={handleFileSelect} />
-          {selectedFile && (
-            <p className="text-sm text-muted-foreground">
-              {getText('selectedFile', language)}: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-            </p>
-          )}
-        </div>
+        {/* File Upload - only show when no file selected */}
+        {!selectedFile && (
+          <div className="space-y-2">
+            <Label>{getText('selectFile', language)}</Label>
+            <FileUpload onFileSelect={handleFileSelect} />
+          </div>
+        )}
 
         {/* Model Preview */}
         {selectedFile && (
           <div className="space-y-2">
-            <Label>Podgląd modelu</Label>
+            <div className="flex items-center justify-between">
+              <Label>Podgląd modelu</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedFile(null);
+                  setModelName('');
+                }}
+              >
+                Zmień model
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+            </p>
             <div className="relative w-full h-[300px] bg-muted rounded-lg overflow-hidden">
               <div ref={previewRef} className="w-full h-full" />
               {previewLoading && (
