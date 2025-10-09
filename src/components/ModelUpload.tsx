@@ -1,19 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { FileUpload } from '@/components/FileUpload';
+import { ModelViewer } from '@/components/ModelViewer';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { Upload, Save } from 'lucide-react';
-import * as THREE from 'three';
 import { loadModelFile } from '@/utils/modelLoader';
 
 interface ModelUploadProps {
@@ -24,25 +23,26 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
   const { user } = useAuth();
   const { language } = useApp();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [modelData, setModelData] = useState<ArrayBuffer | null>(null);
   const [modelName, setModelName] = useState('');
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const previewRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<{
-    scene: THREE.Scene;
-    camera: THREE.PerspectiveCamera;
-    renderer: THREE.WebGLRenderer;
-    mesh?: THREE.Mesh;
-  } | null>(null);
+  const [fileName, setFileName] = useState<string>('');
+  const [modelColor] = useState('#00aaff');
 
   console.log('[ModelUpload] Component rendered');
   console.log('[ModelUpload] State:', { selectedFile: selectedFile?.name, modelName, user: user?.email });
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = async (file: File) => {
     console.log('[ModelUpload] File selected:', file.name, file.size);
     setSelectedFile(file);
+    setFileName(file.name);
+    
+    // Load model data
+    const arrayBuffer = await file.arrayBuffer();
+    setModelData(arrayBuffer);
+    
     if (!modelName) {
       // Auto-fill name from filename
       const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, '');
@@ -50,123 +50,6 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
       console.log('[ModelUpload] Auto-filled model name:', nameWithoutExtension);
     }
   };
-
-  // Load and render preview when file is selected
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadPreview = async () => {
-      if (!selectedFile || !previewRef.current) return;
-
-      setPreviewLoading(true);
-
-      try {
-        const container = previewRef.current;
-        const width = container.clientWidth;
-        const height = 300;
-
-        // Cleanup previous scene
-        if (sceneRef.current) {
-          sceneRef.current.renderer.dispose();
-          if (sceneRef.current.mesh) {
-            sceneRef.current.mesh.geometry.dispose();
-            if (Array.isArray(sceneRef.current.mesh.material)) {
-              sceneRef.current.mesh.material.forEach(m => m.dispose());
-            } else {
-              sceneRef.current.mesh.material.dispose();
-            }
-          }
-          container.innerHTML = '';
-        }
-
-        // Setup scene
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xf5f5f5);
-
-        // Setup camera
-        const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-        camera.position.set(0, 0, 5);
-
-        // Setup renderer
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(width, height);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        container.appendChild(renderer.domElement);
-
-        // Add lights
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
-
-        const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight1.position.set(1, 1, 1);
-        scene.add(directionalLight1);
-
-        const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
-        directionalLight2.position.set(-1, -1, -1);
-        scene.add(directionalLight2);
-
-        if (isMounted) {
-          sceneRef.current = { scene, camera, renderer };
-        }
-
-        // Load model
-        const arrayBuffer = await selectedFile.arrayBuffer();
-        const models = await loadModelFile(arrayBuffer, selectedFile.name);
-
-        if (!models || models.length === 0) {
-          throw new Error('No models found in file');
-        }
-
-        const geometry = models[0].geometry;
-
-        if (!isMounted) return;
-
-        // Create mesh
-        const material = new THREE.MeshPhongMaterial({
-          color: 0x00aaff,
-          shininess: 30,
-        });
-        const mesh = new THREE.Mesh(geometry, material);
-        scene.add(mesh);
-
-        if (sceneRef.current) {
-          sceneRef.current.mesh = mesh;
-        }
-
-        // Render
-        renderer.render(scene, camera);
-
-        if (isMounted) {
-          setPreviewLoading(false);
-        }
-      } catch (error) {
-        console.error('[ModelUpload] Preview error:', error);
-        if (isMounted) {
-          setPreviewLoading(false);
-        }
-      }
-    };
-
-    loadPreview();
-
-    return () => {
-      isMounted = false;
-      if (sceneRef.current) {
-        sceneRef.current.renderer.dispose();
-        if (sceneRef.current.mesh) {
-          sceneRef.current.mesh.geometry.dispose();
-          if (Array.isArray(sceneRef.current.mesh.material)) {
-            sceneRef.current.mesh.material.forEach(m => m.dispose());
-          } else {
-            sceneRef.current.mesh.material.dispose();
-          }
-        }
-      }
-      if (previewRef.current) {
-        previewRef.current.innerHTML = '';
-      }
-    };
-  }, [selectedFile]);
 
   const handleUpload = async () => {
     console.log('[ModelUpload] handleUpload called');
@@ -291,7 +174,7 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
         )}
 
         {/* Model Preview */}
-        {selectedFile && (
+        {selectedFile && modelData && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Podgląd modelu</Label>
@@ -300,6 +183,7 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
                 size="sm"
                 onClick={() => {
                   setSelectedFile(null);
+                  setModelData(null);
                   setModelName('');
                 }}
               >
@@ -309,13 +193,12 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
             <p className="text-sm text-muted-foreground">
               {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
             </p>
-            <div className="relative w-full h-[300px] bg-muted rounded-lg overflow-hidden">
-              <div ref={previewRef} className="w-full h-full" />
-              {previewLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted/80">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              )}
+            <div className="w-full h-[400px]">
+              <ModelViewer 
+                modelData={modelData} 
+                modelColor={modelColor}
+                fileName={fileName}
+              />
             </div>
           </div>
         )}
