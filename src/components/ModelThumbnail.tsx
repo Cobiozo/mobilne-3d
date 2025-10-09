@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { Package } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { loadModelFile } from '@/utils/modelLoader';
 
 interface ModelThumbnailProps {
   fileUrl: string;
@@ -70,9 +69,18 @@ export const ModelThumbnail = ({ fileUrl, color = '#FFFFFF', className = '' }: M
         
         const arrayBuffer = await response.arrayBuffer();
 
-        // Load model geometry
-        const loader = new STLLoader();
-        const geometry = loader.parse(arrayBuffer);
+        // Extract filename from URL
+        const fileName = fileUrl.split('/').pop() || 'model.stl';
+        
+        // Load model using proper loader for file type
+        const models = await loadModelFile(arrayBuffer, fileName);
+        
+        if (!models || models.length === 0) {
+          throw new Error('No models found in file');
+        }
+        
+        // Use first model
+        const geometry = models[0].geometry;
 
         if (!isMounted) return;
 

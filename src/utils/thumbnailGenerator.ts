@@ -1,9 +1,10 @@
 import * as THREE from 'three';
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
+import { loadModelFile } from './modelLoader';
 
 export const generateThumbnailFromModel = async (
   arrayBuffer: ArrayBuffer,
-  color: string = '#000000'
+  color: string = '#000000',
+  fileName: string = 'model.stl'
 ): Promise<string | undefined> => {
   try {
     // Create offscreen canvas
@@ -42,9 +43,15 @@ export const generateThumbnailFromModel = async (
     directionalLight2.position.set(-1, -1, -1);
     scene.add(directionalLight2);
 
-    // Load model geometry
-    const loader = new STLLoader();
-    const geometry = loader.parse(arrayBuffer);
+    // Load model using proper loader for file type
+    const models = await loadModelFile(arrayBuffer, fileName);
+    
+    if (!models || models.length === 0) {
+      throw new Error('No models found in file');
+    }
+    
+    // Use first model
+    const geometry = models[0].geometry;
 
     // Center geometry
     geometry.computeBoundingBox();
