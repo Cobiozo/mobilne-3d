@@ -57,11 +57,21 @@ export const PayUSettings = () => {
   };
 
   const handleSave = async () => {
+    // Walidacja wymaganych pól
+    if (!settings.pos_id?.trim() || !settings.client_id?.trim()) {
+      toast({
+        title: "Błąd walidacji",
+        description: "POS ID i Client ID są wymagane",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const updateData: any = {
-        pos_id: settings.pos_id,
-        client_id: settings.client_id,
+        pos_id: settings.pos_id.trim(),
+        client_id: settings.client_id.trim(),
         environment: settings.environment,
         is_active: settings.is_active,
       };
