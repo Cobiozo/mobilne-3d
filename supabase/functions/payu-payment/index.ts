@@ -67,8 +67,10 @@ serve(async (req) => {
       throw new Error('Failed to decrypt PayU credentials');
     }
 
-    const PAYU_POS_ID = payuSettings.pos_id;
-    const PAYU_CLIENT_ID = payuSettings.client_id;
+    console.log('Raw PayU settings from DB:', payuSettings);
+
+    const PAYU_POS_ID = payuSettings.pos_id?.trim();
+    const PAYU_CLIENT_ID = payuSettings.client_id?.trim();
     const PAYU_CLIENT_SECRET = decryptedSecret;
     const PAYU_MD5 = decryptedMd5;
     const PAYU_ENVIRONMENT = payuSettings.environment || 'sandbox';
@@ -81,8 +83,14 @@ serve(async (req) => {
       hasClientId: !!PAYU_CLIENT_ID,
       hasClientSecret: !!PAYU_CLIENT_SECRET,
       hasMD5: !!PAYU_MD5,
-      environment: PAYU_ENVIRONMENT
+      environment: PAYU_ENVIRONMENT,
+      posIdValue: PAYU_POS_ID,
+      clientIdValue: PAYU_CLIENT_ID
     });
+
+    if (!PAYU_POS_ID || !PAYU_CLIENT_ID || !PAYU_CLIENT_SECRET) {
+      throw new Error('PayU credentials incomplete. Please configure POS ID, Client ID, and Client Secret in admin panel.');
+    }
 
     const { action, ...data } = await req.json();
     console.log('PayU request:', { action, data });
