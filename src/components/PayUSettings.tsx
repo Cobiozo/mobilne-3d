@@ -36,10 +36,11 @@ export const PayUSettings = () => {
 
       if (error) throw error;
       if (data) {
+        console.log('Fetched PayU settings from DB:', data);
         setSettings({
           id: data.id,
-          pos_id: data.pos_id,
-          client_id: data.client_id,
+          pos_id: data.pos_id || "",
+          client_id: data.client_id || "",
           environment: data.environment,
           is_active: data.is_active,
         });
@@ -94,6 +95,8 @@ export const PayUSettings = () => {
         updateData.client_secret_encrypted = encryptedSecret;
       }
 
+      console.log('Saving PayU settings:', updateData);
+
       let error;
       if (settings.id) {
         ({ error } = await supabase
@@ -106,7 +109,12 @@ export const PayUSettings = () => {
           .insert([updateData]));
       }
 
-      if (error) throw error;
+      if (error) {
+        console.error('Save error:', error);
+        throw error;
+      }
+
+      console.log('PayU settings saved successfully');
 
       if (md5Key.trim() || clientSecret.trim()) {
         setMd5Key("");
