@@ -111,13 +111,23 @@ serve(async (req) => {
       }),
     });
 
+    const tokenText = await tokenResponse.text();
+    console.log('PayU OAuth response status:', tokenResponse.status);
+    console.log('PayU OAuth response:', tokenText.substring(0, 500));
+    
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error('PayU OAuth error:', errorText);
-      throw new Error(`Failed to get OAuth token: ${errorText}`);
+      console.error('PayU OAuth error - Full response:', tokenText);
+      throw new Error(`Failed to get OAuth token (${tokenResponse.status}): ${tokenText.substring(0, 200)}`);
     }
 
-    const tokenData = await tokenResponse.json();
+    let tokenData;
+    try {
+      tokenData = JSON.parse(tokenText);
+    } catch (e) {
+      console.error('Failed to parse OAuth response as JSON:', tokenText.substring(0, 200));
+      throw new Error('Invalid OAuth response format');
+    }
+    
     const accessToken = tokenData.access_token;
 
     if (action === 'create_order') {
@@ -156,13 +166,21 @@ serve(async (req) => {
       });
 
       const responseText = await orderResponse.text();
-      console.log('PayU order response:', responseText);
+      console.log('PayU order response status:', orderResponse.status);
+      console.log('PayU order response (first 500 chars):', responseText.substring(0, 500));
 
       if (!orderResponse.ok) {
-        throw new Error(`PayU order creation failed: ${responseText}`);
+        console.error('PayU order error - Full response:', responseText);
+        throw new Error(`PayU order creation failed (${orderResponse.status}): ${responseText.substring(0, 300)}`);
       }
 
-      const orderResult = JSON.parse(responseText);
+      let orderResult;
+      try {
+        orderResult = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse order response as JSON:', responseText.substring(0, 200));
+        throw new Error('Invalid order response format');
+      }
 
       return new Response(
         JSON.stringify({
