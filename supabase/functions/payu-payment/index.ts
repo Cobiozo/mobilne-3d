@@ -175,7 +175,8 @@ serve(async (req) => {
       console.log('PayU order response status:', orderResponse.status);
       console.log('PayU order response (first 500 chars):', responseText.substring(0, 500));
 
-      if (!orderResponse.ok) {
+      // PayU returns 302 for successful order creation with redirect
+      if (orderResponse.status !== 302 && !orderResponse.ok) {
         console.error('PayU order error - Full response:', responseText);
         throw new Error(`PayU order creation failed (${orderResponse.status}): ${responseText.substring(0, 300)}`);
       }
