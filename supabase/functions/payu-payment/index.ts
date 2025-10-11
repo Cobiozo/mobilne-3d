@@ -95,8 +95,11 @@ serve(async (req) => {
     const { action, ...data } = await req.json();
     console.log('PayU request:', { action, data });
 
-    // Get OAuth token
-    const tokenResponse = await fetch(`${PAYU_BASE_URL}/pl/standard/user/oauth/authorize`, {
+    // Get OAuth token - according to PayU docs
+    const oauthUrl = `${PAYU_BASE_URL}/pl/standard/user/oauth/authorize`;
+    console.log('Requesting OAuth token from:', oauthUrl);
+    
+    const tokenResponse = await fetch(oauthUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
