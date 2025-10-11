@@ -155,13 +155,18 @@ serve(async (req) => {
       };
 
       console.log('Creating PayU order:', orderData);
+      
+      const orderRequestHeaders = {
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Authorization': `Bearer ${accessToken}`,
+      };
+      
+      console.log('Request headers:', orderRequestHeaders);
+      console.log('Request URL:', `${PAYU_BASE_URL}/api/v2_1/orders`);
 
       const orderResponse = await fetch(`${PAYU_BASE_URL}/api/v2_1/orders`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
+        headers: orderRequestHeaders,
         body: JSON.stringify(orderData),
       });
 
