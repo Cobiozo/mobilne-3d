@@ -168,6 +168,7 @@ serve(async (req) => {
         method: 'POST',
         headers: orderRequestHeaders,
         body: JSON.stringify(orderData),
+        redirect: 'manual', // CRITICAL: Prevent following 302 redirects
       });
 
       const responseText = await orderResponse.text();
