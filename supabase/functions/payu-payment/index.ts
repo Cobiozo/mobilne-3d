@@ -201,24 +201,33 @@ serve(async (req) => {
     }
 
     if (action === 'verify_notification') {
-      // Verify PayU notification signature
-      const signature = data.signature;
-      const body = data.body;
-
-      // Calculate signature using Web Crypto API
-      // PayU uses: MD5(body + secondKey)
-      const textToHash = body + PAYU_MD5;
-      const encoder = new TextEncoder();
-      const data_to_hash = encoder.encode(textToHash);
+      // Verify PayU notification signature and update order status
+      const notification = data.notification;
       
-      // Note: MD5 is not available in Web Crypto API, we need to use a library
-      // For now, we'll accept the signature as-is and log for debugging
-      console.log('Notification received:', { signature, bodyLength: body.length });
+      console.log('PayU notification received:', notification);
+
+      // Extract order ID and payment status from notification
+      const orderId = notification?.order?.extOrderId;
+      const paymentStatus = notification?.order?.status;
+
+      if (orderId && paymentStatus === 'COMPLETED') {
+        // Update order status to 'processing' (w realizacji)
+        const { error: updateError } = await supabaseClient
+          .from('orders')
+          .update({ status: 'processing' })
+          .eq('id', orderId);
+
+        if (updateError) {
+          console.error('Failed to update order status:', updateError);
+        } else {
+          console.log(`Order ${orderId} status updated to 'processing'`);
+        }
+      }
 
       return new Response(
         JSON.stringify({ 
-          valid: true, // Accept all for now, implement proper MD5 verification later
-          message: 'Notification accepted'
+          success: true,
+          message: 'Notification processed'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

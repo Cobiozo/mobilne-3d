@@ -41,10 +41,13 @@ const PaymentStatus = () => {
         }
 
         if (order) {
-          // For PayU, we consider the order successful if it was created
-          // The actual payment status will be updated via webhook
-          setStatus('success');
-          setMessage(`Zamówienie ${order.order_number} zostało złożone. Status płatności zostanie zaktualizowany po potwierdzeniu przez PayU.`);
+          if (order.status === 'processing') {
+            setStatus('success');
+            setMessage(`Zamówienie ${order.order_number} zostało opłacone i jest w realizacji.`);
+          } else {
+            setStatus('success');
+            setMessage(`Zamówienie ${order.order_number} zostało złożone. Oczekiwanie na potwierdzenie płatności.`);
+          }
         } else {
           setStatus('error');
           setMessage('Nie znaleziono zamówienia.');

@@ -56,8 +56,8 @@ interface Order {
 }
 
 const statusLabels = {
-  pending: 'Oczekujące',
-  processing: 'W trakcie',
+  pending: 'Oczekujące na płatność',
+  processing: 'W realizacji',
   completed: 'Zakończone',
   cancelled: 'Anulowane',
   shipped: 'Wysłane'
