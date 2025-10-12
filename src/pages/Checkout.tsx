@@ -750,7 +750,8 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
               .delete()
               .eq('user_id', user.id);
             
-            // Redirect to PayU
+            // Redirect to PayU payment page (will show Blik, PayPo, and other options)
+            console.log('Redirecting to PayU:', payuData.redirectUri);
             window.location.href = payuData.redirectUri;
             return;
           } else {
