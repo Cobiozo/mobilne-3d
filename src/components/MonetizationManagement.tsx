@@ -112,42 +112,39 @@ export function MonetizationManagement() {
   };
 
   const fetchWallets = async () => {
-    const { data, error } = await supabase
+    const { data: walletsData, error } = await supabase
       .from('user_wallets')
-      .select(`
-        user_id,
-        balance,
-        virtual_currency,
-        profiles!inner(display_name)
-      `);
+      .select('user_id, balance, virtual_currency');
 
     if (error) {
       console.error('Error fetching wallets:', error);
       return;
     }
 
-    const formatted = data?.map(w => ({
-      user_id: w.user_id,
-      balance: w.balance,
-      virtual_currency: w.virtual_currency,
-      display_name: (w.profiles as any)?.display_name || 'Nieznany użytkownik'
-    })) || [];
+    // Fetch profiles separately
+    const userIds = walletsData?.map(w => w.user_id) || [];
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('user_id, display_name')
+      .in('user_id', userIds);
+
+    const formatted = walletsData?.map(w => {
+      const profile = profilesData?.find(p => p.user_id === w.user_id);
+      return {
+        user_id: w.user_id,
+        balance: w.balance,
+        virtual_currency: w.virtual_currency,
+        display_name: profile?.display_name || 'Nieznany użytkownik'
+      };
+    }) || [];
 
     setWallets(formatted);
   };
 
   const fetchTransactions = async () => {
-    const { data, error } = await supabase
+    const { data: transactionsData, error } = await supabase
       .from('wallet_transactions')
-      .select(`
-        id,
-        user_id,
-        amount,
-        transaction_type,
-        description,
-        created_at,
-        profiles!inner(display_name)
-      `)
+      .select('id, user_id, amount, transaction_type, description, created_at')
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -156,10 +153,20 @@ export function MonetizationManagement() {
       return;
     }
 
-    const formatted = data?.map(t => ({
-      ...t,
-      display_name: (t.profiles as any)?.display_name || 'Nieznany użytkownik'
-    })) || [];
+    // Fetch profiles separately
+    const userIds = [...new Set(transactionsData?.map(t => t.user_id) || [])];
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('user_id, display_name')
+      .in('user_id', userIds);
+
+    const formatted = transactionsData?.map(t => {
+      const profile = profilesData?.find(p => p.user_id === t.user_id);
+      return {
+        ...t,
+        display_name: profile?.display_name || 'Nieznany użytkownik'
+      };
+    }) || [];
 
     setTransactions(formatted);
   };
