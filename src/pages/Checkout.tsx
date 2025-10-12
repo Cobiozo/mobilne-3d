@@ -948,6 +948,15 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
                               let newY = originalSize.y * scale;
                               let newZ = originalSize.z * scale;
                               
+                              // Check minimum Z constraint
+                              if (newZ < 2.5) {
+                                const minScale = 2.5 / originalSize.z;
+                                newX = originalSize.x * minScale;
+                                newY = originalSize.y * minScale;
+                                newZ = 2.5;
+                                toast.warning('Minimalna wysokość Z to 2,5mm');
+                              }
+                              
                               // Check if exceeds maximum and scale down proportionally
                               const scaleX = newX > 390 ? 390 / newX : 1;
                               const scaleY = newY > 390 ? 390 / newY : 1;
@@ -987,6 +996,15 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
                               let newX = originalSize.x * scale;
                               let newY = originalSize.y * scale;
                               let newZ = originalSize.z * scale;
+                              
+                              // Check minimum Z constraint
+                              if (newZ < 2.5) {
+                                const minScale = 2.5 / originalSize.z;
+                                newX = originalSize.x * minScale;
+                                newY = originalSize.y * minScale;
+                                newZ = 2.5;
+                                toast.warning('Minimalna wysokość Z to 2,5mm');
+                              }
                               
                               // Check if exceeds maximum and scale down proportionally
                               const scaleX = newX > 390 ? 390 / newX : 1;
@@ -1051,7 +1069,7 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Max: 390mm (X,Y) × 380mm (Z) - proporcje są zachowane
+                        Max: 390mm (X,Y) × 380mm (Z) | Min Z: 2,5mm - proporcje są zachowane
                       </p>
                     </div>
 
