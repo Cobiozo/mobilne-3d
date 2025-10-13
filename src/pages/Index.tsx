@@ -132,12 +132,12 @@ const Index = () => {
 
   // Save cart to localStorage and database whenever it changes
   useEffect(() => {
-    if (cartItems.length > 0) {
-      localStorage.setItem('cartItems', JSON.stringify(cartItems));
-      console.log('Saved cart to localStorage:', cartItems);
-      
-      // Save to database if user is logged in
-      if (user) {
+    localStorage.setItem('cartItems', JSON.stringify(cartItems));
+    console.log('Saved cart to localStorage:', cartItems);
+    
+    // Save to database if user is logged in
+    if (user) {
+      if (cartItems.length > 0) {
         supabase
           .from('user_carts')
           .upsert([{
@@ -151,14 +151,26 @@ const Index = () => {
               console.log('Cart saved to database');
             }
           });
+      } else {
+        // Delete cart from database when empty
+        supabase
+          .from('user_carts')
+          .delete()
+          .eq('user_id', user.id)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error deleting cart from database:', error);
+            } else {
+              console.log('Cart deleted from database');
+            }
+          });
       }
-      
-      // Dispatch custom event to notify other components
-      window.dispatchEvent(new CustomEvent('cartUpdated', { 
-        detail: { cartItems } 
-      }));
     }
-    // Don't remove from localStorage when empty - only when explicitly cleared
+    
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('cartUpdated', { 
+      detail: { cartItems } 
+    }));
   }, [cartItems, user]);
 
   // Auto-adjust color based on theme and apply site settings

@@ -8,6 +8,7 @@ import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "@/contexts/AppContext";
 import { getText } from "@/lib/i18n";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface CartItem {
   id: string;
@@ -31,6 +32,14 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const { language } = useApp();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  
+  // Get current user
+  useState(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUser(data.user);
+    });
+  });
   
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   
@@ -200,9 +209,17 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
                   <Button
                     variant="outline"
                     className="flex-1"
-                    onClick={() => {
-                      // Clear localStorage directly
+                    onClick={async () => {
+                      // Clear localStorage
                       localStorage.removeItem('cartItems');
+                      
+                      // Clear from database if user is logged in
+                      if (currentUser) {
+                        await supabase
+                          .from('user_carts')
+                          .delete()
+                          .eq('user_id', currentUser.id);
+                      }
                       
                       // Notify parent component
                       onClearCart();
