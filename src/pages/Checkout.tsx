@@ -39,6 +39,12 @@ const Checkout = () => {
     description: string | null;
     is_active: boolean;
   }>>([]);
+  const [availableMaterials, setAvailableMaterials] = useState<Array<{
+    material_key: string;
+    material_name: string;
+    multiplier: number;
+    is_active: boolean;
+  }>>([]);
   const [needsInvoice, setNeedsInvoice] = useState(false);
   const [invoiceData, setInvoiceData] = useState({
     companyName: '',
@@ -65,7 +71,7 @@ const Checkout = () => {
   });
   
   const [orderInfo, setOrderInfo] = useState({
-    material: 'PLA',
+    material: 'pla',
     instructions: '',
     urgent: false
   });
@@ -174,6 +180,17 @@ const Checkout = () => {
         if (methods.length > 0) {
           setPaymentMethod(methods[0].method_key);
         }
+      }
+
+      // Load available materials
+      const { data: materialsData } = await supabase
+        .from('available_materials')
+        .select('material_key, material_name, multiplier, is_active')
+        .eq('is_active', true)
+        .order('sort_order');
+
+      if (materialsData) {
+        setAvailableMaterials(materialsData);
       }
 
       // Load favorite or last used parcel locker
@@ -347,7 +364,7 @@ const Checkout = () => {
             originalSizes[item.id] = { x: 100, y: 100, z: 100 };
           }
           
-          materials[item.id] = 'PLA';
+          materials[item.id] = 'pla';
         }
         
         setItemSizes(sizes);
@@ -388,19 +405,14 @@ const Checkout = () => {
     return colorNames[color.toUpperCase()] || `Niestandardowy (${color})`;
   };
 
-  const getMaterialMultiplier = (material: string) => {
-    const multipliers: { [key: string]: number } = {
-      'PLA': 1.0,
-      'ABS': 2.0,      // +100%
-      'PETG': 1.15,    // +15%
-      'TPU': 1.30      // +30%
-    };
-    return multipliers[material] || 1.0;
+  const getMaterialMultiplier = (materialKey: string) => {
+    const material = availableMaterials.find(m => m.material_key === materialKey);
+    return material?.multiplier || 1.0;
   };
 
   const calculatePrice = (item: CartItem) => {
     const size = itemSizes[item.id] || { x: 100, y: 100, z: 100 };
-    const material = itemMaterials[item.id] || 'PLA';
+    const material = itemMaterials[item.id] || 'pla';
     
     // Calculate volume in cm³ (convert from mm to cm)
     const volumeCm3 = (size.x / 10) * (size.y / 10) * (size.z / 10);
@@ -889,7 +901,7 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
               ) : (
                 cartItems.map((item) => {
                 const size = itemSizes[item.id] || { x: 100, y: 100, z: 100 };
-                const material = itemMaterials[item.id] || 'PLA';
+                const material = itemMaterials[item.id] || 'pla';
                 
                 return (
                   <div key={item.id} className="p-4 border rounded-lg space-y-4">
@@ -1089,10 +1101,15 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
                           <SelectValue placeholder="Wybierz materiał" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="PLA">PLA (Standard) - cena bazowa</SelectItem>
-                          <SelectItem value="ABS">ABS (Wytrzymały) - +100%</SelectItem>
-                          <SelectItem value="PETG">PETG (Przezroczysty) - +15%</SelectItem>
-                          <SelectItem value="TPU">TPU (Elastyczny) - +30%</SelectItem>
+                          {availableMaterials.map((mat) => {
+                            const priceIncrease = ((mat.multiplier - 1) * 100).toFixed(0);
+                            return (
+                              <SelectItem key={mat.material_key} value={mat.material_key}>
+                                {mat.material_name}
+                                {mat.multiplier !== 1.0 && ` (+${priceIncrease}%)`}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </div>

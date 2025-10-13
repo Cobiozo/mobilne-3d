@@ -191,6 +191,39 @@ export type Database = {
         }
         Relationships: []
       }
+      available_materials: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          material_key: string
+          material_name: string
+          multiplier: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          material_key: string
+          material_name: string
+          multiplier?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          material_key?: string
+          material_name?: string
+          multiplier?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       coin_transactions: {
         Row: {
           amount: number

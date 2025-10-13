@@ -14,11 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface MonetizationSettings {
   coins_to_pln_rate: number;
   base_print_price: number;
-  material_multipliers: {
-    pla: number;
-    abs: number;
-    petg: number;
-  };
+}
+
+interface Material {
+  id: string;
+  material_name: string;
+  material_key: string;
+  multiplier: number;
+  is_active: boolean;
+  sort_order: number;
 }
 
 interface UserWallet {
@@ -41,18 +45,20 @@ interface Transaction {
 export function MonetizationManagement() {
   const [settings, setSettings] = useState<MonetizationSettings>({
     coins_to_pln_rate: 100,
-    base_print_price: 50,
-    material_multipliers: { pla: 1.0, abs: 1.2, petg: 1.3 }
+    base_print_price: 50
   });
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [wallets, setWallets] = useState<UserWallet[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [amountType, setAmountType] = useState<"coins" | "virtual">("coins");
   const [loading, setLoading] = useState(false);
+  const [newMaterial, setNewMaterial] = useState({ name: '', key: '', multiplier: 1.0 });
 
   useEffect(() => {
     fetchSettings();
+    fetchMaterials();
     fetchWallets();
     fetchTransactions();
   }, []);
@@ -72,6 +78,20 @@ export function MonetizationManagement() {
     if (data && data.setting_value) {
       setSettings(data.setting_value as unknown as MonetizationSettings);
     }
+  };
+
+  const fetchMaterials = async () => {
+    const { data, error } = await supabase
+      .from('available_materials')
+      .select('*')
+      .order('sort_order');
+
+    if (error) {
+      console.error('Error fetching materials:', error);
+      return;
+    }
+
+    setMaterials(data || []);
   };
 
   const saveSettings = async () => {
@@ -109,6 +129,60 @@ export function MonetizationManagement() {
       toast({ title: "Sukces", description: "Ustawienia zapisane" });
     }
     setLoading(false);
+  };
+
+  const addMaterial = async () => {
+    if (!newMaterial.name || !newMaterial.key) {
+      toast({ title: "Błąd", description: "Wypełnij nazwę i klucz materiału", variant: "destructive" });
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await supabase
+      .from('available_materials')
+      .insert({
+        material_name: newMaterial.name,
+        material_key: newMaterial.key,
+        multiplier: newMaterial.multiplier,
+        sort_order: materials.length + 1
+      });
+
+    if (error) {
+      toast({ title: "Błąd", description: "Nie udało się dodać materiału", variant: "destructive" });
+    } else {
+      toast({ title: "Sukces", description: "Materiał dodany" });
+      setNewMaterial({ name: '', key: '', multiplier: 1.0 });
+      fetchMaterials();
+    }
+    setLoading(false);
+  };
+
+  const updateMaterial = async (id: string, updates: Partial<Material>) => {
+    const { error } = await supabase
+      .from('available_materials')
+      .update(updates)
+      .eq('id', id);
+
+    if (error) {
+      toast({ title: "Błąd", description: "Nie udało się zaktualizować materiału", variant: "destructive" });
+    } else {
+      toast({ title: "Sukces", description: "Materiał zaktualizowany" });
+      fetchMaterials();
+    }
+  };
+
+  const deleteMaterial = async (id: string) => {
+    const { error } = await supabase
+      .from('available_materials')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      toast({ title: "Błąd", description: "Nie udało się usunąć materiału", variant: "destructive" });
+    } else {
+      toast({ title: "Sukces", description: "Materiał usunięty" });
+      fetchMaterials();
+    }
   };
 
   const fetchWallets = async () => {
@@ -287,6 +361,7 @@ export function MonetizationManagement() {
       <Tabs defaultValue="settings" className="w-full">
         <TabsList>
           <TabsTrigger value="settings">Ustawienia</TabsTrigger>
+          <TabsTrigger value="materials">Materiały</TabsTrigger>
           <TabsTrigger value="wallets">Portfele użytkowników</TabsTrigger>
           <TabsTrigger value="transactions">Transakcje</TabsTrigger>
         </TabsList>
@@ -327,50 +402,6 @@ export function MonetizationManagement() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Mnożniki materiałów</Label>
-                <div className="grid gap-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Label htmlFor="pla" className="text-sm">PLA</Label>
-                    <Input
-                      id="pla"
-                      type="number"
-                      step="0.1"
-                      value={settings.material_multipliers.pla}
-                      onChange={(e) => setSettings({
-                        ...settings,
-                        material_multipliers: { ...settings.material_multipliers, pla: parseFloat(e.target.value) }
-                      })}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Label htmlFor="abs" className="text-sm">ABS</Label>
-                    <Input
-                      id="abs"
-                      type="number"
-                      step="0.1"
-                      value={settings.material_multipliers.abs}
-                      onChange={(e) => setSettings({
-                        ...settings,
-                        material_multipliers: { ...settings.material_multipliers, abs: parseFloat(e.target.value) }
-                      })}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Label htmlFor="petg" className="text-sm">PETG</Label>
-                    <Input
-                      id="petg"
-                      type="number"
-                      step="0.1"
-                      value={settings.material_multipliers.petg}
-                      onChange={(e) => setSettings({
-                        ...settings,
-                        material_multipliers: { ...settings.material_multipliers, petg: parseFloat(e.target.value) }
-                      })}
-                    />
-                  </div>
-                </div>
-              </div>
 
               <Button onClick={saveSettings} disabled={loading}>
                 Zapisz ustawienia
@@ -430,6 +461,114 @@ export function MonetizationManagement() {
               <Button onClick={addFunds} disabled={loading}>
                 Przyznaj środki
               </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="materials" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Zarządzaj materiałami</CardTitle>
+              <CardDescription>Dodaj nowe materiały druku i ustaw ich mnożniki ceny</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-2 md:grid-cols-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-material-name">Nazwa materiału</Label>
+                  <Input
+                    id="new-material-name"
+                    value={newMaterial.name}
+                    onChange={(e) => setNewMaterial({ ...newMaterial, name: e.target.value })}
+                    placeholder="np. ASA"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-material-key">Klucz (lowercase)</Label>
+                  <Input
+                    id="new-material-key"
+                    value={newMaterial.key}
+                    onChange={(e) => setNewMaterial({ ...newMaterial, key: e.target.value.toLowerCase() })}
+                    placeholder="np. asa"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-material-multiplier">Mnożnik</Label>
+                  <Input
+                    id="new-material-multiplier"
+                    type="number"
+                    step="0.1"
+                    value={newMaterial.multiplier}
+                    onChange={(e) => setNewMaterial({ ...newMaterial, multiplier: parseFloat(e.target.value) })}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button onClick={addMaterial} disabled={loading}>Dodaj</Button>
+                </div>
+              </div>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Kolejność</TableHead>
+                    <TableHead>Nazwa</TableHead>
+                    <TableHead>Klucz</TableHead>
+                    <TableHead>Mnożnik</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Akcje</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {materials.map((material) => (
+                    <TableRow key={material.id}>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          value={material.sort_order}
+                          onChange={(e) => updateMaterial(material.id, { sort_order: parseInt(e.target.value) })}
+                          className="w-20"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          value={material.material_name}
+                          onChange={(e) => updateMaterial(material.id, { material_name: e.target.value })}
+                        />
+                      </TableCell>
+                      <TableCell>{material.material_key}</TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={material.multiplier}
+                          onChange={(e) => updateMaterial(material.id, { multiplier: parseFloat(e.target.value) })}
+                          className="w-24"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={material.is_active ? "default" : "secondary"}>
+                          {material.is_active ? 'Aktywny' : 'Nieaktywny'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateMaterial(material.id, { is_active: !material.is_active })}
+                        >
+                          {material.is_active ? 'Dezaktywuj' : 'Aktywuj'}
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => deleteMaterial(material.id)}
+                        >
+                          Usuń
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
