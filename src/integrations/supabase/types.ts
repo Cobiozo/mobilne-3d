@@ -1129,6 +1129,10 @@ export type Database = {
         Args: { encrypted_password: string }
         Returns: string
       }
+      delete_old_audit_logs: {
+        Args: { days_to_keep: number }
+        Returns: undefined
+      }
       encrypt_payu_credential: {
         Args: { credential: string }
         Returns: string
