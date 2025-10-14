@@ -739,18 +739,19 @@ const Index = () => {
       {/* Header */}
       <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center justify-between gap-4">
+            {/* Logo and Title */}
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-primary">
                 <Layers3 className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
               </div>
-              <div>
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                  {siteSettings.homepage_title?.[language] || siteSettings.homepage_title?.pl || t('appTitle')}
-                </h1>
-              </div>
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+                {siteSettings.homepage_title?.[language] || siteSettings.homepage_title?.pl || t('appTitle')}
+              </h1>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
+            
+            {/* Right Side Actions */}
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               {/* Shopping Cart */}
               <ShoppingCartComponent
                 items={cartItems}
@@ -759,13 +760,13 @@ const Index = () => {
                 onClearCart={handleClearCart}
               />
               
-              {/* Public Models Link - zawsze widoczne dla zalogowanych, dla niezalogowanych tylko gdy public_model_viewing włączone */}
+              {/* Public Models Link */}
               {(user || siteSettings.public_model_viewing !== false) && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate('/models')}
-                  className="flex items-center gap-2"
+                  className="gap-1 sm:gap-2 px-2 sm:px-3"
                 >
                   <Package className="w-4 h-4" />
                   <span className="hidden sm:inline">Modele</span>
@@ -777,63 +778,57 @@ const Index = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/regulamin')}
-                className="flex items-center gap-2"
+                className="gap-1 sm:gap-2 px-2 sm:px-3 hidden md:flex"
               >
-                <span className="hidden sm:inline">Regulamin</span>
+                <span>Regulamin</span>
               </Button>
               
               {/* Authentication */}
-              {!loading && (
-                <div className="flex items-center gap-2">
-                  {user ? (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate('/dashboard')}
-                        className="flex items-center gap-2"
-                      >
-                        <User className="w-4 h-4" />
-                        <span className="hidden sm:inline">Dashboard</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={async () => {
-                          await signOut();
-                          toast.success('Wylogowano pomyślnie');
-                        }}
-                        className="flex items-center gap-2"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        <span className="hidden sm:inline">Wyloguj</span>
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate('/auth')}
-                      className="flex items-center gap-2"
-                    >
-                      <LogIn className="w-4 h-4" />
-                      <span className="hidden sm:inline">{t('signIn')}</span>
-                    </Button>
-                  )}
-                </div>
+              {!loading && user ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/dashboard')}
+                    className="gap-1 sm:gap-2 px-2 sm:px-3"
+                  >
+                    <User className="w-4 h-4" />
+                    <span className="hidden sm:inline">Dashboard</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={async () => {
+                      await signOut();
+                      toast.success('Wylogowano pomyślnie');
+                    }}
+                    className="gap-1 sm:gap-2 px-2 sm:px-3"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden sm:inline">Wyloguj</span>
+                  </Button>
+                </>
+              ) : !loading && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/auth')}
+                  className="gap-1 sm:gap-2 px-2 sm:px-3"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t('signIn')}</span>
+                </Button>
               )}
               
-              {/* Theme/Language selectors */}
-              <div className="flex gap-1 sm:gap-2">
-                {/* Mobile: Separate buttons */}
-                <div className="flex gap-1 sm:gap-2 lg:hidden">
-                  <LanguageSelector />
-                  <ThemeSelector />
-                </div>
-                {/* Desktop: Combined selector */}
-                <div className="hidden lg:block">
-                  <LanguageThemeSelector />
-                </div>
+              {/* Theme/Language selectors - Mobile: Separate buttons */}
+              <div className="flex gap-1 lg:hidden">
+                <LanguageSelector />
+                <ThemeSelector />
+              </div>
+              
+              {/* Theme/Language selectors - Desktop: Combined selector */}
+              <div className="hidden lg:block">
+                <LanguageThemeSelector />
               </div>
             </div>
           </div>
