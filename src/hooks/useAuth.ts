@@ -165,6 +165,19 @@ export const useAuth = () => {
           }, {
             onConflict: 'user_id'
           });
+          
+        // Clean up all sessions for this user
+        const sessionId = sessionStorage.getItem('session_id');
+        if (sessionId) {
+          await supabase
+            .from('active_sessions')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('session_id', sessionId);
+        }
+        
+        // Clear session storage
+        sessionStorage.removeItem('session_id');
       }
     } catch (error) {
       console.error('Error saving cart before logout:', error);
