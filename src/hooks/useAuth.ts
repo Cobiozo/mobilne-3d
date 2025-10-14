@@ -166,7 +166,7 @@ export const useAuth = () => {
             onConflict: 'user_id'
           });
           
-        // Clean up all sessions for this user
+        // Clean up only THIS session, not all user sessions
         const sessionId = sessionStorage.getItem('session_id');
         if (sessionId) {
           await supabase
@@ -183,7 +183,8 @@ export const useAuth = () => {
       console.error('Error saving cart before logout:', error);
     }
 
-    const { error } = await supabase.auth.signOut();
+    // Sign out only from this specific session/scope
+    const { error } = await supabase.auth.signOut({ scope: 'local' });
     
     if (error) {
       toast({

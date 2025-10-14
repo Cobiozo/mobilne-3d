@@ -156,12 +156,21 @@ export const SecuritySettings = () => {
       const dateThreshold = new Date();
       dateThreshold.setDate(dateThreshold.getDate() - daysToKeep);
 
-      const { error } = await supabase
-        .from('audit_logs')
-        .delete()
-        .lt('created_at', dateThreshold.toISOString());
+      // Use RPC or edge function to clear logs since direct delete may not work with RLS
+      const { error } = await supabase.rpc('delete_old_audit_logs', {
+        days_to_keep: daysToKeep
+      });
 
-      if (error) throw error;
+      if (error) {
+        console.error('RPC error, trying direct delete:', error);
+        // Fallback to direct delete
+        const { error: deleteError } = await supabase
+          .from('audit_logs')
+          .delete()
+          .lt('created_at', dateThreshold.toISOString());
+        
+        if (deleteError) throw deleteError;
+      }
 
       toast({
         title: 'Sukces',
