@@ -817,7 +817,8 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
         // Don't block order completion if email fails
       }
 
-      // Clear cart from localStorage for non-PayU payments
+      // Clear cart from localStorage for non-PayU payments ONLY
+      // For PayU, cart will be cleared after payment confirmation in PaymentStatus
       localStorage.removeItem('cartItems');
       
       // Clear cart from database
