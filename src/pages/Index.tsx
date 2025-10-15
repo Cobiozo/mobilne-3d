@@ -132,12 +132,14 @@ const Index = () => {
 
   // Save cart to localStorage and database whenever it changes
   useEffect(() => {
-    localStorage.setItem('cartItems', JSON.stringify(cartItems));
-    console.log('Saved cart to localStorage:', cartItems);
-    
-    // Save to database if user is logged in
-    if (user) {
-      if (cartItems.length > 0) {
+    // Only save if we have items OR if we explicitly cleared the cart
+    // Don't overwrite cart when component mounts with empty state
+    if (cartItems.length > 0) {
+      localStorage.setItem('cartItems', JSON.stringify(cartItems));
+      console.log('Saved cart to localStorage:', cartItems);
+      
+      // Save to database if user is logged in
+      if (user) {
         supabase
           .from('user_carts')
           .upsert([{
@@ -149,19 +151,6 @@ const Index = () => {
               console.error('Error saving cart to database:', error);
             } else {
               console.log('Cart saved to database');
-            }
-          });
-      } else {
-        // Delete cart from database when empty
-        supabase
-          .from('user_carts')
-          .delete()
-          .eq('user_id', user.id)
-          .then(({ error }) => {
-            if (error) {
-              console.error('Error deleting cart from database:', error);
-            } else {
-              console.log('Cart deleted from database');
             }
           });
       }
@@ -523,7 +512,23 @@ const Index = () => {
 
   const handleClearCart = () => {
     setCartItems([]);
-    localStorage.removeItem('cartItems'); // Only remove when explicitly clearing
+    localStorage.removeItem('cartItems');
+    
+    // Delete from database if user is logged in
+    if (user) {
+      supabase
+        .from('user_carts')
+        .delete()
+        .eq('user_id', user.id)
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error deleting cart from database:', error);
+          } else {
+            console.log('Cart deleted from database');
+          }
+        });
+    }
+    
     window.dispatchEvent(new CustomEvent('cartUpdated', { 
       detail: { cartItems: [] } 
     }));
