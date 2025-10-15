@@ -211,7 +211,18 @@ serve(async (req) => {
       const paymentStatus = notification?.order?.status;
 
       if (orderId && paymentStatus === 'COMPLETED') {
-        // Update order status to 'processing' (w realizacji)
+        // Get order details first
+        const { data: orderData, error: fetchError } = await supabaseClient
+          .from('orders')
+          .select('customer_email, customer_first_name, order_number')
+          .eq('id', orderId)
+          .single();
+
+        if (fetchError) {
+          console.error('Failed to fetch order:', fetchError);
+        }
+
+        // Update order status to 'processing' (Do wysłania)
         const { error: updateError } = await supabaseClient
           .from('orders')
           .update({ status: 'processing' })
@@ -221,6 +232,28 @@ serve(async (req) => {
           console.error('Failed to update order status:', updateError);
         } else {
           console.log(`Order ${orderId} status updated to 'processing'`);
+          
+          // Send order confirmation emails
+          if (orderData) {
+            try {
+              await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-order-confirmation`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+                },
+                body: JSON.stringify({
+                  orderId: orderId,
+                  customerEmail: orderData.customer_email,
+                  customerName: orderData.customer_first_name,
+                  orderNumber: orderData.order_number
+                })
+              });
+              console.log('Order confirmation email sent');
+            } catch (emailError) {
+              console.error('Failed to send confirmation email:', emailError);
+            }
+          }
         }
       }
 

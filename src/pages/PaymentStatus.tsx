@@ -29,28 +29,60 @@ const PaymentStatus = () => {
       }
 
       try {
-        // Check order status in database
-        const { data: order, error: orderError } = await supabase
-          .from('orders')
-          .select('status, order_number')
-          .eq('id', orderId)
-          .single();
+        // Poll for payment status for up to 30 seconds
+        let attempts = 0;
+        const maxAttempts = 15;
+        
+        while (attempts < maxAttempts) {
+          const { data: order, error: orderError } = await supabase
+            .from('orders')
+            .select('status, order_number, customer_email, customer_first_name')
+            .eq('id', orderId)
+            .single();
 
-        if (orderError) {
-          throw orderError;
-        }
-
-        if (order) {
-          if (order.status === 'processing') {
-            setStatus('success');
-            setMessage(`Zamówienie ${order.order_number} zostało opłacone i jest w realizacji.`);
-          } else {
-            setStatus('success');
-            setMessage(`Zamówienie ${order.order_number} zostało złożone. Oczekiwanie na potwierdzenie płatności.`);
+          if (orderError) {
+            throw orderError;
           }
-        } else {
-          setStatus('error');
-          setMessage('Nie znaleziono zamówienia.');
+
+          if (order) {
+            // If payment is confirmed, send emails
+            if (order.status === 'processing' && attempts > 0) {
+              console.log('Payment confirmed, sending emails...');
+              
+              // Send order confirmation email to customer
+              try {
+                await supabase.functions.invoke('send-order-confirmation', {
+                  body: {
+                    orderId: orderId,
+                    customerEmail: order.customer_email,
+                    customerName: order.customer_first_name,
+                    orderNumber: order.order_number
+                  }
+                });
+              } catch (emailError) {
+                console.error('Error sending confirmation email:', emailError);
+              }
+            }
+
+            if (order.status === 'processing') {
+              setStatus('success');
+              setMessage(`Zamówienie ${order.order_number} zostało opłacone i jest w realizacji. Na Twój adres email wysłaliśmy potwierdzenie.`);
+              return;
+            } else if (attempts >= maxAttempts - 1) {
+              // Last attempt - show pending status
+              setStatus('success');
+              setMessage(`Zamówienie ${order.order_number} zostało złożone. Oczekiwanie na potwierdzenie płatności. Status zostanie zaktualizowany automatycznie.`);
+              return;
+            }
+          } else {
+            setStatus('error');
+            setMessage('Nie znaleziono zamówienia.');
+            return;
+          }
+
+          // Wait 2 seconds before next check
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          attempts++;
         }
       } catch (error) {
         console.error('Error checking payment status:', error);
