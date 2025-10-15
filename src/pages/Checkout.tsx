@@ -753,14 +753,7 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
           const payuData = payuResponse.data;
           
           if (payuData.success && payuData.redirectUri) {
-            // Clear cart from localStorage
-            localStorage.removeItem('cartItems');
-            
-            // Clear cart from database
-            await supabase
-              .from('user_carts')
-              .delete()
-              .eq('user_id', user.id);
+            // DO NOT clear cart here - will be cleared after payment confirmation in PaymentStatus
             
             // Redirect to PayU payment page (will show Blik, PayPo, and other options)
             console.log('Redirecting to PayU:', payuData.redirectUri);

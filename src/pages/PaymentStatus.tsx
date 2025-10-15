@@ -45,9 +45,19 @@ const PaymentStatus = () => {
           }
 
           if (order) {
-            // If payment is confirmed, send emails
+            // If payment is confirmed, send emails and clear cart
             if (order.status === 'processing' && attempts > 0) {
-              console.log('Payment confirmed, sending emails...');
+              console.log('Payment confirmed, sending emails and clearing cart...');
+              
+              // Clear cart after successful payment
+              localStorage.removeItem('cartItems');
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                await supabase
+                  .from('user_carts')
+                  .delete()
+                  .eq('user_id', user.id);
+              }
               
               // Send order confirmation email to customer
               try {
