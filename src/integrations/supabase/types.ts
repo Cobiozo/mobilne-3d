@@ -251,6 +251,54 @@ export type Database = {
         }
         Relationships: []
       }
+      cookie_settings: {
+        Row: {
+          accept_button_text: string
+          cookie_duration_days: number
+          cookie_text: string
+          created_at: string
+          id: string
+          is_enabled: boolean
+          position: string
+          privacy_policy_text: string | null
+          privacy_policy_url: string | null
+          reject_button_text: string
+          theme: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          accept_button_text?: string
+          cookie_duration_days?: number
+          cookie_text?: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          position?: string
+          privacy_policy_text?: string | null
+          privacy_policy_url?: string | null
+          reject_button_text?: string
+          theme?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          accept_button_text?: string
+          cookie_duration_days?: number
+          cookie_text?: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          position?: string
+          privacy_policy_text?: string | null
+          privacy_policy_url?: string | null
+          reject_button_text?: string
+          theme?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       customer_notes: {
         Row: {
           created_at: string

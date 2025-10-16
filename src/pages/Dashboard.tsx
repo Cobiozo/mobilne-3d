@@ -32,6 +32,7 @@ import PaymentMethodsManagement from '@/components/PaymentMethodsManagement';
 import { MonetizationManagement } from '@/components/MonetizationManagement';
 import { PayUSettings } from '@/components/PayUSettings';
 import { PriceCoefficientManagement } from '@/components/PriceCoefficientManagement';
+import { CookieManagement } from '@/components/CookieManagement';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { User, LogOut, Upload, Settings, Home, Package, MapPin, Lock } from 'lucide-react';
 
@@ -220,6 +221,8 @@ const Dashboard = () => {
         return <EmailLogs />;
       case 'monetization':
         return <MonetizationManagement />;
+      case 'cookie-settings':
+        return <CookieManagement />;
       case 'profile':
         return (
           <div className="space-y-6">

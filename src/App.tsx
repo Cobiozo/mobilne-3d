@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { AppProvider } from "@/contexts/AppContext";
 import { useSessionTracking } from "@/hooks/useSessionTracking";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { CookieConsent } from "@/components/CookieConsent";
 
 // Lazy load all pages for better code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -50,6 +51,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <AppContent />
+            <CookieConsent />
           </BrowserRouter>
         </TooltipProvider>
       </AppProvider>

@@ -29,7 +29,8 @@ import {
   History,
   CreditCard,
   DollarSign,
-  Calculator
+  Calculator,
+  Cookie
 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
@@ -143,6 +144,12 @@ const adminMenuItems = [
     url: '/dashboard?tab=security',
     icon: Shield,
     section: 'security'
+  },
+  {
+    title: 'cookieSettings',
+    url: '/dashboard?tab=cookie-settings',
+    icon: Cookie,
+    section: 'cookie-settings'
   }
 ];
 
