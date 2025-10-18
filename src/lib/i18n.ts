@@ -130,6 +130,8 @@ export const translations = {
     email_templates: 'Szablony Email',
     email_logs: 'Historia Email',
     cookieSettings: 'Cookie i Polityka Prywatności',
+    siteAnalytics: 'Statystyki strony',
+    googleKit: 'Google Kit',
     
     // Customer Management
     viewAndManageCustomers: 'Przeglądaj i zarządzaj wszystkimi klientami',
@@ -273,7 +275,6 @@ export const translations = {
     users: 'Użytkownicy',
     
     // Analytics
-    siteAnalytics: 'Statystyki strony',
     analyticsDescription: 'Przegląd ruchu i aktywności użytkowników na stronie',
     manageUserRoles: 'Zarządzaj rolami i uprawnieniami użytkowników',
     unnamedUser: 'Użytkownik bez nazwy',
@@ -487,6 +488,8 @@ export const translations = {
     email_templates: 'Email Templates',
     email_logs: 'Email History',
     cookieSettings: 'Cookie & Privacy Policy',
+    siteAnalytics: 'Site Analytics',
+    googleKit: 'Google Kit',
     
     // Customer Management
     viewAndManageCustomers: 'View and manage all customers',
@@ -712,7 +715,6 @@ export const translations = {
     success: 'Success',
     
     // Analytics
-    siteAnalytics: 'Site Analytics',
     analyticsDescription: 'Overview of traffic and user activity on the site'
   }
 };

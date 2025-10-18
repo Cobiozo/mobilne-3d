@@ -157,6 +157,12 @@ const adminMenuItems = [
     url: '/dashboard?tab=analytics',
     icon: Activity,
     section: 'analytics'
+  },
+  {
+    title: 'googleKit',
+    url: '/dashboard?tab=google-kit',
+    icon: BarChart3,
+    section: 'google-kit'
   }
 ];
 

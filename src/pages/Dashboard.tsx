@@ -34,6 +34,7 @@ import { PayUSettings } from '@/components/PayUSettings';
 import { PriceCoefficientManagement } from '@/components/PriceCoefficientManagement';
 import { CookieSettings } from '@/components/CookieSettings';
 import { SiteAnalytics } from '@/components/SiteAnalytics';
+import { GoogleSiteKit } from '@/components/GoogleSiteKit';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { User, LogOut, Upload, Settings, Home, Package, MapPin, Lock } from 'lucide-react';
 
@@ -226,6 +227,8 @@ const Dashboard = () => {
         return <CookieSettings />;
       case 'analytics':
         return <SiteAnalytics />;
+      case 'google-kit':
+        return <GoogleSiteKit />;
       case 'profile':
         return (
           <div className="space-y-6">
