@@ -30,7 +30,8 @@ import {
   CreditCard,
   DollarSign,
   Calculator,
-  Cookie
+  Cookie,
+  Activity
 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
@@ -150,6 +151,12 @@ const adminMenuItems = [
     url: '/dashboard?tab=cookie-settings',
     icon: Cookie,
     section: 'cookie-settings'
+  },
+  {
+    title: 'siteAnalytics',
+    url: '/dashboard?tab=analytics',
+    icon: Activity,
+    section: 'analytics'
   }
 ];
 

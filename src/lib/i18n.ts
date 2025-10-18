@@ -271,6 +271,10 @@ export const translations = {
     // Admin
     manageUsersAndContent: 'Zarządzaj użytkownikami i treścią na platformie',
     users: 'Użytkownicy',
+    
+    // Analytics
+    siteAnalytics: 'Statystyki strony',
+    analyticsDescription: 'Przegląd ruchu i aktywności użytkowników na stronie',
     manageUserRoles: 'Zarządzaj rolami i uprawnieniami użytkowników',
     unnamedUser: 'Użytkownik bez nazwy',
     removeAdmin: 'Usuń uprawnienia administratora',
@@ -705,7 +709,11 @@ export const translations = {
     
     // General
     error: 'Error',
-    success: 'Success'
+    success: 'Success',
+    
+    // Analytics
+    siteAnalytics: 'Site Analytics',
+    analyticsDescription: 'Overview of traffic and user activity on the site'
   }
 };
 
