@@ -404,6 +404,48 @@ export type Database = {
         }
         Relationships: []
       }
+      google_site_kit_settings: {
+        Row: {
+          created_at: string
+          google_api_key_encrypted: string | null
+          google_client_id: string
+          google_client_secret_encrypted: string | null
+          id: string
+          is_active: boolean
+          is_configured: boolean
+          last_sync_at: string | null
+          updated_at: string
+          updated_by: string | null
+          verified_domains: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          google_api_key_encrypted?: string | null
+          google_client_id: string
+          google_client_secret_encrypted?: string | null
+          id?: string
+          is_active?: boolean
+          is_configured?: boolean
+          last_sync_at?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          verified_domains?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          google_api_key_encrypted?: string | null
+          google_client_id?: string
+          google_client_secret_encrypted?: string | null
+          id?: string
+          is_active?: boolean
+          is_configured?: boolean
+          last_sync_at?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          verified_domains?: string[] | null
+        }
+        Relationships: []
+      }
       model_orders: {
         Row: {
           buyer_id: string
@@ -1169,6 +1211,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      decrypt_google_credential: {
+        Args: { encrypted_credential: string }
+        Returns: string
+      }
       decrypt_payu_credential: {
         Args: { encrypted_credential: string }
         Returns: string
@@ -1180,6 +1226,10 @@ export type Database = {
       delete_old_audit_logs: {
         Args: { days_to_keep: number }
         Returns: undefined
+      }
+      encrypt_google_credential: {
+        Args: { credential: string }
+        Returns: string
       }
       encrypt_payu_credential: {
         Args: { credential: string }

@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
@@ -37,6 +39,9 @@ import {
   ArrowDownRight,
   Activity,
   RefreshCw,
+  Settings,
+  CheckCircle,
+  AlertCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -59,6 +64,8 @@ interface ChartData {
 export const GoogleSiteKit = () => {
   const { language } = useApp();
   const [loading, setLoading] = useState(true);
+  const [isConfigured, setIsConfigured] = useState(false);
+  const [showConfig, setShowConfig] = useState(false);
   const [timeRange, setTimeRange] = useState<'7days' | '28days' | '90days'>('28days');
   const [metrics, setMetrics] = useState<MetricCard[]>([]);
   const [trafficData, setTrafficData] = useState<ChartData[]>([]);
@@ -66,12 +73,96 @@ export const GoogleSiteKit = () => {
   const [deviceData, setDeviceData] = useState<any[]>([]);
   const [searchQueries, setSearchQueries] = useState<any[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  
+  // Configuration state
+  const [configForm, setConfigForm] = useState({
+    clientId: '',
+    clientSecret: '',
+    apiKey: '',
+  });
 
   const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
 
   useEffect(() => {
-    fetchAnalyticsData();
-  }, [timeRange]);
+    checkConfiguration();
+  }, []);
+
+  useEffect(() => {
+    if (isConfigured) {
+      fetchAnalyticsData();
+    }
+  }, [timeRange, isConfigured]);
+
+  const checkConfiguration = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('google_site_kit_settings')
+        .select('*')
+        .eq('is_active', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      setIsConfigured(!!data?.is_configured);
+      setShowConfig(!data?.is_configured);
+    } catch (error) {
+      console.error('Error checking configuration:', error);
+      setShowConfig(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveConfiguration = async () => {
+    if (!configForm.clientId || !configForm.clientSecret) {
+      toast.error('Wypełnij wymagane pola');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Check if config exists
+      const { data: existing } = await supabase
+        .from('google_site_kit_settings')
+        .select('id')
+        .single();
+
+      const configData = {
+        google_client_id: configForm.clientId,
+        google_client_secret_encrypted: configForm.clientSecret,
+        google_api_key_encrypted: configForm.apiKey || null,
+        is_configured: true,
+        is_active: true,
+        updated_by: (await supabase.auth.getUser()).data.user?.id,
+      };
+
+      if (existing) {
+        const { error } = await supabase
+          .from('google_site_kit_settings')
+          .update(configData)
+          .eq('id', existing.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('google_site_kit_settings')
+          .insert(configData);
+
+        if (error) throw error;
+      }
+
+      toast.success('Konfiguracja zapisana pomyślnie');
+      setIsConfigured(true);
+      setShowConfig(false);
+    } catch (error) {
+      console.error('Error saving configuration:', error);
+      toast.error('Nie udało się zapisać konfiguracji');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchAnalyticsData = async () => {
     setLoading(true);
@@ -226,17 +317,135 @@ export const GoogleSiteKit = () => {
     </Card>
   );
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (showConfig || !isConfigured) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold">Google Site Kit</h2>
+            <p className="text-muted-foreground mt-1">
+              Konfiguracja integracji z Google
+            </p>
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Konfiguracja Google Cloud
+            </CardTitle>
+            <CardDescription>
+              Skonfiguruj połączenie z Google Analytics i Search Console
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <h3 className="font-semibold mb-2">Wymagane kroki:</h3>
+                <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+                  <li>Utwórz projekt w <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Cloud Console</a></li>
+                  <li>Włącz Google Analytics API i Search Console API</li>
+                  <li>Skonfiguruj OAuth 2.0 credentials</li>
+                  <li>Zweryfikuj domenę w <a href="https://search.google.com/search-console" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Search Console</a></li>
+                  <li>Skopiuj poniższe dane z Google Cloud Console</li>
+                </ol>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="clientId">
+                    Google OAuth Client ID <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="clientId"
+                    type="text"
+                    placeholder="123456789-abcdefg.apps.googleusercontent.com"
+                    value={configForm.clientId}
+                    onChange={(e) => setConfigForm({ ...configForm, clientId: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="clientSecret">
+                    Google OAuth Client Secret <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="clientSecret"
+                    type="password"
+                    placeholder="GOCSPX-xxxxxxxxxxxxxxxxxxxx"
+                    value={configForm.clientSecret}
+                    onChange={(e) => setConfigForm({ ...configForm, clientSecret: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="apiKey">
+                    Google API Key (opcjonalnie)
+                  </Label>
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    placeholder="AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    value={configForm.apiKey}
+                    onChange={(e) => setConfigForm({ ...configForm, apiKey: e.target.value })}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Dodatkowy klucz API dla zwiększonej funkcjonalności
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button onClick={saveConfiguration} className="flex-1">
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Zapisz konfigurację
+                </Button>
+                {isConfigured && (
+                  <Button onClick={() => setShowConfig(false)} variant="outline">
+                    Anuluj
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold">Google Site Kit</h2>
-          <p className="text-muted-foreground mt-1">
-            Kompleksowe statystyki i analityka strony
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h2 className="text-3xl font-bold">Google Site Kit</h2>
+            <p className="text-muted-foreground mt-1">
+              Kompleksowe statystyki i analityka strony
+            </p>
+          </div>
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Skonfigurowane
+          </Badge>
         </div>
         <div className="flex items-center gap-3">
+          <Button onClick={() => setShowConfig(true)} variant="outline" size="sm">
+            <Settings className="w-4 h-4 mr-2" />
+            Ustawienia
+          </Button>
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value as any)}
