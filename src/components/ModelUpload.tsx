@@ -13,7 +13,8 @@ import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { Upload, Save } from 'lucide-react';
-import { loadModelFile } from '@/utils/modelLoader';
+import { loadModelFile, Model3MFInfo } from '@/utils/modelLoader';
+import * as THREE from 'three';
 
 interface ModelUploadProps {
   onUploadComplete?: () => void;
@@ -30,6 +31,9 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [fileName, setFileName] = useState<string>('');
   const [modelColor] = useState('#00aaff');
+  const [availableModels, setAvailableModels] = useState<Model3MFInfo[]>([]);
+  const [selectedModelIndex, setSelectedModelIndex] = useState(0);
+  const [currentGeometry, setCurrentGeometry] = useState<THREE.BufferGeometry | null>(null);
 
   console.log('[ModelUpload] Component rendered');
   console.log('[ModelUpload] State:', { selectedFile: selectedFile?.name, modelName, user: user?.email });
@@ -43,11 +47,32 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
     const arrayBuffer = await file.arrayBuffer();
     setModelData(arrayBuffer);
     
+    // Load models for 3MF support
+    try {
+      const models = await loadModelFile(arrayBuffer, file.name);
+      setAvailableModels(models);
+      setSelectedModelIndex(0);
+      if (models.length > 0 && models[0].geometry) {
+        setCurrentGeometry(models[0].geometry);
+      }
+    } catch (error) {
+      console.error('[ModelUpload] Error loading models:', error);
+      setAvailableModels([]);
+      setCurrentGeometry(null);
+    }
+    
     if (!modelName) {
       // Auto-fill name from filename
       const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, '');
       setModelName(nameWithoutExtension);
       console.log('[ModelUpload] Auto-filled model name:', nameWithoutExtension);
+    }
+  };
+
+  const handleModelSelect = (index: number) => {
+    setSelectedModelIndex(index);
+    if (availableModels[index] && availableModels[index].geometry) {
+      setCurrentGeometry(availableModels[index].geometry);
     }
   };
 
@@ -185,6 +210,8 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
                   setSelectedFile(null);
                   setModelData(null);
                   setModelName('');
+                  setAvailableModels([]);
+                  setCurrentGeometry(null);
                 }}
               >
                 Zmień model
@@ -192,14 +219,31 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
             </div>
             <p className="text-sm text-muted-foreground">
               {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+              {availableModels.length > 1 && ` - ${availableModels.length} modeli`}
             </p>
             <div className="w-full h-[400px]">
               <ModelViewer 
                 modelData={modelData} 
                 modelColor={modelColor}
                 fileName={fileName}
+                currentGeometry={currentGeometry}
               />
             </div>
+            {availableModels.length > 1 && (
+              <div className="flex items-center gap-2 pt-2">
+                <span className="text-sm font-medium">Wybierz model:</span>
+                {availableModels.map((model, index) => (
+                  <Button
+                    key={model.index}
+                    variant={selectedModelIndex === model.index ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleModelSelect(model.index)}
+                  >
+                    {index + 1}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

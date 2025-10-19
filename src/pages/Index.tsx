@@ -69,6 +69,7 @@ const Index = () => {
   const [fileName, setFileName] = useState<string>();
   const [availableModels, setAvailableModels] = useState<Model3MFInfo[]>([]);
   const [selectedModelIndex, setSelectedModelIndex] = useState(0);
+  const [currentGeometry, setCurrentGeometry] = useState<THREE.BufferGeometry | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [showAddedToCart, setShowAddedToCart] = useState(false);
@@ -221,6 +222,12 @@ const Index = () => {
         setAvailableModels(models);
         setSelectedModelIndex(0);
         
+        // Set current geometry for rendering
+        if (models.length > 0 && models[0].geometry) {
+          setCurrentGeometry(models[0].geometry);
+          console.log('Set currentGeometry for first model:', models[0].name);
+        }
+        
         if (models.length > 1) {
           toast.success(t('uploadSuccess', { fileName: file.name }) + ` (${models.length} ${t('modelsAvailable')})`);
         } else {
@@ -230,6 +237,7 @@ const Index = () => {
         console.error('Model loading failed:', error);
         setAvailableModels([]);
         setSelectedModelIndex(0);
+        setCurrentGeometry(null);
         toast.error(t('uploadError'));
       }
     } catch (error) {
@@ -541,6 +549,7 @@ const Index = () => {
     setFileName(undefined);
     setAvailableModels([]);
     setSelectedModelIndex(0);
+    setCurrentGeometry(null);
     // Reset color based on current theme
     if (resolvedTheme === 'light') {
       setModelColor('#000000');
@@ -548,6 +557,15 @@ const Index = () => {
       setModelColor('#FFFFFF');
     }
     toast.info(t('resetMessage'));
+  };
+
+  const handleModelSelect = (index: number) => {
+    console.log('Model selected:', index);
+    setSelectedModelIndex(index);
+    if (availableModels[index] && availableModels[index].geometry) {
+      setCurrentGeometry(availableModels[index].geometry);
+      console.log('Updated currentGeometry for model:', availableModels[index].name);
+    }
   };
 
   const handleExportSTL = async () => {
@@ -885,7 +903,7 @@ const Index = () => {
                   meshCount: model.meshCount
                 }))}
                 selectedModelIndex={selectedModelIndex}
-                onModelSelect={setSelectedModelIndex}
+                onModelSelect={handleModelSelect}
                 isImageGenerated={!!imageGeometry}
               />
               
@@ -922,7 +940,7 @@ const Index = () => {
                 modelData={modelData || undefined}
                 modelColor={modelColor}
                 fileName={fileName}
-                currentGeometry={imageGeometry || availableModels[selectedModelIndex]?.geometry}
+                currentGeometry={currentGeometry || imageGeometry}
               />
             )}
           </div>

@@ -14,6 +14,8 @@ import { CartItem } from '@/components/ShoppingCart';
 import { ModelRating } from '@/components/ModelRating';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
+import { loadModelFile, Model3MFInfo } from '@/utils/modelLoader';
+import * as THREE from 'three';
 
 interface PublicModel {
   id: string;
@@ -40,6 +42,9 @@ export const PublicModels = () => {
   const [previewModelData, setPreviewModelData] = useState<ArrayBuffer | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
+  const [previewAvailableModels, setPreviewAvailableModels] = useState<Model3MFInfo[]>([]);
+  const [previewSelectedModelIndex, setPreviewSelectedModelIndex] = useState(0);
+  const [previewCurrentGeometry, setPreviewCurrentGeometry] = useState<THREE.BufferGeometry | null>(null);
 
   useEffect(() => {
     fetchPublicModels();
@@ -113,6 +118,9 @@ export const PublicModels = () => {
     setPreviewModel(model);
     setIsLoadingPreview(true);
     setPreviewModelData(null);
+    setPreviewAvailableModels([]);
+    setPreviewSelectedModelIndex(0);
+    setPreviewCurrentGeometry(null);
     
     try {
       // Extract file path from URL
@@ -137,6 +145,20 @@ export const PublicModels = () => {
 
       const arrayBuffer = await fileData.arrayBuffer();
       setPreviewModelData(arrayBuffer);
+      
+      // Load models for 3MF support
+      try {
+        const models = await loadModelFile(arrayBuffer, model.name);
+        setPreviewAvailableModels(models);
+        setPreviewSelectedModelIndex(0);
+        if (models.length > 0 && models[0].geometry) {
+          setPreviewCurrentGeometry(models[0].geometry);
+        }
+      } catch (error) {
+        console.error('Error loading models:', error);
+        setPreviewAvailableModels([]);
+        setPreviewCurrentGeometry(null);
+      }
     } catch (error) {
       console.error('Error loading preview:', error);
       toast.error('Nie udało się załadować podglądu modelu');
@@ -149,6 +171,16 @@ export const PublicModels = () => {
   const handleClosePreview = () => {
     setPreviewModel(null);
     setPreviewModelData(null);
+    setPreviewAvailableModels([]);
+    setPreviewSelectedModelIndex(0);
+    setPreviewCurrentGeometry(null);
+  };
+
+  const handlePreviewModelSelect = (index: number) => {
+    setPreviewSelectedModelIndex(index);
+    if (previewAvailableModels[index] && previewAvailableModels[index].geometry) {
+      setPreviewCurrentGeometry(previewAvailableModels[index].geometry);
+    }
   };
 
   const handleAddToCart = async (model: PublicModel) => {
@@ -325,6 +357,7 @@ export const PublicModels = () => {
                   modelData={previewModelData}
                   modelColor={previewModel ? selectedColors[previewModel.id] || '#000000' : '#000000'}
                   fileName={previewModel?.name}
+                  currentGeometry={previewCurrentGeometry}
                 />
               )}
             </div>
@@ -336,6 +369,13 @@ export const PublicModels = () => {
                 onColorChange={(color) => previewModel && handleColorChange(previewModel.id, color)}
                 fileName={previewModel?.name}
                 hideControls={true}
+                availableModels={previewAvailableModels.map(model => ({
+                  name: model.name,
+                  index: model.index,
+                  meshCount: model.meshCount
+                }))}
+                selectedModelIndex={previewSelectedModelIndex}
+                onModelSelect={handlePreviewModelSelect}
               />
               
               {previewModelData && previewModel && (

@@ -11,6 +11,8 @@ import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
 import { CartItem, ShoppingCartComponent } from '@/components/ShoppingCart';
 import { captureCanvasFromThreeJS } from '@/utils/exportUtils';
+import { loadModelFile, Model3MFInfo } from '@/utils/modelLoader';
+import * as THREE from 'three';
 
 interface Model {
   id: string;
@@ -36,6 +38,9 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [showAddedToCart, setShowAddedToCart] = useState(false);
   const { language } = useApp();
+  const [availableModels, setAvailableModels] = useState<Model3MFInfo[]>([]);
+  const [selectedModelIndex, setSelectedModelIndex] = useState(0);
+  const [currentGeometry, setCurrentGeometry] = useState<THREE.BufferGeometry | null>(null);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -103,11 +108,32 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
       const arrayBuffer = await data.arrayBuffer();
       console.log('Model data loaded, size:', arrayBuffer.byteLength);
       setModelData(arrayBuffer);
+      
+      // Load models for 3MF support
+      try {
+        const models = await loadModelFile(arrayBuffer, model.name);
+        setAvailableModels(models);
+        setSelectedModelIndex(0);
+        if (models.length > 0 && models[0].geometry) {
+          setCurrentGeometry(models[0].geometry);
+        }
+      } catch (error) {
+        console.error('Error loading models:', error);
+        setAvailableModels([]);
+        setCurrentGeometry(null);
+      }
     } catch (error) {
       console.error('Error loading model:', error);
       toast.error(`Błąd ładowania modelu: ${error instanceof Error ? error.message : 'Nieznany błąd'}`);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleModelSelect = (index: number) => {
+    setSelectedModelIndex(index);
+    if (availableModels[index] && availableModels[index].geometry) {
+      setCurrentGeometry(availableModels[index].geometry);
     }
   };
 
@@ -241,6 +267,7 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
                   modelData={modelData}
                   modelColor={modelColor}
                   fileName={model?.name}
+                  currentGeometry={currentGeometry}
                 />
               ) : (
                 <div className="flex items-center justify-center h-full">
@@ -257,6 +284,13 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
                 onExport={() => {}}
                 fileName={model?.name}
                 hideControls={true}
+                availableModels={availableModels.map(model => ({
+                  name: model.name,
+                  index: model.index,
+                  meshCount: model.meshCount
+                }))}
+                selectedModelIndex={selectedModelIndex}
+                onModelSelect={handleModelSelect}
               />
               
               {modelData && (

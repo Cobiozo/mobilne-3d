@@ -53,7 +53,7 @@ export const ModelViewer = ({ modelData, modelColor, fileName, currentGeometry }
                   side={THREE.DoubleSide}
                 />
               </mesh>
-            ) : modelData ? (
+            ) : modelData && fileName?.toLowerCase().endsWith('.stl') ? (
               <Model3D 
                 modelData={modelData} 
                 color={modelColor}
