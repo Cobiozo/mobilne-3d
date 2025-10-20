@@ -425,7 +425,7 @@ const Index = () => {
     try {
       // Get dimensions from current model
       const { getModelDimensions } = await import('@/utils/modelLoader');
-      const dimensions = getModelDimensions(modelData);
+      const dimensions = await getModelDimensions(modelData, fileName, selectedModelIndex);
       
       console.log('Model dimensions for cart:', dimensions);
 
@@ -444,6 +444,9 @@ const Index = () => {
 
       // Find model in database by name if user is logged in
       let modelId = `${Date.now()}-${Math.random()}`;
+      if (availableModels.length > 1) {
+        modelId = `${modelId}-model-${selectedModelIndex}`;
+      }
       
       if (user) {
         const { data: models } = await supabase
@@ -455,20 +458,30 @@ const Index = () => {
         
         if (models && models.length > 0) {
           modelId = models[0].id;
+          if (availableModels.length > 1) {
+            modelId = `${modelId}-model-${selectedModelIndex}`;
+          }
           console.log('Found model in database:', modelId);
         } else {
           console.log('Model not found in database, using temp ID:', modelId);
         }
       }
 
+      // Create descriptive name for multi-model 3MF files
+      let itemName = fileName;
+      if (availableModels.length > 1) {
+        itemName = `${fileName} - Model ${selectedModelIndex + 1}`;
+      }
+
       const newItem: CartItem = {
         id: modelId,
-        name: fileName,
+        name: itemName,
         color: modelColor,
         quantity: 1,
         price: 39.99, // Base price - will be calculated in checkout based on dimensions
         dimensions: dimensions, // Add dimensions to cart item
-        image: thumbnailUrl // Add thumbnail image
+        image: thumbnailUrl, // Add thumbnail image
+        modelIndex: availableModels.length > 1 ? selectedModelIndex : undefined
       };
 
       setCartItems(prev => {

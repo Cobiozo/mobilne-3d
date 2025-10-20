@@ -242,9 +242,10 @@ export const PublicModels = () => {
 
       const arrayBuffer = await fileData.arrayBuffer();
       
-      // Get dimensions
+      // Get dimensions (with 3MF support)
       const { getModelDimensions } = await import('@/utils/modelLoader');
-      const dimensions = getModelDimensions(arrayBuffer);
+      const fileName = model.file_url.split('/').pop() || model.name;
+      const dimensions = await getModelDimensions(arrayBuffer, fileName, previewSelectedModelIndex || 0);
 
       // Generate thumbnail
       const { generateThumbnailFromModel } = await import('@/utils/thumbnailGenerator');

@@ -323,7 +323,12 @@ const Checkout = () => {
                   
                   // Import the function dynamically
                   const { getModelDimensions } = await import('@/utils/modelLoader');
-                  const dimensions = getModelDimensions(arrayBuffer);
+                  
+                  // Extract filename from URL and use modelIndex from cart item
+                  const fileName = item.id.includes('models/') 
+                    ? item.id.split('/').pop() || '' 
+                    : '';
+                  const dimensions = await getModelDimensions(arrayBuffer, fileName, item.modelIndex || 0);
                   
                   console.log(`Loaded dimensions for ${item.name} from database:`, dimensions);
                   

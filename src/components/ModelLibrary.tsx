@@ -246,9 +246,9 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
 
       const arrayBuffer = await fileData.arrayBuffer();
       
-      // Get dimensions
+      // Get dimensions (with 3MF support)
       const { getModelDimensions } = await import('@/utils/modelLoader');
-      const dimensions = getModelDimensions(arrayBuffer);
+      const dimensions = await getModelDimensions(arrayBuffer, model.name, 0);
 
       // Generate thumbnail with selected color
       const { generateThumbnailFromModel } = await import('@/utils/thumbnailGenerator');

@@ -207,8 +207,52 @@ function processGeometry(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
   return processedGeometry;
 }
 
-// Function to get real dimensions from model geometry in millimeters
-export function getModelDimensions(arrayBuffer: ArrayBuffer): { x: number; y: number; z: number } {
+// Function to get dimensions from a specific model in a 3MF file
+async function getModelDimensionsFrom3MF(arrayBuffer: ArrayBuffer, modelIndex: number = 0): Promise<{ x: number; y: number; z: number }> {
+  try {
+    const models = await load3MFFile(arrayBuffer, 'temp.3mf');
+    
+    if (models.length === 0 || !models[modelIndex]) {
+      console.error('No model found at index:', modelIndex);
+      return { x: 100, y: 100, z: 100 };
+    }
+    
+    const geometry = models[modelIndex].geometry;
+    
+    // Compute bounding box for the original geometry (before processing)
+    geometry.computeBoundingBox();
+    
+    if (geometry.boundingBox) {
+      const size = new THREE.Vector3();
+      geometry.boundingBox.getSize(size);
+      
+      // Return dimensions in millimeters
+      return {
+        x: Math.round(size.x * 10) / 10,
+        y: Math.round(size.y * 10) / 10,
+        z: Math.round(size.z * 10) / 10
+      };
+    }
+  } catch (error) {
+    console.error('Error reading 3MF model dimensions:', error);
+  }
+  
+  return { x: 100, y: 100, z: 100 };
+}
+
+// Universal function to get real dimensions from model geometry in millimeters
+export async function getModelDimensions(
+  arrayBuffer: ArrayBuffer, 
+  fileName: string = '', 
+  modelIndex: number = 0
+): Promise<{ x: number; y: number; z: number }> {
+  const is3MF = fileName.toLowerCase().endsWith('.3mf');
+  
+  if (is3MF) {
+    return await getModelDimensionsFrom3MF(arrayBuffer, modelIndex);
+  }
+  
+  // STL handling
   try {
     const loader = new STLLoader();
     const geometry = loader.parse(arrayBuffer);
@@ -227,7 +271,7 @@ export function getModelDimensions(arrayBuffer: ArrayBuffer): { x: number; y: nu
       };
     }
   } catch (error) {
-    console.error('Error reading model dimensions:', error);
+    console.error('Error reading STL model dimensions:', error);
   }
   
   // Return default if failed

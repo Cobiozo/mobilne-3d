@@ -141,9 +141,10 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
     if (!model || !modelData) return;
 
     try {
-      // Get dimensions from model
+      // Get dimensions from model (with 3MF support)
       const { getModelDimensions } = await import('@/utils/modelLoader');
-      const dimensions = getModelDimensions(modelData);
+      const fileName = model.file_url.split('/').pop() || model.name;
+      const dimensions = await getModelDimensions(modelData, fileName, selectedModelIndex);
       
       console.log('Adding to cart with dimensions:', dimensions);
 

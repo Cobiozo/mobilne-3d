@@ -18,6 +18,7 @@ export interface CartItem {
   price?: number;
   image?: string;
   dimensions?: { x: number; y: number; z: number }; // Optional dimensions from model
+  modelIndex?: number; // Index of the model within a 3MF file
 }
 
 interface ShoppingCartProps {
