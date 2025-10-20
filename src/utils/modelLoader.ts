@@ -168,6 +168,22 @@ function processGeometry(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
   // Make a copy to avoid modifying the original
   const processedGeometry = geometry.clone();
   
+  // Store original dimensions BEFORE any processing
+  processedGeometry.computeBoundingBox();
+  if (processedGeometry.boundingBox) {
+    const originalSize = new THREE.Vector3();
+    processedGeometry.boundingBox.getSize(originalSize);
+    
+    // Store original dimensions as metadata
+    (processedGeometry as any).__original_dimensions = {
+      x: originalSize.x,
+      y: originalSize.y,
+      z: originalSize.z
+    };
+    
+    console.log('Stored original dimensions:', originalSize);
+  }
+  
   try {
     // Center the geometry
     processedGeometry.computeBoundingBox();
@@ -207,38 +223,6 @@ function processGeometry(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
   return processedGeometry;
 }
 
-// Function to get dimensions from a specific model in a 3MF file
-async function getModelDimensionsFrom3MF(arrayBuffer: ArrayBuffer, modelIndex: number = 0): Promise<{ x: number; y: number; z: number }> {
-  try {
-    const models = await load3MFFile(arrayBuffer, 'temp.3mf');
-    
-    if (models.length === 0 || !models[modelIndex]) {
-      console.error('No model found at index:', modelIndex);
-      return { x: 100, y: 100, z: 100 };
-    }
-    
-    const geometry = models[modelIndex].geometry;
-    
-    // Compute bounding box for the original geometry (before processing)
-    geometry.computeBoundingBox();
-    
-    if (geometry.boundingBox) {
-      const size = new THREE.Vector3();
-      geometry.boundingBox.getSize(size);
-      
-      // Return dimensions in millimeters
-      return {
-        x: Math.round(size.x * 10) / 10,
-        y: Math.round(size.y * 10) / 10,
-        z: Math.round(size.z * 10) / 10
-      };
-    }
-  } catch (error) {
-    console.error('Error reading 3MF model dimensions:', error);
-  }
-  
-  return { x: 100, y: 100, z: 100 };
-}
 
 // Universal function to get real dimensions from model geometry in millimeters
 export async function getModelDimensions(
@@ -249,7 +233,81 @@ export async function getModelDimensions(
   const is3MF = fileName.toLowerCase().endsWith('.3mf');
   
   if (is3MF) {
-    return await getModelDimensionsFrom3MF(arrayBuffer, modelIndex);
+    try {
+      // Dynamic import to avoid build issues
+      const ThreeMFLoaderModule = await import('../loaders/3MFLoader.js');
+      const ThreeMFLoader = ThreeMFLoaderModule.ThreeMFLoader || ThreeMFLoaderModule.default;
+      
+      const loader = new ThreeMFLoader();
+      const result = loader.parse(arrayBuffer);
+      
+      console.log('3MF result for dimensions:', result);
+      
+      if (!result) {
+        throw new Error('Failed to parse 3MF file');
+      }
+
+      // Find the specific model by index
+      let targetGeometry: THREE.BufferGeometry | null = null;
+      
+      if (result.children && result.children.length > 0) {
+        // Multiple models case
+        if (modelIndex < result.children.length) {
+          targetGeometry = extractGeometry(result.children[modelIndex]);
+        }
+      } else {
+        // Single model or traverse case
+        const meshes: THREE.Mesh[] = [];
+        result.traverse((object: any) => {
+          if (object instanceof THREE.Mesh && object.geometry) {
+            meshes.push(object);
+          }
+        });
+
+        if (meshes.length > 0 && modelIndex < meshes.length) {
+          targetGeometry = meshes[modelIndex].geometry;
+        } else {
+          // Direct geometry case
+          targetGeometry = extractGeometry(result);
+        }
+      }
+
+      if (targetGeometry) {
+        // Check if we have stored original dimensions
+        const originalDimensions = (targetGeometry as any).__original_dimensions;
+        
+        if (originalDimensions) {
+          console.log('Using stored original 3MF dimensions:', originalDimensions);
+          return {
+            x: Math.round(originalDimensions.x * 10) / 10,
+            y: Math.round(originalDimensions.y * 10) / 10,
+            z: Math.round(originalDimensions.z * 10) / 10
+          };
+        }
+        
+        // Fallback: compute from current geometry
+        targetGeometry.computeBoundingBox();
+        
+        if (targetGeometry.boundingBox) {
+          const size = new THREE.Vector3();
+          targetGeometry.boundingBox.getSize(size);
+          
+          console.log('Computed 3MF dimensions (may be scaled):', size);
+          
+          // Return dimensions in millimeters
+          return {
+            x: Math.round(size.x * 10) / 10,
+            y: Math.round(size.y * 10) / 10,
+            z: Math.round(size.z * 10) / 10
+          };
+        }
+      }
+      
+      throw new Error('No valid geometry found in 3MF file');
+    } catch (error) {
+      console.error('Error reading 3MF model dimensions:', error);
+      return { x: 100, y: 100, z: 100 };
+    }
   }
   
   // STL handling
