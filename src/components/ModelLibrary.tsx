@@ -11,7 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
-import { Eye, Download, Trash2, Globe, Lock, Plus, Package, ShoppingCart, Edit, Check, X, Coins, Star, Palette } from 'lucide-react';
+import { Eye, Download, Trash2, Globe, Lock, Plus, Package, ShoppingCart, Edit, Check, X, Coins, Star, Palette, CheckSquare, Square } from 'lucide-react';
 import { ModelRating } from '@/components/ModelRating';
 import { CartItem } from '@/components/ShoppingCart';
 import { toast as sonnerToast } from 'sonner';
@@ -55,6 +55,13 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedColors, setSelectedColors] = useState<{ [key: string]: string }>({});
   const [availableColors, setAvailableColors] = useState<Array<{ color_hex: string; color_name: string }>>([]);
+  const [modelSelectionDialog, setModelSelectionDialog] = useState<{
+    isOpen: boolean;
+    model: Model;
+    availableModels: any[];
+    arrayBuffer: ArrayBuffer;
+  } | null>(null);
+  const [selectedModelsToAdd, setSelectedModelsToAdd] = useState<number[]>([]);
   const { toast } = useToast();
   const { language } = useApp();
 
@@ -246,23 +253,61 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
 
       const arrayBuffer = await fileData.arrayBuffer();
       
+      // Check if it's a 3MF file with multiple models
+      const is3MF = model.name.toLowerCase().endsWith('.3mf') || model.file_type?.toLowerCase() === '3mf';
+      
+      if (is3MF) {
+        const { loadModelFile } = await import('@/utils/modelLoader');
+        const availableModels = await loadModelFile(arrayBuffer, model.name);
+        
+        if (availableModels.length > 1) {
+          // Show model selection dialog for multi-model 3MF
+          setModelSelectionDialog({
+            isOpen: true,
+            model,
+            availableModels,
+            arrayBuffer
+          });
+          setSelectedModelsToAdd([]);
+          setAddingToCart(null);
+          return;
+        }
+      }
+      
+      // Single model or STL - add directly
+      await addSingleModelToCart(model, arrayBuffer, 0);
+      
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      sonnerToast.error('Nie udało się dodać modelu do koszyka');
+      setAddingToCart(null);
+    }
+  };
+
+  const addSingleModelToCart = async (model: Model, arrayBuffer: ArrayBuffer, modelIndex: number) => {
+    try {
       // Get dimensions (with 3MF support)
       const { getModelDimensions } = await import('@/utils/modelLoader');
-      const dimensions = await getModelDimensions(arrayBuffer, model.name, 0);
+      const dimensions = await getModelDimensions(arrayBuffer, model.name, modelIndex);
 
       // Generate thumbnail with selected color
       const { generateThumbnailFromModel } = await import('@/utils/thumbnailGenerator');
       const selectedColor = selectedColors[model.id] || '#000000';
       const thumbnailUrl = await generateThumbnailFromModel(arrayBuffer, selectedColor);
 
+      // Create unique ID for multi-model 3MF
+      const itemId = modelIndex > 0 ? `${model.id}-model-${modelIndex}` : model.id;
+      const itemName = modelIndex > 0 ? `${model.name} - Model ${modelIndex + 1}` : model.name;
+
       // Create cart item with selected color
       const newItem: CartItem = {
-        id: model.id,
-        name: model.name,
+        id: itemId,
+        name: itemName,
         color: selectedColor,
         quantity: 1,
         dimensions: dimensions,
-        image: thumbnailUrl
+        image: thumbnailUrl,
+        modelIndex: modelIndex > 0 ? modelIndex : undefined
       };
 
       // Load existing cart
@@ -302,7 +347,30 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
       
     } catch (error) {
       console.error('Error adding to cart:', error);
-      sonnerToast.error('Nie udało się dodać modelu do koszyka');
+      throw error;
+    }
+  };
+
+  const addSelectedModelsToCart = async () => {
+    if (!modelSelectionDialog || selectedModelsToAdd.length === 0) return;
+    
+    setAddingToCart(modelSelectionDialog.model.id);
+    
+    try {
+      for (const modelIndex of selectedModelsToAdd) {
+        await addSingleModelToCart(
+          modelSelectionDialog.model,
+          modelSelectionDialog.arrayBuffer,
+          modelIndex
+        );
+      }
+      
+      sonnerToast.success(`Dodano ${selectedModelsToAdd.length} modeli do koszyka`);
+      setModelSelectionDialog(null);
+      setSelectedModelsToAdd([]);
+    } catch (error) {
+      console.error('Error adding selected models:', error);
+      sonnerToast.error('Nie udało się dodać modeli do koszyka');
     } finally {
       setAddingToCart(null);
     }
@@ -524,6 +592,103 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
           setSelectedModel(null);
         }}
       />
+
+      {/* Model Selection Dialog for 3MF */}
+      {modelSelectionDialog && (
+        <Dialog open={modelSelectionDialog.isOpen} onOpenChange={(open) => {
+          if (!open) {
+            setModelSelectionDialog(null);
+            setSelectedModelsToAdd([]);
+          }
+        }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Wybierz modele do dodania do koszyka</DialogTitle>
+              <DialogDescription>
+                Ten plik zawiera {modelSelectionDialog.availableModels.length} modeli. Zaznacz które chcesz dodać.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto py-4">
+              {modelSelectionDialog.availableModels.map((modelInfo, index) => (
+                <div
+                  key={index}
+                  onClick={() => {
+                    setSelectedModelsToAdd(prev => {
+                      if (prev.includes(index)) {
+                        return prev.filter(i => i !== index);
+                      } else {
+                        return [...prev, index];
+                      }
+                    });
+                  }}
+                  className={`relative cursor-pointer border-2 rounded-lg p-3 transition-all ${
+                    selectedModelsToAdd.includes(index)
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="absolute top-2 right-2">
+                    {selectedModelsToAdd.includes(index) ? (
+                      <CheckSquare className="w-5 h-5 text-primary" />
+                    ) : (
+                      <Square className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  
+                  <div className="aspect-square bg-muted rounded mb-2 flex items-center justify-center">
+                    <Package className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  
+                  <p className="text-sm font-medium text-center">
+                    Model {index + 1}
+                  </p>
+                  {modelInfo.meshCount && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      {modelInfo.meshCount} {modelInfo.meshCount === 1 ? 'mesh' : 'meshes'}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <DialogFooter className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Wybrano: {selectedModelsToAdd.length} / {modelSelectionDialog.availableModels.length}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setModelSelectionDialog(null);
+                    setSelectedModelsToAdd([]);
+                  }}
+                >
+                  Anuluj
+                </Button>
+                <Button
+                  type="button"
+                  onClick={addSelectedModelsToCart}
+                  disabled={selectedModelsToAdd.length === 0 || addingToCart !== null}
+                >
+                  {addingToCart ? (
+                    <>
+                      <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Dodawanie...
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      Dodaj wybrane ({selectedModelsToAdd.length})
+                    </>
+                  )}
+                </Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Edit Model Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>

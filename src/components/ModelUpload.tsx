@@ -34,6 +34,8 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
   const [availableModels, setAvailableModels] = useState<Model3MFInfo[]>([]);
   const [selectedModelIndex, setSelectedModelIndex] = useState(0);
   const [currentGeometry, setCurrentGeometry] = useState<THREE.BufferGeometry | null>(null);
+  const [uploadMode, setUploadMode] = useState<'single' | 'all'>('single');
+  const [selectedModelsToUpload, setSelectedModelsToUpload] = useState<number[]>([0]);
 
   console.log('[ModelUpload] Component rendered');
   console.log('[ModelUpload] State:', { selectedFile: selectedFile?.name, modelName, user: user?.email });
@@ -76,6 +78,16 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
     }
   };
 
+  const toggleModelSelection = (index: number) => {
+    setSelectedModelsToUpload(prev => {
+      if (prev.includes(index)) {
+        return prev.filter(i => i !== index);
+      } else {
+        return [...prev, index];
+      }
+    });
+  };
+
   const handleUpload = async () => {
     console.log('[ModelUpload] handleUpload called');
     console.log('[ModelUpload] selectedFile:', selectedFile);
@@ -85,6 +97,12 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
     if (!selectedFile || !user || !modelName.trim()) {
       console.log('[ModelUpload] Validation failed');
       toast.error(getText('fillAllFields', language));
+      return;
+    }
+
+    // For multi-model 3MF, validate that at least one model is selected
+    if (availableModels.length > 1 && selectedModelsToUpload.length === 0) {
+      toast.error('Wybierz przynajmniej jeden model do uploadu');
       return;
     }
 
@@ -139,33 +157,53 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
 
       console.log('[ModelUpload] Public URL:', publicUrl);
 
+      // Handle multi-model 3MF uploads
+      const modelsToUpload = uploadMode === 'all' && availableModels.length > 1 
+        ? availableModels.map(m => m.index)
+        : selectedModelsToUpload;
+
       // Save model metadata to database
       console.log('[ModelUpload] Saving metadata to database...');
-      const { error: dbError } = await supabase
-        .from('models')
-        .insert({
-          user_id: user.id,
-          name: modelName.trim(),
-          description: description.trim() || null,
-          file_url: publicUrl,
-          file_size: selectedFile.size,
-          file_type: fileExt,
-          is_public: isPublic
-        });
+      
+      for (const modelIndex of modelsToUpload) {
+        const modelSuffix = availableModels.length > 1 ? ` - Model ${modelIndex + 1}` : '';
+        const { error: dbError } = await supabase
+          .from('models')
+          .insert({
+            user_id: user.id,
+            name: modelName.trim() + modelSuffix,
+            description: description.trim() || null,
+            file_url: publicUrl,
+            file_size: selectedFile.size,
+            file_type: fileExt,
+            is_public: isPublic,
+            model_index: availableModels.length > 1 ? modelIndex : null,
+            parent_file: availableModels.length > 1 ? selectedFile.name : null
+          });
 
-      console.log('[ModelUpload] DB insert error:', dbError);
+        console.log('[ModelUpload] DB insert error for model', modelIndex, ':', dbError);
 
-      if (dbError) {
-        throw dbError;
+        if (dbError) {
+          throw dbError;
+        }
       }
 
-      toast.success(getText('modelUploadedSuccessfully', language));
+      const uploadedCount = modelsToUpload.length;
+      toast.success(
+        uploadedCount > 1 
+          ? `Pomyślnie wgrano ${uploadedCount} modeli` 
+          : getText('modelUploadedSuccessfully', language)
+      );
       
       // Reset form
       setSelectedFile(null);
       setModelName('');
       setDescription('');
       setIsPublic(false);
+      setAvailableModels([]);
+      setCurrentGeometry(null);
+      setSelectedModelsToUpload([0]);
+      setUploadMode('single');
       
       console.log('[ModelUpload] Upload completed successfully');
       onUploadComplete?.();
@@ -230,19 +268,85 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
               />
             </div>
             {availableModels.length > 1 && (
-              <div className="flex items-center gap-2 pt-2">
-                <span className="text-sm font-medium">Wybierz model:</span>
-                {availableModels.map((model, index) => (
-                  <Button
-                    key={model.index}
-                    variant={selectedModelIndex === model.index ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleModelSelect(model.index)}
-                  >
-                    {index + 1}
-                  </Button>
-                ))}
-              </div>
+              <>
+                <div className="flex items-center gap-2 pt-2">
+                  <span className="text-sm font-medium">Podgląd:</span>
+                  {availableModels.map((model, index) => (
+                    <Button
+                      key={model.index}
+                      variant={selectedModelIndex === model.index ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleModelSelect(model.index)}
+                    >
+                      {index + 1}
+                    </Button>
+                  ))}
+                </div>
+                
+                <div className="border rounded-lg p-4 space-y-3 mt-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Tryb uploadu:</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={uploadMode === 'single' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => {
+                          setUploadMode('single');
+                          if (selectedModelsToUpload.length === 0) {
+                            setSelectedModelsToUpload([0]);
+                          }
+                        }}
+                      >
+                        Wybrane
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={uploadMode === 'all' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setUploadMode('all')}
+                      >
+                        Wszystkie
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {uploadMode === 'single' && (
+                    <div className="space-y-2">
+                      <Label className="text-sm">Wybierz modele do uploadu:</Label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {availableModels.map((model, index) => (
+                          <label
+                            key={model.index}
+                            className={`flex items-center justify-center gap-2 p-3 border rounded cursor-pointer transition-all ${
+                              selectedModelsToUpload.includes(model.index)
+                                ? 'border-primary bg-primary/10'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedModelsToUpload.includes(model.index)}
+                              onChange={() => toggleModelSelection(model.index)}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm font-medium">Model {index + 1}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Wybrano: {selectedModelsToUpload.length} / {availableModels.length}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {uploadMode === 'all' && (
+                    <p className="text-sm text-muted-foreground">
+                      Zostanie wgranych {availableModels.length} modeli jako osobne wpisy
+                    </p>
+                  )}
+                </div>
+              </>
             )}
           </div>
         )}

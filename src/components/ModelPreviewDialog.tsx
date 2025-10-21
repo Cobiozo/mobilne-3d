@@ -41,6 +41,8 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
   const [availableModels, setAvailableModels] = useState<Model3MFInfo[]>([]);
   const [selectedModelIndex, setSelectedModelIndex] = useState(0);
   const [currentGeometry, setCurrentGeometry] = useState<THREE.BufferGeometry | null>(null);
+  const [addingMultipleModels, setAddingMultipleModels] = useState(false);
+  const [selectedModelsToAdd, setSelectedModelsToAdd] = useState<number[]>([]);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -140,11 +142,25 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
   const handleAddToCart = async () => {
     if (!model || !modelData) return;
 
+    // Check if multiple models available in 3MF
+    if (availableModels.length > 1) {
+      setAddingMultipleModels(true);
+      setSelectedModelsToAdd([]);
+      return;
+    }
+
+    // Single model - add directly
+    await addSingleModelToCart(selectedModelIndex);
+  };
+
+  const addSingleModelToCart = async (modelIndex: number) => {
+    if (!model || !modelData) return;
+
     try {
       // Get dimensions from model (with 3MF support)
       const { getModelDimensions } = await import('@/utils/modelLoader');
       const fileName = model.file_url.split('/').pop() || model.name;
-      const dimensions = await getModelDimensions(modelData, fileName, selectedModelIndex);
+      const dimensions = await getModelDimensions(modelData, fileName, modelIndex);
       
       console.log('Adding to cart with dimensions:', dimensions);
 
@@ -178,14 +194,19 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
         console.warn('Could not capture model thumbnail:', error);
       }
 
+      // Create unique ID for multi-model 3MF
+      const itemId = modelIndex > 0 ? `${model.id}-model-${modelIndex}` : model.id;
+      const itemName = modelIndex > 0 ? `${model.name} - Model ${modelIndex + 1}` : model.name;
+
       const cartItem: CartItem = {
-        id: model.id,
-        name: model.name,
+        id: itemId,
+        name: itemName,
         color: modelColor,
         quantity: 1,
         price: 39.99, // Base price - will be calculated in checkout based on actual dimensions
         dimensions: dimensions, // Add dimensions to cart item
-        image: thumbnailUrl // Add thumbnail image
+        image: thumbnailUrl, // Add thumbnail image
+        modelIndex: modelIndex > 0 ? modelIndex : undefined
       };
 
       setCartItems(prev => {
@@ -206,6 +227,23 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('Błąd podczas dodawania do koszyka');
+    }
+  };
+
+  const addSelectedModelsToCart = async () => {
+    if (selectedModelsToAdd.length === 0) return;
+    
+    try {
+      for (const modelIndex of selectedModelsToAdd) {
+        await addSingleModelToCart(modelIndex);
+      }
+      
+      toast.success(`Dodano ${selectedModelsToAdd.length} modeli do koszyka`);
+      setAddingMultipleModels(false);
+      setSelectedModelsToAdd([]);
+    } catch (error) {
+      console.error('Error adding selected models:', error);
+      toast.error('Nie udało się dodać modeli do koszyka');
     }
   };
 
@@ -295,15 +333,70 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
               />
               
               {modelData && (
-                <div className="mt-4 pt-4 border-t">
+                <div className="mt-4 pt-4 border-t space-y-2">
                   <Button 
                     onClick={handleAddToCart}
                     className="w-full"
                     disabled={!modelData}
                   >
                     <ShoppingCart className="w-4 h-4 mr-2" />
-                    {getText('addToCart', language)}
+                    {availableModels.length > 1 
+                      ? 'Wybierz modele do dodania'
+                      : getText('addToCart', language)
+                    }
                   </Button>
+                  
+                  {availableModels.length > 1 && addingMultipleModels && (
+                    <div className="border rounded-lg p-3 space-y-3">
+                      <p className="text-sm font-medium">
+                        Wybierz modele ({selectedModelsToAdd.length}/{availableModels.length}):
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {availableModels.map((modelInfo, index) => (
+                          <button
+                            key={index}
+                            onClick={() => {
+                              setSelectedModelsToAdd(prev => {
+                                if (prev.includes(index)) {
+                                  return prev.filter(i => i !== index);
+                                } else {
+                                  return [...prev, index];
+                                }
+                              });
+                            }}
+                            className={`p-2 border rounded text-sm transition-all ${
+                              selectedModelsToAdd.includes(index)
+                                ? 'border-primary bg-primary/10 font-medium'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            {index + 1}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setAddingMultipleModels(false);
+                            setSelectedModelsToAdd([]);
+                          }}
+                          className="flex-1"
+                        >
+                          Anuluj
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={addSelectedModelsToCart}
+                          disabled={selectedModelsToAdd.length === 0}
+                          className="flex-1"
+                        >
+                          Dodaj ({selectedModelsToAdd.length})
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

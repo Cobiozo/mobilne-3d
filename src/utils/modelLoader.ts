@@ -165,23 +165,28 @@ function processGeometry(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
     return geometry;
   }
 
-  // Make a copy to avoid modifying the original
-  const processedGeometry = geometry.clone();
-  
-  // Store original dimensions BEFORE any processing
-  processedGeometry.computeBoundingBox();
-  if (processedGeometry.boundingBox) {
+  // Store original dimensions BEFORE any processing or cloning
+  geometry.computeBoundingBox();
+  if (geometry.boundingBox) {
     const originalSize = new THREE.Vector3();
-    processedGeometry.boundingBox.getSize(originalSize);
+    geometry.boundingBox.getSize(originalSize);
     
-    // Store original dimensions as metadata
-    (processedGeometry as any).__original_dimensions = {
+    // Store original dimensions on the ORIGINAL geometry
+    (geometry as any).__original_dimensions = {
       x: originalSize.x,
       y: originalSize.y,
       z: originalSize.z
     };
     
-    console.log('Stored original dimensions:', originalSize);
+    console.log('Stored original dimensions (BEFORE processing):', originalSize);
+  }
+  
+  // Make a copy to avoid modifying the original
+  const processedGeometry = geometry.clone();
+  
+  // Copy the original dimensions to the processed geometry
+  if ((geometry as any).__original_dimensions) {
+    (processedGeometry as any).__original_dimensions = (geometry as any).__original_dimensions;
   }
   
   try {
