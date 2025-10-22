@@ -120,29 +120,30 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
 
       console.log('[ModelUpload] Settings data:', settingsData, 'Error:', settingsError);
 
-      // Extract string value from jsonb field - handle both direct string and nested object
+      // Extract string value from jsonb field
       let storageFolder = '';
       if (settingsData?.setting_value) {
+        // setting_value is JSONB, so it's already parsed by Supabase
         if (typeof settingsData.setting_value === 'string') {
-          storageFolder = settingsData.setting_value;
+          storageFolder = settingsData.setting_value.trim();
         } else if (typeof settingsData.setting_value === 'object') {
-          // Check if it's a nested object with 'value' property
+          // Handle nested object if exists
           const valueObj = settingsData.setting_value as any;
-          storageFolder = valueObj.value || valueObj.folder || '';
+          storageFolder = (valueObj.value || valueObj.folder || '').toString().trim();
         }
       }
       
-      console.log('[ModelUpload] Storage folder:', storageFolder);
+      console.log('[ModelUpload] Parsed storage folder:', storageFolder);
       
       // Upload file to Supabase Storage
       const fileExt = selectedFile.name.split('.').pop();
       const basePath = storageFolder ? `${storageFolder}/${user.id}` : user.id;
-      const fileName = `${basePath}/${Date.now()}.${fileExt}`;
+      const filePath = `${basePath}/${Date.now()}_${selectedFile.name}`;
       
-      console.log('[ModelUpload] Uploading to path:', fileName);
+      console.log('[ModelUpload] Uploading to path:', filePath);
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('models')
-        .upload(fileName, selectedFile);
+        .upload(filePath, selectedFile);
 
       console.log('[ModelUpload] Upload result:', uploadData, 'Error:', uploadError);
 
