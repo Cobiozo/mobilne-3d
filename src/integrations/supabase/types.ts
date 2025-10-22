@@ -18,7 +18,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           last_activity: string
           session_id: string
           user_agent: string | null
@@ -27,7 +27,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           last_activity?: string
           session_id: string
           user_agent?: string | null
@@ -36,7 +36,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           last_activity?: string
           session_id?: string
           user_agent?: string | null
@@ -95,7 +95,7 @@ export type Database = {
           event_data: Json | null
           event_name: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           session_id: string | null
           user_agent: string | null
           user_id: string | null
@@ -105,7 +105,7 @@ export type Database = {
           event_data?: Json | null
           event_name: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           session_id?: string | null
           user_agent?: string | null
           user_id?: string | null
@@ -115,7 +115,7 @@ export type Database = {
           event_data?: Json | null
           event_name?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           session_id?: string | null
           user_agent?: string | null
           user_id?: string | null
@@ -128,7 +128,7 @@ export type Database = {
           created_at: string
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           resource_id: string | null
           resource_type: string
           severity: string
@@ -140,7 +140,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type: string
           severity?: string
@@ -152,7 +152,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type?: string
           severity?: string
@@ -1213,10 +1213,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      cleanup_old_sessions: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      cleanup_old_sessions: { Args: never; Returns: undefined }
       decrypt_google_credential: {
         Args: { encrypted_credential: string }
         Returns: string
@@ -1237,22 +1234,10 @@ export type Database = {
         Args: { credential: string }
         Returns: string
       }
-      encrypt_payu_credential: {
-        Args: { credential: string }
-        Returns: string
-      }
-      encrypt_smtp_password: {
-        Args: { password: string }
-        Returns: string
-      }
-      exchange_coins_to_currency: {
-        Args: { p_coins: number }
-        Returns: Json
-      }
-      generate_order_number: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      encrypt_payu_credential: { Args: { credential: string }; Returns: string }
+      encrypt_smtp_password: { Args: { password: string }; Returns: string }
+      exchange_coins_to_currency: { Args: { p_coins: number }; Returns: Json }
+      generate_order_number: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
