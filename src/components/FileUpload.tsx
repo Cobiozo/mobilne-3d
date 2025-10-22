@@ -41,12 +41,28 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       console.log('[FileUpload] File input change triggered');
       const file = e.target.files?.[0];
-      console.log('[FileUpload] File selected:', file?.name, file?.size);
+      console.log('[FileUpload] File selected:', file?.name, file?.size, file?.type);
+      
       if (file) {
+        // Check file extension
+        const isValidFile = file.name.toLowerCase().endsWith('.stl') || 
+                          file.name.toLowerCase().endsWith('.3mf');
+        
+        if (!isValidFile) {
+          console.error('[FileUpload] Invalid file type:', file.name);
+          alert('Proszę wybrać plik .STL lub .3MF');
+          e.target.value = ''; // Reset input
+          return;
+        }
+        
+        console.log('[FileUpload] Valid file, calling onFileSelect');
         onFileSelect(file);
       } else {
         console.log('[FileUpload] No file selected');
       }
+      
+      // Reset input to allow selecting the same file again
+      e.target.value = '';
     },
     [onFileSelect]
   );
