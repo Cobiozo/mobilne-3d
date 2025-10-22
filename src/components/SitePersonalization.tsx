@@ -64,22 +64,41 @@ export const SitePersonalization = () => {
         throw new Error('User not authenticated');
       }
 
-      // Filter out empty settings and prepare updates
+      // Helper function to check if value is empty
+      const isEmpty = (value: any): boolean => {
+        if (value === null || value === undefined) return true;
+        if (typeof value === 'string' && value.trim() === '') return true;
+        if (typeof value === 'object' && !Array.isArray(value)) {
+          // For objects like {pl: '', en: ''}, check if all values are empty
+          return Object.values(value).every(v => 
+            v === null || v === undefined || (typeof v === 'string' && v.trim() === '')
+          );
+        }
+        return false;
+      };
+
+      // Prepare updates - don't filter out objects with nested values
       const updates = Object.entries(settings)
-        .filter(([_, value]) => {
-          if (value === null || value === undefined) return false;
-          if (typeof value === 'string' && value.trim() === '') return false;
-          return true;
-        })
-        .map(([key, value]) => ({
-          setting_key: key,
-          setting_value: value,
-          updated_by: user.id
-        }));
+        .filter(([_, value]) => !isEmpty(value))
+        .map(([key, value]) => {
+          console.log(`Preparing to save ${key}:`, value);
+          return {
+            setting_key: key,
+            setting_value: value,
+            updated_by: user.id
+          };
+        });
 
       if (updates.length === 0) {
-        throw new Error('No settings to save');
+        toast({
+          title: "Informacja",
+          description: "Brak ustawień do zapisania",
+          variant: "default",
+        });
+        return;
       }
+
+      console.log('Saving updates:', updates);
 
       const { error } = await supabase
         .from('site_settings')
@@ -100,6 +119,9 @@ export const SitePersonalization = () => {
 
       // Trigger a refresh of site settings in the app context
       window.dispatchEvent(new CustomEvent('settingsUpdated'));
+      
+      // Refresh settings to confirm save
+      await fetchSettings();
     } catch (error) {
       console.error('Error saving settings:', error);
       toast({
