@@ -16,7 +16,9 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
   
   console.log('[FileUpload] Component rendered');
   
-  const handleClick = useCallback(() => {
+  const handleClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     console.log('[FileUpload] Click triggered, opening file dialog');
     fileInputRef.current?.click();
   }, []);
