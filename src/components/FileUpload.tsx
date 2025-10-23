@@ -83,10 +83,11 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
         type="file"
         accept=".stl,.3mf"
         onChange={handleFileChange}
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+        id="file-upload-input"
       />
       
-      <div className="flex flex-col items-center gap-3 sm:gap-4">
+      <div className="flex flex-col items-center gap-3 sm:gap-4 pointer-events-none">
         <div className="p-3 sm:p-4 rounded-full bg-muted group-hover:bg-primary/20 transition-colors">
           <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground group-hover:text-primary transition-colors" />
         </div>
