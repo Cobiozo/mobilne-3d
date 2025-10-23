@@ -166,9 +166,9 @@ const Index = () => {
   // Auto-adjust color based on theme and apply site settings
   useEffect(() => {
     if (resolvedTheme === 'light') {
-      setModelColor('#000000'); // Black for light theme
+      setModelColor('#FF0000'); // Red for light theme
     } else {
-      setModelColor('#FFFFFF'); // White for dark theme
+      setModelColor('#FF0000'); // Red for dark theme
     }
 
     // Apply site settings to the page
