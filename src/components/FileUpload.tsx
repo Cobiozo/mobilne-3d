@@ -16,13 +16,11 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
   
   console.log('[FileUpload] Component rendered');
   
-  const handleClick = useCallback((e: React.MouseEvent) => {
+  const handleClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     console.log('[FileUpload] Click triggered, opening file dialog');
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    fileInputRef.current?.click();
   }, []);
   
   const handleDrop = useCallback(
@@ -85,9 +83,8 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
     <div
       onDrop={handleDrop}
       onDragOver={handleDragOver}
-      onClick={handleClick}
       className={cn(
-        "border-2 border-dashed border-border rounded-lg text-center cursor-pointer",
+        "border-2 border-dashed border-border rounded-lg text-center",
         "bg-gradient-upload hover:bg-viewer-upload-hover transition-all duration-300",
         "hover:border-primary group",
         "p-4 sm:p-6 lg:p-8",
@@ -100,10 +97,9 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
         accept=".stl,.3mf"
         onChange={handleFileChange}
         className="hidden"
-        style={{ pointerEvents: 'auto' }}
       />
       
-      <div className="flex flex-col items-center gap-3 sm:gap-4 pointer-events-none">
+      <div className="flex flex-col items-center gap-3 sm:gap-4">
         <div className="p-3 sm:p-4 rounded-full bg-muted group-hover:bg-primary/20 transition-colors">
           <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground group-hover:text-primary transition-colors" />
         </div>
@@ -117,8 +113,9 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
         
         <Button 
           type="button"
+          onClick={handleClick}
           variant="outline"
-          className="mt-2 pointer-events-none"
+          className="mt-2"
         >
           <Upload className="w-4 h-4 mr-2" />
           Wybierz plik

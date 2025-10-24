@@ -253,8 +253,28 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
 
       const arrayBuffer = await fileData.arrayBuffer();
       
-      // For 3MF files, add the entire file as one cart item instead of splitting into parts
-      // This fixes the issue where multi-part 3MF models were being added incorrectly
+      // Check if it's a 3MF file with multiple models
+      const is3MF = model.name.toLowerCase().endsWith('.3mf') || model.file_type?.toLowerCase() === '3mf';
+      
+      if (is3MF) {
+        const { loadModelFile } = await import('@/utils/modelLoader');
+        const availableModels = await loadModelFile(arrayBuffer, model.name);
+        
+        if (availableModels.length > 1) {
+          // Show model selection dialog for multi-model 3MF
+          setModelSelectionDialog({
+            isOpen: true,
+            model,
+            availableModels,
+            arrayBuffer
+          });
+          setSelectedModelsToAdd([]);
+          setAddingToCart(null);
+          return;
+        }
+      }
+      
+      // Single model or STL - add directly
       await addSingleModelToCart(model, arrayBuffer, 0);
       
     } catch (error) {
@@ -275,9 +295,9 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
       const selectedColor = selectedColors[model.id] || '#FF0000';
       const thumbnailUrl = await generateThumbnailFromModel(arrayBuffer, selectedColor);
 
-      // Use model ID as item ID (no more splitting for multi-part 3MF)
-      const itemId = model.id;
-      const itemName = model.name;
+      // Create unique ID for multi-model 3MF
+      const itemId = modelIndex > 0 ? `${model.id}-model-${modelIndex}` : model.id;
+      const itemName = modelIndex > 0 ? `${model.name} - Model ${modelIndex + 1}` : model.name;
 
       // Create cart item with selected color
       const newItem: CartItem = {
@@ -287,7 +307,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
         quantity: 1,
         dimensions: dimensions,
         image: thumbnailUrl,
-        modelIndex: undefined
+        modelIndex: modelIndex > 0 ? modelIndex : undefined
       };
 
       // Load existing cart
