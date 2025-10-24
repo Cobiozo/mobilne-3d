@@ -30,7 +30,7 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
   const [isPublic, setIsPublic] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [fileName, setFileName] = useState<string>('');
-  const [modelColor] = useState('#EF4444');
+  const [modelColor] = useState('#00aaff');
   const [availableModels, setAvailableModels] = useState<Model3MFInfo[]>([]);
   const [selectedModelIndex, setSelectedModelIndex] = useState(0);
   const [currentGeometry, setCurrentGeometry] = useState<THREE.BufferGeometry | null>(null);
