@@ -3,7 +3,7 @@ import { loadModelFile } from './modelLoader';
 
 export const generateThumbnailFromModel = async (
   arrayBuffer: ArrayBuffer,
-  color: string = '#000000',
+  color: string = '#EF4444',
   fileName: string = 'model.stl'
 ): Promise<string | undefined> => {
   try {

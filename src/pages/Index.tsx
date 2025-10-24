@@ -65,7 +65,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<"model3d" | "image2d">("model3d");
   const [modelData, setModelData] = useState<ArrayBuffer | null>(null);
   const [imageGeometry, setImageGeometry] = useState<THREE.BufferGeometry | null>(null);
-  const [modelColor, setModelColor] = useState("#FFFFFF");
+  const [modelColor, setModelColor] = useState("#EF4444");
   const [fileName, setFileName] = useState<string>();
   const [availableModels, setAvailableModels] = useState<Model3MFInfo[]>([]);
   const [selectedModelIndex, setSelectedModelIndex] = useState(0);
@@ -166,9 +166,9 @@ const Index = () => {
   // Auto-adjust color based on theme and apply site settings
   useEffect(() => {
     if (resolvedTheme === 'light') {
-      setModelColor('#FF0000'); // Red for light theme
+      setModelColor('#EF4444'); // Red for light theme
     } else {
-      setModelColor('#FF0000'); // Red for dark theme
+      setModelColor('#EF4444'); // Red for dark theme
     }
 
     // Apply site settings to the page

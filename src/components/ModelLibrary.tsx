@@ -96,7 +96,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
       // Initialize default colors (red)
       const defaultColors: { [key: string]: string } = {};
       data?.forEach(model => {
-        defaultColors[model.id] = '#FF0000';
+        defaultColors[model.id] = '#EF4444';
       });
       setSelectedColors(defaultColors);
     }
@@ -292,7 +292,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
 
       // Generate thumbnail with selected color
       const { generateThumbnailFromModel } = await import('@/utils/thumbnailGenerator');
-      const selectedColor = selectedColors[model.id] || '#FF0000';
+      const selectedColor = selectedColors[model.id] || '#EF4444';
       const thumbnailUrl = await generateThumbnailFromModel(arrayBuffer, selectedColor);
 
       // Create unique ID for multi-model 3MF
@@ -463,7 +463,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                 {/* Model thumbnail preview */}
                 <ModelThumbnail 
                   fileUrl={model.file_url}
-                  color={selectedColors[model.id] || '#FF0000'}
+                  color={selectedColors[model.id] || '#EF4444'}
                   className="w-full h-48 rounded-lg border overflow-hidden mb-4"
                 />
                 
@@ -480,7 +480,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
                         key={color.color_hex}
                         onClick={() => handleColorChange(model.id, color.color_hex)}
                         className={`w-6 h-6 rounded border-2 transition-all hover:scale-110 ${
-                          (selectedColors[model.id] || '#FF0000').toLowerCase() === color.color_hex.toLowerCase() 
+                          (selectedColors[model.id] || '#EF4444').toLowerCase() === color.color_hex.toLowerCase() 
                             ? 'border-primary shadow-glow' 
                             : 'border-border hover:border-primary/50'
                         }`}
