@@ -1,9 +1,8 @@
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 import { Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
 import { getText } from "@/lib/i18n";
-import { Button } from "@/components/ui/button";
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
@@ -12,15 +11,7 @@ interface FileUploadProps {
 
 export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
   const { language } = useApp();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
   console.log('[FileUpload] Component rendered');
-  
-  const handleClick = useCallback(() => {
-    console.log('[FileUpload] Click triggered, opening file dialog');
-    fileInputRef.current?.click();
-  }, []);
-  
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
@@ -76,28 +67,30 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
     [onFileSelect]
   );
 
-
   return (
     <div
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       className={cn(
-        "border-2 border-dashed border-border rounded-lg text-center",
+        "relative border-2 border-dashed border-border rounded-lg text-center",
         "bg-gradient-upload hover:bg-viewer-upload-hover transition-all duration-300",
         "hover:border-primary group",
-        "p-4 sm:p-6 lg:p-8",
+        "p-4 sm:p-6 lg:p-8", // Responsive padding
         className
       )}
     >
       <input
-        ref={fileInputRef}
         type="file"
         accept=".stl,.3mf"
         onChange={handleFileChange}
         className="hidden"
+        id="file-upload-input"
       />
       
-      <div className="flex flex-col items-center gap-3 sm:gap-4">
+      <label 
+        htmlFor="file-upload-input" 
+        className="flex flex-col items-center gap-3 sm:gap-4 cursor-pointer"
+      >
         <div className="p-3 sm:p-4 rounded-full bg-muted group-hover:bg-primary/20 transition-colors">
           <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground group-hover:text-primary transition-colors" />
         </div>
@@ -108,17 +101,7 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
             {getText('uploadSubtitle', language)}
           </p>
         </div>
-        
-        <Button 
-          type="button"
-          onClick={handleClick}
-          variant="outline"
-          className="mt-2"
-        >
-          <Upload className="w-4 h-4 mr-2" />
-          Wybierz plik
-        </Button>
-      </div>
+      </label>
     </div>
   );
 };
