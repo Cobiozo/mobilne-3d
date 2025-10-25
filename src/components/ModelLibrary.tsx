@@ -288,20 +288,32 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
 
   const addSingleModelToCart = async (model: Model, arrayBuffer: ArrayBuffer, modelIndex: number) => {
     try {
+      console.log('Adding model to cart:', { modelName: model.name, modelIndex });
+      
       // Get dimensions (with 3MF support)
       const { getModelDimensions } = await import('@/utils/modelLoader');
       const dimensions = await getModelDimensions(arrayBuffer, model.name, modelIndex);
+      console.log('Got dimensions:', dimensions);
 
       // Generate thumbnail with selected color
-      const { generateThumbnailFromModel } = await import('@/utils/thumbnailGenerator');
-      const selectedColor = selectedColors[model.id] || '#000000';
-      const thumbnailUrl = await generateThumbnailFromModel(arrayBuffer, selectedColor);
+      let thumbnailUrl = '';
+      try {
+        const { generateThumbnailFromModel } = await import('@/utils/thumbnailGenerator');
+        const selectedColor = selectedColors[model.id] || '#EF4444';
+        thumbnailUrl = await generateThumbnailFromModel(arrayBuffer, selectedColor, model.name);
+        console.log('Generated thumbnail');
+      } catch (thumbnailError) {
+        console.warn('Failed to generate thumbnail, using fallback:', thumbnailError);
+        // Use a fallback - no thumbnail
+        thumbnailUrl = '';
+      }
 
       // Create unique ID for multi-model 3MF
       const itemId = modelIndex > 0 ? `${model.id}-model-${modelIndex}` : model.id;
       const itemName = modelIndex > 0 ? `${model.name} - Model ${modelIndex + 1}` : model.name;
 
       // Create cart item with selected color
+      const selectedColor = selectedColors[model.id] || '#EF4444';
       const newItem: CartItem = {
         id: itemId,
         name: itemName,
@@ -311,6 +323,8 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
         image: thumbnailUrl,
         modelIndex: modelIndex > 0 ? modelIndex : undefined
       };
+
+      console.log('Created cart item:', newItem);
 
       // Load existing cart
       const savedCart = localStorage.getItem('cartItems');
@@ -323,6 +337,8 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
           console.error('Error parsing cart:', error);
         }
       }
+
+      console.log('Current cart items:', cartItems);
 
       // Check if item already exists
       const existingIndex = cartItems.findIndex(
@@ -339,13 +355,17 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
         sonnerToast.success(`Dodano "${newItem.name}" do koszyka`);
       }
 
+      console.log('Updated cart items:', cartItems);
+
       // Save to localStorage
       localStorage.setItem('cartItems', JSON.stringify(cartItems));
+      console.log('Saved to localStorage');
       
       // Dispatch custom event to notify other components
       window.dispatchEvent(new CustomEvent('cartUpdated', { 
         detail: { cartItems } 
       }));
+      console.log('Dispatched cartUpdated event');
       
     } catch (error) {
       console.error('Error adding to cart:', error);
