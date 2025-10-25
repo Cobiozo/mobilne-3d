@@ -276,10 +276,12 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
       
       // Single model or STL - add directly
       await addSingleModelToCart(model, arrayBuffer, 0);
+      setAddingToCart(null);
       
     } catch (error) {
       console.error('Error adding to cart:', error);
       sonnerToast.error('Nie udało się dodać modelu do koszyka');
+    } finally {
       setAddingToCart(null);
     }
   };
