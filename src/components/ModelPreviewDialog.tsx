@@ -412,21 +412,6 @@ export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialo
           </div>
         </DialogContent>
       </Dialog>
-
-      <ShoppingCartComponent 
-        items={cartItems}
-        onUpdateQuantity={(id, quantity) => {
-          setCartItems(prev => 
-            prev.map(item => 
-              item.id === id ? { ...item, quantity } : item
-            )
-          );
-        }}
-        onRemoveItem={(id) => {
-          setCartItems(prev => prev.filter(item => item.id !== id));
-        }}
-        onClearCart={() => setCartItems([])}
-      />
     </>
   );
 };
