@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
@@ -11,7 +11,9 @@ interface FileUploadProps {
 
 export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
   const { language } = useApp();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   console.log('[FileUpload] Component rendered');
+  
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
@@ -67,12 +69,18 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
     [onFileSelect]
   );
 
+  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    fileInputRef.current?.click();
+  }, []);
+
   return (
     <div
+      onClick={handleClick}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       className={cn(
-        "relative border-2 border-dashed border-border rounded-lg text-center",
+        "relative border-2 border-dashed border-border rounded-lg text-center cursor-pointer",
         "bg-gradient-upload hover:bg-viewer-upload-hover transition-all duration-300",
         "hover:border-primary group",
         "p-4 sm:p-6 lg:p-8", // Responsive padding
@@ -80,17 +88,14 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
       )}
     >
       <input
+        ref={fileInputRef}
         type="file"
         accept=".stl,.3mf"
         onChange={handleFileChange}
         className="hidden"
-        id="file-upload-input"
       />
       
-      <label 
-        htmlFor="file-upload-input" 
-        className="flex flex-col items-center gap-3 sm:gap-4 cursor-pointer"
-      >
+      <div className="flex flex-col items-center gap-3 sm:gap-4 pointer-events-none">
         <div className="p-3 sm:p-4 rounded-full bg-muted group-hover:bg-primary/20 transition-colors">
           <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground group-hover:text-primary transition-colors" />
         </div>
@@ -101,7 +106,7 @@ export const FileUpload = ({ onFileSelect, className }: FileUploadProps) => {
             {getText('uploadSubtitle', language)}
           </p>
         </div>
-      </label>
+      </div>
     </div>
   );
 };

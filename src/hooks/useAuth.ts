@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -8,6 +8,7 @@ export const useAuth = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const previousUserId = useRef<string | null>(null);
 
   useEffect(() => {
     console.log('[useAuth] Setting up auth state listener');
@@ -16,6 +17,24 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('[useAuth] Auth state changed:', event, 'User:', session?.user?.email || 'null');
+        
+        const currentUserId = session?.user?.id;
+        
+        // Wykryj zmianę użytkownika (ktoś zalogował się na inne konto w innej karcie)
+        if (previousUserId.current && currentUserId && previousUserId.current !== currentUserId) {
+          console.log('[useAuth] Detected user change - logging out');
+          toast({
+            title: "Zostałeś wylogowany",
+            description: "Zalogowano się na inne konto w innej karcie",
+            variant: "destructive",
+          });
+          
+          supabase.auth.signOut({ scope: 'local' });
+          previousUserId.current = null;
+          return;
+        }
+        
+        previousUserId.current = currentUserId || null;
         
         setSession(session);
         setUser(session?.user ?? null);

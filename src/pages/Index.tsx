@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { QuickModelUpload } from "@/components/QuickModelUpload";
+import { FileUpload } from "@/components/FileUpload";
 import { ImageUpload } from "@/components/ImageUpload";
 import { ModelViewer } from "@/components/ModelViewer";
 import { ControlPanel } from "@/components/ControlPanel";
 import { ProgressLoader } from "@/components/ProgressLoader";
+import { ModelSelector } from "@/components/ModelSelector";
 import { ShoppingCartComponent, CartItem } from "@/components/ShoppingCart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog";
@@ -192,31 +193,56 @@ const Index = () => {
     }
   }, [resolvedTheme, siteSettings, language]);
 
-  const handleQuickFileSelect = (
-    file: File, 
-    arrayBuffer: ArrayBuffer, 
-    models: Model3MFInfo[], 
-    selectedIndex: number, 
-    geometry: THREE.BufferGeometry | null
-  ) => {
-    console.log('handleQuickFileSelect called with file:', file.name, 'User logged in:', !!user);
-    
-    setModelData(arrayBuffer);
-    setFileName(file.name);
-    setAvailableModels(models);
-    setSelectedModelIndex(selectedIndex);
-    setCurrentGeometry(geometry);
-    
-    // Save model to database if user is logged in
-    if (user) {
-      console.log('User is logged in, calling saveModelToDatabase');
-      saveModelToDatabase(file, arrayBuffer).catch(error => {
-        console.error('Error in saveModelToDatabase:', error);
-        toast.error('Błąd podczas zapisywania modelu do bazy danych');
-      });
-    } else {
-      console.log('User not logged in, skipping saveModelToDatabase');
-      toast.info('Zaloguj się, aby automatycznie zapisywać modele');
+  const handleFileSelect = async (file: File) => {
+    try {
+      console.log('handleFileSelect called with file:', file.name, 'User logged in:', !!user);
+      
+      const arrayBuffer = await file.arrayBuffer();
+      setModelData(arrayBuffer);
+      setFileName(file.name);
+      
+      // Save model to database if user is logged in
+      if (user) {
+        console.log('User is logged in, calling saveModelToDatabase');
+        try {
+          await saveModelToDatabase(file, arrayBuffer);
+        } catch (error) {
+          console.error('Error in saveModelToDatabase:', error);
+          toast.error('Błąd podczas zapisywania modelu do bazy danych');
+        }
+      } else {
+        console.log('User not logged in, skipping saveModelToDatabase');
+        toast.info('Zaloguj się, aby automatycznie zapisywać modele');
+      }
+      
+      // Load models using the unified loader
+      try {
+        const models = await loadModelFile(arrayBuffer, file.name);
+        console.log('Loaded models:', models, 'Count:', models.length);
+        setAvailableModels(models);
+        setSelectedModelIndex(0);
+        
+        // Set current geometry for rendering
+        if (models.length > 0 && models[0].geometry) {
+          setCurrentGeometry(models[0].geometry);
+          console.log('Set currentGeometry for first model:', models[0].name);
+        }
+        
+        if (models.length > 1) {
+          toast.success(t('uploadSuccess', { fileName: file.name }) + ` (${models.length} ${t('modelsAvailable')})`);
+        } else {
+          toast.success(t('uploadSuccess', { fileName: file.name }));
+        }
+      } catch (error) {
+        console.error('Model loading failed:', error);
+        setAvailableModels([]);
+        setSelectedModelIndex(0);
+        setCurrentGeometry(null);
+        toast.error(t('uploadError'));
+      }
+    } catch (error) {
+      console.error("Error loading file:", error);
+      toast.error(t('uploadError'));
     }
   };
 
@@ -903,13 +929,9 @@ const Index = () => {
                         {t('tabModel3D')}
                       </TabsTrigger>
                     </TabsList>
-                  <TabsContent value="model3d" className="mt-4">
-                    <QuickModelUpload 
-                      onFileSelect={handleQuickFileSelect}
-                      modelColor={modelColor}
-                      currentGeometry={currentGeometry}
-                    />
-                  </TabsContent>
+                    <TabsContent value="model3d" className="mt-4">
+                      <FileUpload onFileSelect={handleFileSelect} />
+                    </TabsContent>
                   </Tabs>
                 </div>
               )}
@@ -951,11 +973,7 @@ const Index = () => {
                     </TabsTrigger>
                   </TabsList>
                   <TabsContent value="model3d" className="mt-4">
-                    <QuickModelUpload 
-                      onFileSelect={handleQuickFileSelect}
-                      modelColor={modelColor}
-                      currentGeometry={currentGeometry}
-                    />
+                    <FileUpload onFileSelect={handleFileSelect} />
                   </TabsContent>
                 </Tabs>
               </div>
@@ -976,11 +994,7 @@ const Index = () => {
                     </TabsTrigger>
                   </TabsList>
                   <TabsContent value="model3d" className="mt-4">
-                    <QuickModelUpload 
-                      onFileSelect={handleQuickFileSelect}
-                      modelColor={modelColor}
-                      currentGeometry={currentGeometry}
-                    />
+                    <FileUpload onFileSelect={handleFileSelect} />
                   </TabsContent>
                 </Tabs>
               </div>
