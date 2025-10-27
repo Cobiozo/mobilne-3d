@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { ModelUpload } from '@/components/ModelUpload';
+import { DashboardModelUpload } from '@/components/DashboardModelUpload';
 import { ModelPreviewDialog } from '@/components/ModelPreviewDialog';
 import { ModelThumbnail } from '@/components/ModelThumbnail';
 import { useToast } from '@/components/ui/use-toast';
@@ -409,7 +409,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
   }
 
   if (showUpload) {
-    return <ModelUpload onUploadComplete={handleUploadComplete} />;
+    return <DashboardModelUpload onUploadComplete={handleUploadComplete} />;
   }
 
   return (
