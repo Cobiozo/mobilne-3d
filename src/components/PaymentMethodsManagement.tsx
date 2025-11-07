@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -159,6 +160,7 @@ const PaymentMethodsManagement = () => {
       payu_twisto: 'Twisto',
       payu_twisto_3: 'Twisto',
       payu_secure_form: 'PayU',
+      solana_pay: '◎',
     };
     return iconMap[methodKey] || 'PayU';
   };
@@ -338,6 +340,133 @@ const PaymentMethodsManagement = () => {
                               <p className="text-xs text-muted-foreground mt-1">
                                 Użyj {'{order_number}'} dla numeru zamówienia
                               </p>
+                            </div>
+                          </>
+                        )}
+
+                        {method.method_key === 'solana_pay' && (
+                          <>
+                            <div>
+                              <Label htmlFor="recipient_wallet">Adres portfela odbiorcy</Label>
+                              <Input
+                                id="recipient_wallet"
+                                defaultValue={method.config?.recipient_wallet || ''}
+                                placeholder="5FHwkr..."
+                                onChange={(e) => {
+                                  if (selectedMethod) {
+                                    setSelectedMethod({
+                                      ...selectedMethod,
+                                      config: {
+                                        ...selectedMethod.config,
+                                        recipient_wallet: e.target.value
+                                      }
+                                    });
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="token_mint">Adres Mint tokena SPL</Label>
+                              <Input
+                                id="token_mint"
+                                defaultValue={method.config?.token_mint || ''}
+                                placeholder="EPjFWd..."
+                                onChange={(e) => {
+                                  if (selectedMethod) {
+                                    setSelectedMethod({
+                                      ...selectedMethod,
+                                      config: {
+                                        ...selectedMethod.config,
+                                        token_mint: e.target.value
+                                      }
+                                    });
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="token_symbol">Symbol tokena</Label>
+                              <Input
+                                id="token_symbol"
+                                defaultValue={method.config?.token_symbol || ''}
+                                placeholder="MYT"
+                                onChange={(e) => {
+                                  if (selectedMethod) {
+                                    setSelectedMethod({
+                                      ...selectedMethod,
+                                      config: {
+                                        ...selectedMethod.config,
+                                        token_symbol: e.target.value
+                                      }
+                                    });
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="token_decimals">Liczba miejsc po przecinku</Label>
+                              <Input
+                                id="token_decimals"
+                                type="number"
+                                defaultValue={method.config?.token_decimals || 9}
+                                onChange={(e) => {
+                                  if (selectedMethod) {
+                                    setSelectedMethod({
+                                      ...selectedMethod,
+                                      config: {
+                                        ...selectedMethod.config,
+                                        token_decimals: parseInt(e.target.value)
+                                      }
+                                    });
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="price_per_token">Cena 1 tokena (PLN)</Label>
+                              <Input
+                                id="price_per_token"
+                                type="number"
+                                step="0.01"
+                                defaultValue={method.config?.price_per_token || 1.00}
+                                onChange={(e) => {
+                                  if (selectedMethod) {
+                                    setSelectedMethod({
+                                      ...selectedMethod,
+                                      config: {
+                                        ...selectedMethod.config,
+                                        price_per_token: parseFloat(e.target.value)
+                                      }
+                                    });
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="network">Sieć Solana</Label>
+                              <Select
+                                value={selectedMethod?.config?.network || 'mainnet-beta'}
+                                onValueChange={(value) => {
+                                  if (selectedMethod) {
+                                    setSelectedMethod({
+                                      ...selectedMethod,
+                                      config: {
+                                        ...selectedMethod.config,
+                                        network: value
+                                      }
+                                    });
+                                  }
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="mainnet-beta">Mainnet</SelectItem>
+                                  <SelectItem value="devnet">Devnet</SelectItem>
+                                  <SelectItem value="testnet">Testnet</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
                           </>
                         )}

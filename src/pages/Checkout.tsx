@@ -19,6 +19,7 @@ import { ArrowLeft, CreditCard, Truck, Package } from "lucide-react";
 import { CartItem } from "@/components/ShoppingCart";
 import { ShippingAddresses } from "@/components/ShippingAddresses";
 import { ParcelLockerPicker } from "@/components/ParcelLockerPicker";
+import { SolanaPayButton } from "@/components/SolanaPayButton";
 
 const Checkout = () => {
   const { user, loading } = useAuth();
@@ -27,6 +28,7 @@ const Checkout = () => {
   const [searchParams] = useSearchParams();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
   const [itemSizes, setItemSizes] = useState<{ [key: string]: { x: number; y: number; z: number } }>({});
   const [itemOriginalSizes, setItemOriginalSizes] = useState<{ [key: string]: { x: number; y: number; z: number } }>({});
   const [itemMaterials, setItemMaterials] = useState<{ [key: string]: string }>({});
@@ -38,6 +40,7 @@ const Checkout = () => {
     name: string;
     description: string | null;
     is_active: boolean;
+    config?: any;
   }>>([]);
   const [availableMaterials, setAvailableMaterials] = useState<Array<{
     material_key: string;
@@ -170,7 +173,7 @@ const Checkout = () => {
       // Load available payment methods
       const { data: methods } = await supabase
         .from('payment_methods')
-        .select('method_key, name, description, is_active')
+        .select('method_key, name, description, is_active, config')
         .eq('is_active', true)
         .order('sort_order');
 
@@ -179,6 +182,9 @@ const Checkout = () => {
         // Set default payment method to first available
         if (methods.length > 0) {
           setPaymentMethod(methods[0].method_key);
+          // Load config for selected payment method
+          const selectedConfig = methods.find(m => m.method_key === methods[0].method_key)?.config;
+          setPaymentMethodConfig(selectedConfig || null);
         }
       }
 
@@ -536,6 +542,9 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
       }
 
       console.log('Created order:', order);
+
+      // Store order ID for Solana payment
+      setCreatedOrderId(order.id);
 
       // Create order items for EACH product in the cart
       for (const item of cartItems) {
@@ -1542,7 +1551,10 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
                           ? "border-primary bg-primary/5" 
                           : "border-border hover:border-primary/50"
                       )}
-                      onClick={() => setPaymentMethod(method.method_key)}
+                      onClick={() => {
+                        setPaymentMethod(method.method_key);
+                        setPaymentMethodConfig(method.config || null);
+                      }}
                     >
                       <div className="flex items-center gap-3">
                         <div className={cn(
@@ -1561,16 +1573,38 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
                     </div>
                   ))}
 
-                  <Separator className="my-4" />
-                  
-                  <Button 
-                    onClick={handleSubmitOrder}
-                    disabled={isLoading}
-                    className="w-full"
-                    size="lg"
-                  >
-                    {isLoading ? 'Przetwarzanie...' : 'Złóż zamówienie'}
-                  </Button>
+                  {paymentMethod === 'solana_pay' && paymentMethodConfig && (
+                    <div className="pt-4">
+                      <SolanaPayButton
+                        orderId={createdOrderId || ''}
+                        totalAmount={finalPrice}
+                        config={paymentMethodConfig}
+                        onSuccess={(signature) => {
+                          console.log('Solana payment success:', signature);
+                          navigate(`/payment-status?status=success&order=${createdOrderId}`);
+                        }}
+                        onError={(error) => {
+                          console.error('Solana payment error:', error);
+                          toast.error(`Błąd płatności: ${error}`);
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {paymentMethod !== 'solana_pay' && (
+                    <>
+                      <Separator className="my-4" />
+                      
+                      <Button 
+                        onClick={handleSubmitOrder}
+                        disabled={isLoading}
+                        className="w-full"
+                        size="lg"
+                      >
+                        {isLoading ? 'Przetwarzanie...' : 'Złóż zamówienie'}
+                      </Button>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>

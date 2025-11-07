@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.send-order-confirmation]
 verify_jwt = false
+
+[functions.solana-payment]
+verify_jwt = false

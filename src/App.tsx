@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +9,13 @@ import { AppProvider } from "@/contexts/AppContext";
 import { useSessionTracking } from "@/hooks/useSessionTracking";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { CookieConsent } from "@/components/CookieConsent";
+import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
+import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
+import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
+import { PhantomWalletAdapter, SolflareWalletAdapter } from "@solana/wallet-adapter-wallets";
+import { clusterApiUrl } from "@solana/web3.js";
+
+import "@solana/wallet-adapter-react-ui/styles.css";
 
 // Lazy load all pages for better code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -42,21 +49,40 @@ const AppContent = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-      <AppProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppContent />
-            <CookieConsent />
-          </BrowserRouter>
-        </TooltipProvider>
-      </AppProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const network = WalletAdapterNetwork.Mainnet;
+  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+
+  const wallets = useMemo(
+    () => [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+    ],
+    []
+  );
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ConnectionProvider endpoint={endpoint}>
+        <WalletProvider wallets={wallets} autoConnect>
+          <WalletModalProvider>
+            <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+              <AppProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  <Sonner />
+                  <BrowserRouter>
+                    <AppContent />
+                    <CookieConsent />
+                  </BrowserRouter>
+                </TooltipProvider>
+              </AppProvider>
+            </ThemeProvider>
+          </WalletModalProvider>
+        </WalletProvider>
+      </ConnectionProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
