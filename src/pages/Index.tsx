@@ -65,7 +65,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<"model3d" | "image2d">("model3d");
   const [modelData, setModelData] = useState<ArrayBuffer | null>(null);
   const [imageGeometry, setImageGeometry] = useState<THREE.BufferGeometry | null>(null);
-  const [modelColor, setModelColor] = useState("#FFFFFF");
+  const [modelColor, setModelColor] = useState("#EF4444");
   const [fileName, setFileName] = useState<string>();
   const [availableModels, setAvailableModels] = useState<Model3MFInfo[]>([]);
   const [selectedModelIndex, setSelectedModelIndex] = useState(0);

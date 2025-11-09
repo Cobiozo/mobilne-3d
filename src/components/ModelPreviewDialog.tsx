@@ -33,7 +33,7 @@ interface ModelPreviewDialogProps {
 
 export const ModelPreviewDialog = ({ model, isOpen, onClose }: ModelPreviewDialogProps) => {
   const [modelData, setModelData] = useState<ArrayBuffer | null>(null);
-  const [modelColor, setModelColor] = useState("#FFFFFF");
+  const [modelColor, setModelColor] = useState("#EF4444");
   const [isLoading, setIsLoading] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [showAddedToCart, setShowAddedToCart] = useState(false);
