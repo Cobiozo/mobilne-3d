@@ -23,13 +23,23 @@ serve(async (req) => {
 
     console.log(`Fetching token info for: ${token_mint} on ${network}`);
 
-    // Get RPC URL from environment (handle empty strings properly)
+    // Get RPC URL from environment with robust validation
     const envRpcUrl = Deno.env.get('SOLANA_RPC_URL');
-    const rpcUrl = (envRpcUrl && envRpcUrl.trim() !== '') 
-      ? envRpcUrl 
-      : (network === 'devnet' ? 'https://api.devnet.solana.com' : 'https://api.mainnet-beta.solana.com');
+    console.log(`Raw SOLANA_RPC_URL from env: "${envRpcUrl}"`);
     
-    console.log(`Using RPC URL: ${rpcUrl}`);
+    // Determine RPC URL with fallback
+    let rpcUrl: string;
+    if (envRpcUrl && envRpcUrl.trim() !== '' && (envRpcUrl.startsWith('http://') || envRpcUrl.startsWith('https://'))) {
+      rpcUrl = envRpcUrl.trim();
+      console.log(`Using custom RPC URL from environment`);
+    } else {
+      rpcUrl = network === 'devnet' 
+        ? 'https://api.devnet.solana.com' 
+        : 'https://api.mainnet-beta.solana.com';
+      console.log(`Using default RPC URL for ${network}`);
+    }
+    
+    console.log(`Final RPC URL: ${rpcUrl}`);
 
     // 1. Connect to Solana and get token decimals
     const connection = new Connection(rpcUrl, 'confirmed');
