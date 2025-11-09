@@ -26,7 +26,11 @@ export const ModelViewer = ({ modelData, modelColor, fileName, currentGeometry }
         <Canvas className="w-full h-full" gl={{ preserveDrawingBuffer: true }}>
           <PerspectiveCamera makeDefault position={[5, 5, 5]} />
           
-          <Suspense fallback={null}>
+          <Suspense fallback={
+            <div className="flex items-center justify-center w-full h-full">
+              <LoadingSpinner />
+            </div>
+          }>
             {/* Add lighting directly instead of using Stage */}
             <ambientLight intensity={0.4} />
             <directionalLight

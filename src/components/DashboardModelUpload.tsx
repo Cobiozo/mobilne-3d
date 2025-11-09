@@ -14,6 +14,7 @@ import { Upload, Save } from 'lucide-react';
 import { loadModelFile, Model3MFInfo } from '@/utils/modelLoader';
 import * as THREE from 'three';
 import { ModelViewer } from '@/components/ModelViewer';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 interface DashboardModelUploadProps {
   onUploadComplete?: () => void;
@@ -28,6 +29,7 @@ export const DashboardModelUpload = ({ onUploadComplete }: DashboardModelUploadP
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLoadingModel, setIsLoadingModel] = useState(false);
   const [fileName, setFileName] = useState<string>('');
   const [modelColor] = useState('#00aaff');
   const [availableModels, setAvailableModels] = useState<Model3MFInfo[]>([]);
@@ -56,26 +58,39 @@ export const DashboardModelUpload = ({ onUploadComplete }: DashboardModelUploadP
 
     setSelectedFile(file);
     setFileName(file.name);
+    setIsLoadingModel(true);
     
-    const arrayBuffer = await file.arrayBuffer();
-    setModelData(arrayBuffer);
+    const loadTimeout = setTimeout(() => {
+      toast.warning('Ładowanie trwa dłużej niż zwykle... Proszę czekać.');
+    }, 5000);
     
     try {
+      const arrayBuffer = await file.arrayBuffer();
+      setModelData(arrayBuffer);
+      
       const models = await loadModelFile(arrayBuffer, file.name);
       setAvailableModels(models);
       setSelectedModelIndex(0);
       if (models.length > 0 && models[0].geometry) {
         setCurrentGeometry(models[0].geometry);
       }
+      
+      if (!modelName) {
+        const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, '');
+        setModelName(nameWithoutExtension);
+      }
+      
+      toast.success('Model załadowany pomyślnie!');
     } catch (error) {
       console.error('[DashboardModelUpload] Error loading models:', error);
+      toast.error('Błąd wczytywania modelu. Spróbuj ponownie.');
       setAvailableModels([]);
       setCurrentGeometry(null);
-    }
-    
-    if (!modelName) {
-      const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, '');
-      setModelName(nameWithoutExtension);
+      setModelData(null);
+      setSelectedFile(null);
+    } finally {
+      clearTimeout(loadTimeout);
+      setIsLoadingModel(false);
     }
     
     e.target.value = '';
@@ -239,7 +254,18 @@ export const DashboardModelUpload = ({ onUploadComplete }: DashboardModelUploadP
           </div>
         )}
 
-        {selectedFile && modelData && (
+        {selectedFile && isLoadingModel && (
+          <div className="flex items-center justify-center h-[400px]">
+            <div className="text-center space-y-4">
+              <LoadingSpinner />
+              <p className="text-sm text-muted-foreground">
+                Przetwarzanie modelu... ({selectedFile.name})
+              </p>
+            </div>
+          </div>
+        )}
+
+        {selectedFile && modelData && !isLoadingModel && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Podgląd modelu</Label>
