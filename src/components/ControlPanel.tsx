@@ -163,10 +163,10 @@ export const ControlPanel = ({
               <button
                 key={color.color_hex}
                 onClick={() => onColorChange(color.color_hex)}
-                className={`w-5 h-5 sm:w-6 sm:h-6 rounded border-2 transition-all hover:scale-110 ${
+                className={`w-5 h-5 sm:w-6 sm:h-6 rounded transition-all hover:scale-110 ${
                   modelColor.toLowerCase() === color.color_hex.toLowerCase() 
-                    ? 'border-primary shadow-glow' 
-                    : 'border-border hover:border-primary/50'
+                    ? 'border-[3px] border-primary shadow-glow scale-110 ring-2 ring-primary ring-offset-1' 
+                    : 'border-2 border-border hover:border-primary/50'
                 }`}
                 style={{ backgroundColor: color.color_hex }}
                 title={color.color_name}
