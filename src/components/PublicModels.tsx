@@ -93,10 +93,10 @@ export const PublicModels = () => {
 
       setModels(combinedData);
       
-      // Initialize default colors (black)
+      // Initialize default colors to #EF4444
       const defaultColors: { [key: string]: string } = {};
       combinedData?.forEach(model => {
-        defaultColors[model.id] = '#000000';
+        defaultColors[model.id] = '#EF4444';
       });
       setSelectedColors(defaultColors);
     } catch (error) {

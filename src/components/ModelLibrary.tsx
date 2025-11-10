@@ -93,10 +93,10 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
       });
     } else {
       setModels(data || []);
-      // Initialize default colors (black)
+      // Initialize default colors to #EF4444
       const defaultColors: { [key: string]: string } = {};
       data?.forEach(model => {
-        defaultColors[model.id] = '#000000';
+        defaultColors[model.id] = '#EF4444';
       });
       setSelectedColors(defaultColors);
     }
