@@ -163,13 +163,9 @@ const Index = () => {
     }));
   }, [cartItems, user]);
 
-  // Auto-adjust color based on theme and apply site settings
+  // Apply site settings
   useEffect(() => {
-    if (resolvedTheme === 'light') {
-      setModelColor('#000000'); // Black for light theme
-    } else {
-      setModelColor('#FFFFFF'); // White for dark theme
-    }
+    // Don't change model color - keep default #EF4444
 
     // Apply site settings to the page
     if (siteSettings.homepage_title) {
@@ -563,12 +559,8 @@ const Index = () => {
     setAvailableModels([]);
     setSelectedModelIndex(0);
     setCurrentGeometry(null);
-    // Reset color based on current theme
-    if (resolvedTheme === 'light') {
-      setModelColor('#000000');
-    } else {
-      setModelColor('#FFFFFF');
-    }
+    // Reset color to default #EF4444
+    setModelColor('#EF4444');
     toast.info(t('resetMessage'));
   };
 
