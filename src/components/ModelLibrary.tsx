@@ -483,11 +483,11 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
               </CardHeader>
               <CardContent>
                 {/* Model thumbnail preview */}
-                <ModelThumbnail 
-                  fileUrl={model.file_url}
-                  color={selectedColors[model.id] || '#000000'}
-                  className="w-full h-48 rounded-lg border overflow-hidden mb-4"
-                />
+              <ModelThumbnail 
+                fileUrl={model.file_url}
+                color={selectedColors[model.id] || '#EF4444'}
+                className="w-full h-48 rounded-lg border overflow-hidden mb-4"
+              />
                 
 
                 {/* Color selector */}

@@ -249,7 +249,7 @@ export const PublicModels = () => {
 
       // Generate thumbnail
       const { generateThumbnailFromModel } = await import('@/utils/thumbnailGenerator');
-      const selectedColor = selectedColors[model.id] || '#000000';
+      const selectedColor = selectedColors[model.id] || '#EF4444';
       const thumbnailUrl = await generateThumbnailFromModel(arrayBuffer, selectedColor);
 
       // Create cart item
@@ -356,7 +356,7 @@ export const PublicModels = () => {
               ) : (
                 <ModelViewer
                   modelData={previewModelData}
-                  modelColor={previewModel ? selectedColors[previewModel.id] || '#000000' : '#000000'}
+                  modelColor={previewModel ? selectedColors[previewModel.id] || '#EF4444' : '#EF4444'}
                   fileName={previewModel?.name}
                   currentGeometry={previewCurrentGeometry}
                 />
@@ -366,7 +366,7 @@ export const PublicModels = () => {
             {/* Control Panel */}
             <div className="h-full overflow-y-auto">
               <ControlPanel
-                modelColor={previewModel ? selectedColors[previewModel.id] || '#000000' : '#000000'}
+                modelColor={previewModel ? selectedColors[previewModel.id] || '#EF4444' : '#EF4444'}
                 onColorChange={(color) => previewModel && handleColorChange(previewModel.id, color)}
                 fileName={previewModel?.name}
                 hideControls={true}
@@ -424,7 +424,7 @@ export const PublicModels = () => {
             <CardHeader className="p-0 relative cursor-pointer" onClick={() => handleOpenPreview(model)}>
               <ModelThumbnail 
                 fileUrl={model.file_url}
-                color={selectedColors[model.id] || '#000000'}
+                color={selectedColors[model.id] || '#EF4444'}
                 className="w-full h-64"
               />
               <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
