@@ -32,13 +32,19 @@ Deno.serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
-    // Connect to Solana
+    // Connect to Solana with timeout
     const connection = new Connection(solanaRpcUrl, 'confirmed');
 
-    // Get transaction details
-    const tx = await connection.getTransaction(signature, {
-      maxSupportedTransactionVersion: 0,
-    });
+    // Get transaction details with timeout
+    console.log('Fetching transaction from Solana...');
+    const tx = await Promise.race([
+      connection.getTransaction(signature, {
+        maxSupportedTransactionVersion: 0,
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Solana RPC timeout after 15s')), 15000)
+      )
+    ]) as any;
 
     if (!tx) {
       throw new Error('Transaction not found');

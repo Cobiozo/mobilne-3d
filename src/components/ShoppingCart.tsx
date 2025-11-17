@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,11 +36,11 @@ export const ShoppingCartComponent = ({ items, onUpdateQuantity, onRemoveItem, o
   const [currentUser, setCurrentUser] = useState<any>(null);
   
   // Get current user
-  useState(() => {
+  useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentUser(data.user);
     });
-  });
+  }, []);
   
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   
