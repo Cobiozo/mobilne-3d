@@ -6,6 +6,27 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Fetch with timeout wrapper
+const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs = 10000): Promise<Response> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout');
+    }
+    throw error;
+  }
+};
+
 interface PayUProduct {
   name: string;
   unitPrice: string;
@@ -99,7 +120,7 @@ serve(async (req) => {
     const oauthUrl = `${PAYU_BASE_URL}/pl/standard/user/oauth/authorize`;
     console.log('Requesting OAuth token from:', oauthUrl);
     
-    const tokenResponse = await fetch(oauthUrl, {
+    const tokenResponse = await fetchWithTimeout(oauthUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -109,7 +130,7 @@ serve(async (req) => {
         client_id: PAYU_CLIENT_ID,
         client_secret: PAYU_CLIENT_SECRET,
       }),
-    });
+    }, 15000);
 
     const tokenText = await tokenResponse.text();
     console.log('PayU OAuth response status:', tokenResponse.status);
