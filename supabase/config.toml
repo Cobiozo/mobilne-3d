@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.solana-payment]
 verify_jwt = false
+
+[functions.analyze-image-ai]
+verify_jwt = true
+
+[functions.image-to-3d-gen3d]
+verify_jwt = true
