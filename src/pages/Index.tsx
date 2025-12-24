@@ -21,6 +21,8 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { useTheme } from "next-themes";
 import { loadModelFile, Model3MFInfo } from "@/utils/modelLoader";
 import { imageToGen3D, loadImageData } from "@/utils/imageToGeometry";
+import { useImageToAI, AIAnalysis } from "@/hooks/useImageToAI";
+import { AIAnalysisPreview } from "@/components/AIAnalysisPreview";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { User, LogIn, LogOut } from "lucide-react";
@@ -74,6 +76,15 @@ const Index = () => {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [showAddedToCart, setShowAddedToCart] = useState(false);
   const [availableColors, setAvailableColors] = useState<string[]>([]);
+  const [currentAIAnalysis, setCurrentAIAnalysis] = useState<AIAnalysis | null>(null);
+  
+  // AI Analysis hook
+  const { analyzeImageFile, isAnalyzing, analysis: aiAnalysis } = useImageToAI({
+    onAnalysisComplete: (analysis) => {
+      setCurrentAIAnalysis(analysis);
+      console.log('AI analysis completed:', analysis.objectName);
+    }
+  });
 
   // Load available colors from database
   useEffect(() => {
@@ -346,7 +357,17 @@ const Index = () => {
     try {
       setIsGenerating(true);
       setGenerationProgress(0);
-      toast.info('🔄 Rozpoczynam generowanie z PartCrafter...');
+      setCurrentAIAnalysis(null);
+      toast.info('🧠 Rozpoczynam analizę AI obrazu...');
+      
+      // First, run AI analysis
+      setGenerationProgress(10);
+      const aiResult = await analyzeImageFile(file, 'full');
+      
+      if (aiResult) {
+        toast.success(`✨ AI rozpoznało: ${aiResult.objectName}`);
+        setGenerationProgress(30);
+      }
       
       // Simulate progress
       const progressInterval = setInterval(() => {
@@ -359,51 +380,73 @@ const Index = () => {
         });
       }, 500);
       
-      setGenerationProgress(10);
-      const imageData = await loadImageData(file);
-      setGenerationProgress(30);
-      
-      // Use PartCrafter for structured 3D mesh generation
-      toast.info('🚀 Przetwarzanie z PartCrafter: Structured 3D Mesh Generation...');
+      toast.info('🚀 Generowanie modelu 3D z AI...');
       setGenerationProgress(50);
       
-      // Generate 3D model using PartCrafter
-      const result = await imageToGen3D(imageData, {
-        topology: 'triangle',
-        num_parts: 3,
-        target_polycount: 30000,
-        should_remesh: true,
-        should_texture: true,
-        enable_pbr: true
+      const imageData = await loadImageData(file);
+      
+      // Call edge function with AI analysis data
+      const { data, error } = await supabase.functions.invoke('image-to-3d-gen3d', {
+        body: {
+          imageBase64: await fileToBase64(file),
+          options: {
+            topology: 'triangle',
+            num_parts: 3,
+            target_polycount: 30000
+          },
+          aiAnalysis: aiResult || undefined
+        }
       });
       
       setGenerationProgress(80);
       
-      if (result.success && result.geometry) {
-        setImageGeometry(result.geometry);
-        setGenerationProgress(100);
-        clearInterval(progressInterval);
+      if (error) throw new Error(error.message);
+      
+      if (data.success && data.result) {
+        // Load geometry from result
+        const result = await imageToGen3D(imageData, {
+          topology: 'triangle',
+          num_parts: 3
+        });
         
-        setTimeout(() => {
-          setIsGenerating(false);
-          setGenerationProgress(0);
-        }, 500);
-        
-        toast.success(`✅ Model wygenerowany pomyślnie z ${result.method || 'PartCrafter'}!`);
-        setFileName(file.name);
-        setModelData(null);
-        setAvailableModels([]);
-        setSelectedModelIndex(0);
+        if (result.success && result.geometry) {
+          setImageGeometry(result.geometry);
+          setGenerationProgress(100);
+          clearInterval(progressInterval);
+          
+          setTimeout(() => {
+            setIsGenerating(false);
+            setGenerationProgress(0);
+          }, 500);
+          
+          const method = data.aiEnhanced ? 'AI-Enhanced Stable3DGen' : 'Stable3DGen';
+          toast.success(`✅ Model wygenerowany z ${method}!`);
+          setFileName(file.name);
+          setModelData(null);
+          setAvailableModels([]);
+          setSelectedModelIndex(0);
+        } else {
+          throw new Error(result.error || 'Generation failed');
+        }
       } else {
-        throw new Error(result.error || 'PartCrafter generation failed');
+        throw new Error(data.error || 'Generation failed');
       }
       
     } catch (error) {
       console.error("Error generating 3D from image:", error);
       setIsGenerating(false);
       setGenerationProgress(0);
-      toast.error('❌ Błąd generowania 3D z obrazu: ' + (error instanceof Error ? error.message : 'Nieznany błąd'));
+      toast.error('❌ Błąd generowania 3D: ' + (error instanceof Error ? error.message : 'Nieznany błąd'));
     }
+  };
+  
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   // Shopping cart functions

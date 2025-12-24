@@ -6,28 +6,52 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// AI Analysis interface from analyze-image-ai function
+interface AIAnalysis {
+  objectType: string;
+  objectName: string;
+  dimensions: {
+    widthRatio: number;
+    heightRatio: number;
+    depthRatio: number;
+  };
+  features: string[];
+  suggestedGeometry: string;
+  complexity: string;
+  symmetry: string;
+  confidence: number;
+  colors: string[];
+  material: string;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { imageBase64, options = {} } = await req.json();
+    const { imageBase64, options = {}, aiAnalysis } = await req.json();
     
     if (!imageBase64) {
       throw new Error('No image data provided');
     }
 
     console.log('Starting Stable3DGen Hi3DGen 3D mesh generation');
+    console.log('AI Analysis provided:', aiAnalysis ? 'Yes' : 'No');
     
-    const result = await generateStable3D(imageBase64, options);
+    if (aiAnalysis) {
+      console.log('Using AI analysis for generation:', aiAnalysis.objectName, aiAnalysis.objectType);
+    }
+    
+    const result = await generateStable3D(imageBase64, options, aiAnalysis);
     
     if (result.success) {
       return new Response(JSON.stringify({
         success: true,
-        method: 'Stable3DGen',
+        method: aiAnalysis ? 'Stable3DGen+AI' : 'Stable3DGen',
         result: result.data,
-        format: 'glb'
+        format: 'glb',
+        aiEnhanced: !!aiAnalysis
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -47,39 +71,57 @@ serve(async (req) => {
   }
 });
 
-async function generateStable3D(imageBase64: string, options: any) {
+async function generateStable3D(imageBase64: string, options: any, aiAnalysis?: AIAnalysis) {
   console.log('Using Stable3DGen: Hi3DGen High-fidelity 3D Geometry Generation via Normal Bridging');
+  
+  if (aiAnalysis) {
+    console.log('AI-enhanced generation with:', {
+      objectType: aiAnalysis.objectType,
+      objectName: aiAnalysis.objectName,
+      suggestedGeometry: aiAnalysis.suggestedGeometry,
+      complexity: aiAnalysis.complexity,
+      confidence: aiAnalysis.confidence
+    });
+  }
 
   try {
     // Hi3DGen pipeline: preprocess -> normal -> sparse -> latent -> mesh
-    const preprocessed = await preprocessImage(imageBase64);
+    const preprocessed = await preprocessImage(imageBase64, aiAnalysis);
     const normalMap = await generateNormalMap(preprocessed);
     
-    // Pass object type information through the pipeline
+    // Pass AI analysis data through the pipeline for enhanced generation
     const sparseStructure = await generateSparseStructure(normalMap, {
       ...options,
-      objectType: preprocessed.objectType,
-      features: preprocessed.features,
-      confidence: preprocessed.confidence
+      objectType: aiAnalysis?.objectType || preprocessed.objectType,
+      features: aiAnalysis?.features || preprocessed.features,
+      confidence: aiAnalysis?.confidence || preprocessed.confidence,
+      suggestedGeometry: aiAnalysis?.suggestedGeometry,
+      dimensions: aiAnalysis?.dimensions,
+      complexity: aiAnalysis?.complexity
     });
     
     const structuredLatent = await generateStructuredLatent(sparseStructure, {
       ...options,
-      objectType: preprocessed.objectType,
-      features: preprocessed.features
+      objectType: aiAnalysis?.objectType || preprocessed.objectType,
+      features: aiAnalysis?.features || preprocessed.features,
+      suggestedGeometry: aiAnalysis?.suggestedGeometry,
+      dimensions: aiAnalysis?.dimensions,
+      complexity: aiAnalysis?.complexity,
+      material: aiAnalysis?.material
     });
     
-    const glbData = await convertToGLB(structuredLatent);
+    const glbData = await convertToGLB(structuredLatent, aiAnalysis);
     
     return {
       success: true,
       data: {
         glb_data: glbData,
-        model_type: 'Stable3DGen',
+        model_type: aiAnalysis ? 'Stable3DGen+AI' : 'Stable3DGen',
         processing_time: Date.now(),
         algorithm: 'Hi3DGen: High-fidelity 3D Geometry via Normal Bridging',
-        detected_object: preprocessed.objectType,
-        confidence: preprocessed.confidence
+        detected_object: aiAnalysis?.objectName || preprocessed.objectType,
+        confidence: aiAnalysis?.confidence || preprocessed.confidence,
+        ai_enhanced: !!aiAnalysis
       }
     };
   } catch (error) {
@@ -91,11 +133,24 @@ async function generateStable3D(imageBase64: string, options: any) {
   }
 }
 
-async function preprocessImage(imageBase64: string) {
+async function preprocessImage(imageBase64: string, aiAnalysis?: AIAnalysis) {
   console.log('Preprocessing image for Hi3DGen (1024x1024)');
   const cleanBase64 = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
   
-  // Analyze image content to determine object type
+  // If AI analysis is provided, use it directly
+  if (aiAnalysis) {
+    console.log('Using AI analysis for preprocessing:', aiAnalysis.objectName);
+    return { 
+      data: cleanBase64, 
+      resolution: 1024,
+      objectType: aiAnalysis.objectType,
+      features: aiAnalysis.features,
+      confidence: aiAnalysis.confidence,
+      aiEnhanced: true
+    };
+  }
+  
+  // Otherwise, analyze image content to determine object type
   const imageAnalysis = await analyzeImageContent(cleanBase64);
   console.log('Image analysis result:', imageAnalysis);
   
@@ -104,7 +159,8 @@ async function preprocessImage(imageBase64: string) {
     resolution: 1024,
     objectType: imageAnalysis.objectType,
     features: imageAnalysis.features,
-    confidence: imageAnalysis.confidence
+    confidence: imageAnalysis.confidence,
+    aiEnhanced: false
   };
 }
 
@@ -247,41 +303,59 @@ async function generateNormalMap(preprocessed: any) {
 async function generateSparseStructure(normalMap: any, options: any) {
   console.log('Generating sparse structure (Hi3DGen Stage 1)');
   
-  // Get object type from preprocessing
+  // Get object type from preprocessing or AI analysis
   const objectType = options.objectType || 'generic';
   const features = options.features || ['unknown'];
+  const suggestedGeometry = options.suggestedGeometry;
+  const dimensions = options.dimensions;
+  const complexity = options.complexity;
   
   console.log(`Generating sparse structure for: ${objectType}`);
+  if (suggestedGeometry) {
+    console.log(`AI suggested geometry: ${suggestedGeometry}`);
+  }
+  if (dimensions) {
+    console.log(`AI dimensions: W=${dimensions.widthRatio}, H=${dimensions.heightRatio}, D=${dimensions.depthRatio}`);
+  }
   
   const sparsePoints = [];
   let gridSize = 32;
   let shapeProfile = 'generic';
   
-  // Adjust generation based on detected object type
-  switch (objectType) {
-    case 'furniture':
-      gridSize = 40;
-      shapeProfile = 'furniture';
-      break;
-    case 'vehicle':
-      gridSize = 48;
-      shapeProfile = 'vehicle';
-      break;
-    case 'character':
-      gridSize = 36;
-      shapeProfile = 'character';
-      break;
-    case 'tool_or_accessory':
-      gridSize = 28;
-      shapeProfile = 'tool';
-      break;
-    case 'decoration':
-      gridSize = 32;
-      shapeProfile = 'decoration';
-      break;
-    default:
-      gridSize = 32;
-      shapeProfile = 'generic';
+  // Enhanced type mapping with AI analysis
+  const typeToProfile: Record<string, { gridSize: number; profile: string }> = {
+    'furniture': { gridSize: 40, profile: 'furniture' },
+    'vehicle': { gridSize: 48, profile: 'vehicle' },
+    'character': { gridSize: 36, profile: 'character' },
+    'tool': { gridSize: 28, profile: 'tool' },
+    'tool_or_accessory': { gridSize: 28, profile: 'tool' },
+    'decoration': { gridSize: 32, profile: 'decoration' },
+    'animal': { gridSize: 36, profile: 'character' },
+    'building': { gridSize: 44, profile: 'furniture' },
+    'food': { gridSize: 24, profile: 'decoration' },
+    'plant': { gridSize: 32, profile: 'decoration' },
+    'abstract': { gridSize: 32, profile: 'generic' }
+  };
+  
+  const typeConfig = typeToProfile[objectType] || { gridSize: 32, profile: 'generic' };
+  gridSize = typeConfig.gridSize;
+  shapeProfile = typeConfig.profile;
+  
+  // Adjust grid size based on complexity from AI
+  if (complexity === 'simple') {
+    gridSize = Math.max(20, gridSize - 10);
+  } else if (complexity === 'complex') {
+    gridSize = Math.min(56, gridSize + 8);
+  }
+  
+  // Apply dimension ratios if provided by AI
+  let scaleX = 1, scaleY = 1, scaleZ = 1;
+  if (dimensions) {
+    const maxRatio = Math.max(dimensions.widthRatio, dimensions.heightRatio, dimensions.depthRatio);
+    scaleX = dimensions.widthRatio / maxRatio;
+    scaleY = dimensions.heightRatio / maxRatio;
+    scaleZ = dimensions.depthRatio / maxRatio;
+    console.log(`Applied AI dimension scaling: X=${scaleX.toFixed(2)}, Y=${scaleY.toFixed(2)}, Z=${scaleZ.toFixed(2)}`);
   }
   
   // Generate sparse points based on object profile
@@ -298,32 +372,33 @@ async function generateSparseStructure(normalMap: any, options: any) {
           let confidence = normalZ;
           
           if (shapeProfile === 'furniture') {
-            // Furniture: more structured, rectangular patterns
             const isStructural = (x % 4 === 0 || y % 4 === 0 || z % 4 === 0);
             shouldAddPoint = normalZ > 0.3 && (normalZ > 0.6 || isStructural);
           } else if (shapeProfile === 'vehicle') {
-            // Vehicle: elongated, streamlined shape
             const centerX = gridSize / 2;
             const distFromCenter = Math.abs(x - centerX);
             const isInVehicleProfile = distFromCenter < gridSize * 0.4 && y < gridSize * 0.8;
             shouldAddPoint = normalZ > 0.35 && isInVehicleProfile;
           } else if (shapeProfile === 'character') {
-            // Character: organic, vertical orientation
             const centerX = gridSize / 2;
             const centerZ = gridSize / 2;
             const distFromCenterXZ = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(z - centerZ, 2));
             const isInCharacterProfile = distFromCenterXZ < gridSize * 0.3 && y > gridSize * 0.2;
             shouldAddPoint = normalZ > 0.4 && isInCharacterProfile;
+          } else if (shapeProfile === 'tool') {
+            shouldAddPoint = normalZ > 0.35;
+          } else if (shapeProfile === 'decoration') {
+            shouldAddPoint = normalZ > 0.38;
           } else {
-            // Generic: basic threshold
             shouldAddPoint = normalZ > 0.4;
           }
           
           if (shouldAddPoint) {
+            // Apply AI dimension scaling
             sparsePoints.push({
-              x: (x - gridSize/2) / gridSize * 2,
-              y: (y - gridSize/2) / gridSize * 2,
-              z: (z - gridSize/2) / gridSize * 2,
+              x: ((x - gridSize/2) / gridSize * 2) * scaleX,
+              y: ((y - gridSize/2) / gridSize * 2) * scaleY,
+              z: ((z - gridSize/2) / gridSize * 2) * scaleZ,
               confidence: confidence,
               type: shapeProfile
             });
@@ -333,13 +408,16 @@ async function generateSparseStructure(normalMap: any, options: any) {
     }
   }
   
-  console.log(`Generated ${sparsePoints.length} sparse points for ${objectType}`);
+  console.log(`Generated ${sparsePoints.length} sparse points for ${objectType} (AI-enhanced: ${!!dimensions})`);
   
   return { 
     points: sparsePoints, 
     gridSize, 
     objectType, 
-    shapeProfile 
+    shapeProfile,
+    dimensions,
+    suggestedGeometry,
+    complexity
   };
 }
 
@@ -348,21 +426,28 @@ async function generateStructuredLatent(sparseStructure: any, options: any) {
   const vertices: number[] = [];
   const faces: number[] = [];
   
-  const objectType = sparseStructure.objectType || 'generic';
+  const objectType = sparseStructure.objectType || options.objectType || 'generic';
   const shapeProfile = sparseStructure.shapeProfile || 'generic';
+  const suggestedGeometry = options.suggestedGeometry || sparseStructure.suggestedGeometry;
+  const dimensions = options.dimensions || sparseStructure.dimensions;
   
   console.log(`Creating structured latent for: ${objectType}`);
+  if (suggestedGeometry) {
+    console.log(`Using AI suggested geometry: ${suggestedGeometry}`);
+  }
   
-  // Generate object-specific geometry based on detected type
-  if (objectType === 'furniture') {
+  // Use AI suggested geometry if available, otherwise fall back to object type
+  if (suggestedGeometry) {
+    generateAIEnhancedGeometry(suggestedGeometry, dimensions, vertices, faces);
+  } else if (objectType === 'furniture' || objectType === 'building') {
     generateFurnitureGeometry(sparseStructure.points, vertices, faces);
   } else if (objectType === 'vehicle') {
     generateVehicleGeometry(sparseStructure.points, vertices, faces);
-  } else if (objectType === 'character') {
+  } else if (objectType === 'character' || objectType === 'animal') {
     generateCharacterGeometry(sparseStructure.points, vertices, faces);
-  } else if (objectType === 'tool_or_accessory') {
+  } else if (objectType === 'tool' || objectType === 'tool_or_accessory') {
     generateToolGeometry(sparseStructure.points, vertices, faces);
-  } else if (objectType === 'decoration') {
+  } else if (objectType === 'decoration' || objectType === 'food' || objectType === 'plant') {
     generateDecorationGeometry(sparseStructure.points, vertices, faces);
   } else {
     generateGenericGeometry(sparseStructure.points, vertices, faces);
@@ -374,8 +459,194 @@ async function generateStructuredLatent(sparseStructure: any, options: any) {
     vertexCount: vertices.length / 3, 
     faceCount: faces.length / 3,
     objectType,
-    shapeProfile
+    shapeProfile,
+    aiEnhanced: !!suggestedGeometry
   };
+}
+
+// New function for AI-enhanced geometry generation
+function generateAIEnhancedGeometry(
+  suggestedGeometry: string, 
+  dimensions: { widthRatio: number; heightRatio: number; depthRatio: number } | undefined,
+  vertices: number[], 
+  faces: number[]
+) {
+  console.log(`Generating AI-enhanced ${suggestedGeometry} geometry`);
+  
+  // Apply dimension scaling
+  const scaleX = dimensions?.widthRatio || 0.5;
+  const scaleY = dimensions?.heightRatio || 0.5;
+  const scaleZ = dimensions?.depthRatio || 0.5;
+  
+  switch (suggestedGeometry) {
+    case 'box':
+      generateScaledBox(scaleX, scaleY, scaleZ, vertices, faces);
+      break;
+    case 'cylinder':
+      generateScaledCylinder(scaleX, scaleY, scaleZ, vertices, faces);
+      break;
+    case 'sphere':
+      generateScaledSphere(Math.max(scaleX, scaleY, scaleZ), vertices, faces);
+      break;
+    case 'cone':
+      generateScaledCone(scaleX, scaleY, scaleZ, vertices, faces);
+      break;
+    case 'torus':
+      generateScaledTorus(scaleX, scaleY, vertices, faces);
+      break;
+    default:
+      // Custom or unknown - use box as fallback
+      generateScaledBox(scaleX, scaleY, scaleZ, vertices, faces);
+  }
+}
+
+function generateScaledBox(scaleX: number, scaleY: number, scaleZ: number, vertices: number[], faces: number[]) {
+  const boxVertices = [
+    -scaleX, -scaleY, -scaleZ,
+     scaleX, -scaleY, -scaleZ,
+     scaleX,  scaleY, -scaleZ,
+    -scaleX,  scaleY, -scaleZ,
+    -scaleX, -scaleY,  scaleZ,
+     scaleX, -scaleY,  scaleZ,
+     scaleX,  scaleY,  scaleZ,
+    -scaleX,  scaleY,  scaleZ
+  ];
+  vertices.push(...boxVertices);
+  
+  const boxFaces = [
+    0, 1, 2,  0, 2, 3,
+    4, 7, 6,  4, 6, 5,
+    0, 4, 5,  0, 5, 1,
+    2, 6, 7,  2, 7, 3,
+    0, 3, 7,  0, 7, 4,
+    1, 5, 6,  1, 6, 2
+  ];
+  faces.push(...boxFaces);
+}
+
+function generateScaledCylinder(scaleX: number, scaleY: number, scaleZ: number, vertices: number[], faces: number[]) {
+  const segments = 12;
+  const radius = Math.max(scaleX, scaleZ) * 0.8;
+  const height = scaleY;
+  
+  // Bottom circle
+  for (let i = 0; i < segments; i++) {
+    const angle = (i / segments) * Math.PI * 2;
+    vertices.push(Math.cos(angle) * radius, -height, Math.sin(angle) * radius);
+  }
+  
+  // Top circle
+  for (let i = 0; i < segments; i++) {
+    const angle = (i / segments) * Math.PI * 2;
+    vertices.push(Math.cos(angle) * radius, height, Math.sin(angle) * radius);
+  }
+  
+  // Center points
+  vertices.push(0, -height, 0);
+  vertices.push(0, height, 0);
+  
+  // Bottom faces
+  for (let i = 0; i < segments; i++) {
+    faces.push(segments * 2, i, (i + 1) % segments);
+  }
+  
+  // Top faces
+  for (let i = 0; i < segments; i++) {
+    faces.push(segments * 2 + 1, segments + (i + 1) % segments, segments + i);
+  }
+  
+  // Side faces
+  for (let i = 0; i < segments; i++) {
+    const next = (i + 1) % segments;
+    faces.push(i, segments + i, segments + next);
+    faces.push(i, segments + next, next);
+  }
+}
+
+function generateScaledSphere(radius: number, vertices: number[], faces: number[]) {
+  const latSegments = 8;
+  const lonSegments = 12;
+  
+  for (let lat = 0; lat <= latSegments; lat++) {
+    const theta = (lat / latSegments) * Math.PI;
+    const sinTheta = Math.sin(theta);
+    const cosTheta = Math.cos(theta);
+    
+    for (let lon = 0; lon <= lonSegments; lon++) {
+      const phi = (lon / lonSegments) * Math.PI * 2;
+      const x = Math.cos(phi) * sinTheta * radius;
+      const y = cosTheta * radius;
+      const z = Math.sin(phi) * sinTheta * radius;
+      vertices.push(x, y, z);
+    }
+  }
+  
+  for (let lat = 0; lat < latSegments; lat++) {
+    for (let lon = 0; lon < lonSegments; lon++) {
+      const first = lat * (lonSegments + 1) + lon;
+      const second = first + lonSegments + 1;
+      
+      faces.push(first, second, first + 1);
+      faces.push(second, second + 1, first + 1);
+    }
+  }
+}
+
+function generateScaledCone(scaleX: number, scaleY: number, scaleZ: number, vertices: number[], faces: number[]) {
+  const segments = 12;
+  const radius = Math.max(scaleX, scaleZ) * 0.8;
+  const height = scaleY * 2;
+  
+  // Base circle
+  for (let i = 0; i < segments; i++) {
+    const angle = (i / segments) * Math.PI * 2;
+    vertices.push(Math.cos(angle) * radius, -height / 2, Math.sin(angle) * radius);
+  }
+  
+  // Apex and base center
+  vertices.push(0, height / 2, 0);
+  vertices.push(0, -height / 2, 0);
+  
+  // Base faces
+  for (let i = 0; i < segments; i++) {
+    faces.push(segments + 1, i, (i + 1) % segments);
+  }
+  
+  // Side faces
+  for (let i = 0; i < segments; i++) {
+    faces.push(i, segments, (i + 1) % segments);
+  }
+}
+
+function generateScaledTorus(scaleX: number, scaleY: number, vertices: number[], faces: number[]) {
+  const majorRadius = scaleX * 0.6;
+  const minorRadius = scaleY * 0.25;
+  const majorSegments = 12;
+  const minorSegments = 8;
+  
+  for (let i = 0; i <= majorSegments; i++) {
+    const u = (i / majorSegments) * Math.PI * 2;
+    
+    for (let j = 0; j <= minorSegments; j++) {
+      const v = (j / minorSegments) * Math.PI * 2;
+      
+      const x = (majorRadius + minorRadius * Math.cos(v)) * Math.cos(u);
+      const y = minorRadius * Math.sin(v);
+      const z = (majorRadius + minorRadius * Math.cos(v)) * Math.sin(u);
+      
+      vertices.push(x, y, z);
+    }
+  }
+  
+  for (let i = 0; i < majorSegments; i++) {
+    for (let j = 0; j < minorSegments; j++) {
+      const a = i * (minorSegments + 1) + j;
+      const b = a + minorSegments + 1;
+      
+      faces.push(a, b, a + 1);
+      faces.push(b, b + 1, a + 1);
+    }
+  }
 }
 
 async function convertToGLB(structuredLatent: any) {
