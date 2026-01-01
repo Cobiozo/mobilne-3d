@@ -17,7 +17,7 @@ export default {
     script: './server.js',
     
     // Instance configuration
-    instances: 'max',  // Use all available CPU cores
+    instances: 2,  // Reduced for shared hosting
     exec_mode: 'cluster',  // Cluster mode for load balancing
     
     // Environment variables
@@ -35,7 +35,7 @@ export default {
     merge_logs: true,
     
     // Monitoring
-    max_memory_restart: '500M',  // Restart if memory usage exceeds 500MB
+    max_memory_restart: '300M',  // Restart if memory usage exceeds 300MB
     
     // Restart behavior
     autorestart: true,

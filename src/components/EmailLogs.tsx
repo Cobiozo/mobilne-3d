@@ -45,8 +45,8 @@ export const EmailLogs = () => {
   useEffect(() => {
     fetchLogs();
     
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchLogs, 30000);
+    // Auto-refresh every 60 seconds
+    const interval = setInterval(fetchLogs, 60000);
     return () => clearInterval(interval);
   }, []);
 

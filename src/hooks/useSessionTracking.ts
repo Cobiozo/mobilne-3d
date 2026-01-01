@@ -56,10 +56,13 @@ export const useSessionTracking = () => {
     // Track session every 5 minutes
     const interval = setInterval(trackSession, 5 * 60 * 1000);
 
-    // Track session on visibility change
+    // Track session on visibility change with debouncing
+    let visibilityTimeout: NodeJS.Timeout | null = null;
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        trackSession();
+        // Debounce - wait 1 second before tracking
+        if (visibilityTimeout) clearTimeout(visibilityTimeout);
+        visibilityTimeout = setTimeout(trackSession, 1000);
       }
     };
 
@@ -74,6 +77,7 @@ export const useSessionTracking = () => {
 
     return () => {
       clearInterval(interval);
+      if (visibilityTimeout) clearTimeout(visibilityTimeout);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
       cleanupSession();
