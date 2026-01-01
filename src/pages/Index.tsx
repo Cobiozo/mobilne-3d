@@ -82,7 +82,6 @@ const Index = () => {
   const { analyzeImageFile, isAnalyzing, analysis: aiAnalysis } = useImageToAI({
     onAnalysisComplete: (analysis) => {
       setCurrentAIAnalysis(analysis);
-      console.log('AI analysis completed:', analysis.objectName);
     }
   });
 

@@ -25,7 +25,7 @@ export const SiteAnalytics = () => {
 
   useEffect(() => {
     fetchAnalytics();
-    const interval = setInterval(fetchAnalytics, 30000); // Refresh every 30s
+    const interval = setInterval(fetchAnalytics, 60000); // Refresh every 60s
     return () => clearInterval(interval);
   }, [timeRange]);
 

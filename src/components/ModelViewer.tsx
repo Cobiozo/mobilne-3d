@@ -19,7 +19,6 @@ export const ModelViewer = ({ modelData, modelColor, fileName, currentGeometry }
   const { language } = useApp();
   const { t } = useTranslation(language);
   
-  console.log('ModelViewer render - modelColor:', modelColor, 'hasData:', !!modelData);
   return (
     <div className="w-full h-full bg-viewer-bg rounded-lg shadow-viewer relative overflow-hidden min-h-[300px] sm:min-h-[400px] lg:min-h-[500px]">
       {(modelData || currentGeometry) ? (
