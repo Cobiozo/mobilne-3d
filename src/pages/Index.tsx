@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileUpload } from "@/components/FileUpload";
 import { ImageUpload } from "@/components/ImageUpload";
@@ -107,6 +107,9 @@ const Index = () => {
   // Shopping cart state
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
+  // Debounce ref for cart DB saves
+  const cartSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Load cart from localStorage on mount
   useEffect(() => {
     const loadCart = () => {
@@ -115,9 +118,7 @@ const Index = () => {
         try {
           const items = JSON.parse(savedCart);
           setCartItems(items);
-          console.log('Loaded cart from localStorage:', items);
-        } catch (error) {
-          console.error('Error loading cart from localStorage:', error);
+        } catch {
           localStorage.removeItem('cartItems');
         }
       }
@@ -141,29 +142,29 @@ const Index = () => {
     };
   }, []);
 
-  // Save cart to localStorage and database whenever it changes
+  // Save cart to localStorage and database whenever it changes (with debounce for DB)
   useEffect(() => {
-    // Only save if we have items OR if we explicitly cleared the cart
-    // Don't overwrite cart when component mounts with empty state
+    // Only save if we have items
     if (cartItems.length > 0) {
       localStorage.setItem('cartItems', JSON.stringify(cartItems));
-      console.log('Saved cart to localStorage:', cartItems);
       
-      // Save to database if user is logged in
+      // Debounced save to database if user is logged in
       if (user) {
-        supabase
-          .from('user_carts')
-          .upsert([{
-            user_id: user.id,
-            cart_data: cartItems as any
-          }])
-          .then(({ error }) => {
-            if (error) {
-              console.error('Error saving cart to database:', error);
-            } else {
-              console.log('Cart saved to database');
-            }
-          });
+        if (cartSaveTimeoutRef.current) {
+          clearTimeout(cartSaveTimeoutRef.current);
+        }
+        
+        cartSaveTimeoutRef.current = setTimeout(() => {
+          supabase
+            .from('user_carts')
+            .upsert([{
+              user_id: user.id,
+              cart_data: cartItems as any
+            }])
+            .then(() => {
+              // Silent - no logging in production
+            });
+        }, 2000); // 2 second debounce for DB saves
       }
     }
     
@@ -171,67 +172,69 @@ const Index = () => {
     window.dispatchEvent(new CustomEvent('cartUpdated', { 
       detail: { cartItems } 
     }));
+    
+    return () => {
+      if (cartSaveTimeoutRef.current) {
+        clearTimeout(cartSaveTimeoutRef.current);
+      }
+    };
   }, [cartItems, user]);
+
+  // Memoize HSL conversions
+  const primaryHsl = useMemo(() => 
+    siteSettings.primary_color ? hexToHsl(siteSettings.primary_color) : null,
+    [siteSettings.primary_color]
+  );
+
+  const secondaryHsl = useMemo(() => 
+    siteSettings.secondary_color ? hexToHsl(siteSettings.secondary_color) : null,
+    [siteSettings.secondary_color]
+  );
 
   // Apply site settings
   useEffect(() => {
-    // Don't change model color - keep default #EF4444
-
     // Apply site settings to the page
     if (siteSettings.homepage_title) {
       document.title = siteSettings.homepage_title[language] || siteSettings.homepage_title.pl || '3D Model Viewer';
     }
     
     // Apply primary color if available
-    if (siteSettings.primary_color) {
-      const primaryHsl = hexToHsl(siteSettings.primary_color);
-      if (primaryHsl) {
-        document.documentElement.style.setProperty('--primary', primaryHsl);
-      }
+    if (primaryHsl) {
+      document.documentElement.style.setProperty('--primary', primaryHsl);
     }
     
     // Apply secondary color if available
-    if (siteSettings.secondary_color) {
-      const secondaryHsl = hexToHsl(siteSettings.secondary_color);
-      if (secondaryHsl) {
-        document.documentElement.style.setProperty('--secondary', secondaryHsl);
-      }
+    if (secondaryHsl) {
+      document.documentElement.style.setProperty('--secondary', secondaryHsl);
     }
-  }, [resolvedTheme, siteSettings, language]);
+  }, [resolvedTheme, siteSettings, language, primaryHsl, secondaryHsl]);
 
   const handleFileSelect = async (file: File) => {
     try {
-      console.log('handleFileSelect called with file:', file.name, 'User logged in:', !!user);
-      
       const arrayBuffer = await file.arrayBuffer();
       setModelData(arrayBuffer);
       setFileName(file.name);
       
       // Save model to database if user is logged in
       if (user) {
-        console.log('User is logged in, calling saveModelToDatabase');
         try {
           await saveModelToDatabase(file, arrayBuffer);
-        } catch (error) {
-          console.error('Error in saveModelToDatabase:', error);
+        } catch {
           toast.error('Błąd podczas zapisywania modelu do bazy danych');
         }
       } else {
-        console.log('User not logged in, skipping saveModelToDatabase');
         toast.info('Zaloguj się, aby automatycznie zapisywać modele');
       }
       
       // Load models using the unified loader
       try {
         const models = await loadModelFile(arrayBuffer, file.name);
-        console.log('Loaded models:', models, 'Count:', models.length);
         setAvailableModels(models);
         setSelectedModelIndex(0);
         
         // Set current geometry for rendering
         if (models.length > 0 && models[0].geometry) {
           setCurrentGeometry(models[0].geometry);
-          console.log('Set currentGeometry for first model:', models[0].name);
         }
         
         if (models.length > 1) {
@@ -239,23 +242,19 @@ const Index = () => {
         } else {
           toast.success(t('uploadSuccess', { fileName: file.name }));
         }
-      } catch (error) {
-        console.error('Model loading failed:', error);
+      } catch {
         setAvailableModels([]);
         setSelectedModelIndex(0);
         setCurrentGeometry(null);
         toast.error(t('uploadError'));
       }
-    } catch (error) {
-      console.error("Error loading file:", error);
+    } catch {
       toast.error(t('uploadError'));
     }
   };
 
   const saveModelToDatabase = async (file: File, arrayBuffer: ArrayBuffer) => {
     try {
-      console.log('Rozpoczynam zapisywanie modelu:', file.name, 'Rozmiar:', file.size, 'Użytkownik:', user?.id);
-      
       // Check if model with the same name AND size already exists for this user
       const { data: existingModels, error: checkError } = await supabase
         .from('models')
@@ -265,32 +264,24 @@ const Index = () => {
         .eq('file_size', file.size);
 
       if (checkError) {
-        console.error('Error checking for existing models:', checkError);
         throw checkError;
       }
 
       if (existingModels && existingModels.length > 0) {
-        console.log('Model o tej nazwie i rozmiarze już istnieje:', file.name, file.size);
         toast.info(`Model "${file.name}" już istnieje w Twoich modelach`);
         return;
       }
-
-      console.log('Model nie istnieje, kontynuuję zapisywanie...');
 
       // Create a unique filename
       const timestamp = Date.now();
       const fileExtension = file.name.split('.').pop();
       const uniqueFileName = `${timestamp}_${file.name}`;
       
-      console.log('Tworzę unikalną nazwę pliku:', uniqueFileName);
-      
       // Convert ArrayBuffer to File for upload
       const fileToUpload = new File([arrayBuffer], uniqueFileName, { type: file.type });
       
-      console.log('Uploading to storage...');
       // Upload to Supabase storage with timeout
-      const uploadPath = `${user!.id}/${uniqueFileName}`;  // Zmieniony format ścieżki
-      console.log('Upload path:', uploadPath);
+      const uploadPath = `${user!.id}/${uniqueFileName}`;
       
       const uploadPromise = supabase.storage
         .from('models')
@@ -307,19 +298,14 @@ const Index = () => {
       ]) as any;
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
         toast.error(`Błąd przesyłania pliku: ${uploadError.message}`);
         return;
       }
-
-      console.log('Upload successful:', uploadData);
 
       // Get the public URL
       const { data: { publicUrl } } = supabase.storage
         .from('models')
         .getPublicUrl(uploadData.path);
-
-      console.log('Public URL:', publicUrl);
 
       // Save model metadata to database
       const modelData = {
@@ -332,22 +318,17 @@ const Index = () => {
         is_public: false
       };
 
-      console.log('Inserting model data:', modelData);
-
-      const { data: insertData, error: dbError } = await supabase
+      const { error: dbError } = await supabase
         .from('models')
         .insert(modelData)
         .select();
 
       if (dbError) {
-        console.error('Database error:', dbError);
         toast.error(`Błąd zapisywania do bazy danych: ${dbError.message}`);
       } else {
-        console.log('Model saved successfully:', insertData);
         toast.success(`Model "${file.name}" zapisany w "Moje modele 3D"`);
       }
     } catch (error) {
-      console.error('Error saving model:', error);
       toast.error(`Błąd zapisywania modelu: ${error instanceof Error ? error.message : 'Nieznany błąd'}`);
     }
   };
@@ -464,8 +445,6 @@ const Index = () => {
       // Get dimensions from current model
       const { getModelDimensions } = await import('@/utils/modelLoader');
       const dimensions = await getModelDimensions(modelData, fileName, selectedModelIndex);
-      
-      console.log('Model dimensions for cart:', dimensions);
 
       // Capture model thumbnail from canvas
       let thumbnailUrl: string | undefined;
@@ -474,10 +453,9 @@ const Index = () => {
         if (canvas) {
           const capturedCanvas = captureCanvasFromThreeJS(canvas);
           thumbnailUrl = capturedCanvas.toDataURL('image/png');
-          console.log('Generated thumbnail for cart');
         }
-      } catch (error) {
-        console.warn('Could not capture model thumbnail:', error);
+      } catch {
+        // Silent fail - thumbnail is optional
       }
 
       // Find model in database by name if user is logged in
@@ -499,9 +477,6 @@ const Index = () => {
           if (availableModels.length > 1) {
             modelId = `${modelId}-model-${selectedModelIndex}`;
           }
-          console.log('Found model in database:', modelId);
-        } else {
-          console.log('Model not found in database, using temp ID:', modelId);
         }
       }
 
@@ -540,8 +515,7 @@ const Index = () => {
           return [...prev, newItem];
         }
       });
-    } catch (error) {
-      console.error('Error adding to cart:', error);
+    } catch {
       toast.error('Błąd podczas dodawania do koszyka');
     }
   };
@@ -579,12 +553,8 @@ const Index = () => {
         .from('user_carts')
         .delete()
         .eq('user_id', user.id)
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error deleting cart from database:', error);
-          } else {
-            console.log('Cart deleted from database');
-          }
+        .then(() => {
+          // Silent - no logging
         });
     }
     
@@ -607,11 +577,9 @@ const Index = () => {
   };
 
   const handleModelSelect = (index: number) => {
-    console.log('Model selected:', index);
     setSelectedModelIndex(index);
     if (availableModels[index] && availableModels[index].geometry) {
       setCurrentGeometry(availableModels[index].geometry);
-      console.log('Updated currentGeometry for model:', availableModels[index].name);
     }
   };
 

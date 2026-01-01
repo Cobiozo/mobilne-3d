@@ -10,13 +10,9 @@ export const useAuth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log('[useAuth] Setting up auth state listener');
-    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('[useAuth] Auth state changed:', event, 'User:', session?.user?.email || 'null');
-        
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -36,10 +32,9 @@ export const useAuth = () => {
                 window.dispatchEvent(new CustomEvent('cartUpdated', { 
                   detail: { cartItems: data.cart_data } 
                 }));
-                console.log('[useAuth] Loaded cart from database:', data.cart_data);
               }
             } catch (error) {
-              console.error('[useAuth] Error loading cart:', error);
+              // Silent fail - cart loading is not critical
             }
           }, 0);
         }
@@ -48,14 +43,12 @@ export const useAuth = () => {
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('[useAuth] Initial session check:', session?.user?.email || 'null');
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
     return () => {
-      console.log('[useAuth] Cleaning up auth subscription');
       subscription.unsubscribe();
     };
   }, []);
