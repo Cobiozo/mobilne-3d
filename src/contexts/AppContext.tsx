@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode } from 'react';
 import { Language } from '@/lib/i18n';
-import { supabase } from '@/integrations/supabase/client';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 interface SiteSettings {
   homepage_title?: { pl?: string; en?: string };
@@ -27,7 +27,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const savedLanguage = localStorage.getItem('preferredLanguage');
     return (savedLanguage === 'en' || savedLanguage === 'pl') ? savedLanguage : 'pl';
   });
-  const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
+  
+  const { siteSettings, refreshSiteSettings } = useSiteSettings();
 
   // Custom setLanguage that also saves to localStorage
   const setLanguage = (newLanguage: Language) => {
@@ -35,43 +36,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('preferredLanguage', newLanguage);
   };
 
-  const fetchSiteSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('setting_key, setting_value');
-
-      if (error) throw error;
-
-      const settingsMap = data?.reduce((acc, setting) => {
-        acc[setting.setting_key] = setting.setting_value;
-        return acc;
-      }, {} as SiteSettings) || {};
-
-      setSiteSettings(settingsMap);
-    } catch (error) {
-      console.error('Error fetching site settings:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchSiteSettings();
-
-    // Listen for settings updates
-    const handleSettingsUpdate = () => {
-      fetchSiteSettings();
-    };
-
-    window.addEventListener('settingsUpdated', handleSettingsUpdate);
-    return () => window.removeEventListener('settingsUpdated', handleSettingsUpdate);
-  }, []);
-
   return (
     <AppContext.Provider value={{ 
       language, 
       setLanguage, 
       siteSettings,
-      refreshSiteSettings: fetchSiteSettings
+      refreshSiteSettings
     }}>
       {children}
     </AppContext.Provider>

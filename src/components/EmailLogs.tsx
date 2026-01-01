@@ -1,5 +1,3 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Trash2 } from "lucide-react";
@@ -24,77 +22,26 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-
-interface EmailLog {
-  id: string;
-  recipient_email: string;
-  subject: string;
-  template_type: string;
-  status: string;
-  error_message?: string;
-  sent_at?: string;
-  created_at: string;
-}
+import { useEmailLogs, useClearEmailLogs } from "@/hooks/useEmailLogs";
 
 export const EmailLogs = () => {
   const { toast } = useToast();
-  const [logs, setLogs] = useState<EmailLog[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
-
-  useEffect(() => {
-    fetchLogs();
-    
-    // Auto-refresh every 60 seconds
-    const interval = setInterval(fetchLogs, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchLogs = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("email_logs")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-      setLogs(data || []);
-    } catch (error) {
-      console.error("Error fetching email logs:", error);
-      toast({
-        title: "Błąd",
-        description: "Nie udało się pobrać logów emaili",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { data: logs = [], isLoading } = useEmailLogs();
+  const clearMutation = useClearEmailLogs();
 
   const handleClearLogs = async () => {
-    setIsClearing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('clear-email-logs');
-
-      if (error) throw error;
-
+      await clearMutation.mutateAsync();
       toast({
         title: "Sukces",
         description: "Historia emaili została wyczyszczona",
       });
-      
-      setLogs([]);
     } catch (error) {
-      console.error("Error clearing email logs:", error);
       toast({
         title: "Błąd",
         description: "Nie udało się wyczyścić historii emaili",
         variant: "destructive",
       });
-    } finally {
-      setIsClearing(false);
     }
   };
 
@@ -136,9 +83,9 @@ export const EmailLogs = () => {
               <Button 
                 variant="destructive" 
                 size="sm"
-                disabled={isClearing || logs.length === 0}
+                disabled={clearMutation.isPending || logs.length === 0}
               >
-                {isClearing ? (
+                {clearMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Trash2 className="h-4 w-4" />
