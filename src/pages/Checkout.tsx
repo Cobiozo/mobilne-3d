@@ -19,7 +19,6 @@ import { ArrowLeft, CreditCard, Truck, Package } from "lucide-react";
 import { CartItem } from "@/components/ShoppingCart";
 import { ShippingAddresses } from "@/components/ShippingAddresses";
 import { ParcelLockerPicker } from "@/components/ParcelLockerPicker";
-import { SolanaPayButton } from "@/components/SolanaPayButton";
 
 const Checkout = () => {
   const { user, loading } = useAuth();
@@ -1573,38 +1572,16 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
                     </div>
                   ))}
 
-                  {paymentMethod === 'solana_pay' && paymentMethodConfig && (
-                    <div className="pt-4">
-                      <SolanaPayButton
-                        orderId={createdOrderId || ''}
-                        totalAmount={finalPrice}
-                        config={paymentMethodConfig}
-                        onSuccess={(signature) => {
-                          console.log('Solana payment success:', signature);
-                          navigate(`/payment-status?status=success&order=${createdOrderId}`);
-                        }}
-                        onError={(error) => {
-                          console.error('Solana payment error:', error);
-                          toast.error(`Błąd płatności: ${error}`);
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {paymentMethod !== 'solana_pay' && (
-                    <>
-                      <Separator className="my-4" />
-                      
-                      <Button 
-                        onClick={handleSubmitOrder}
-                        disabled={isLoading}
-                        className="w-full"
-                        size="lg"
-                      >
-                        {isLoading ? 'Przetwarzanie...' : 'Złóż zamówienie'}
-                      </Button>
-                    </>
-                  )}
+                  <Separator className="my-4" />
+                  
+                  <Button 
+                    onClick={handleSubmitOrder}
+                    disabled={isLoading}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {isLoading ? 'Przetwarzanie...' : 'Złóż zamówienie'}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
