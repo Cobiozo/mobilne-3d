@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { GripVertical, Search, Loader2 } from "lucide-react";
+import { GripVertical } from "lucide-react";
 
 interface PaymentMethod {
   id: string;
@@ -31,7 +31,6 @@ const PaymentMethodsManagement = () => {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const [draggedItem, setDraggedItem] = useState<PaymentMethod | null>(null);
-  const [fetchingTokenInfo, setFetchingTokenInfo] = useState(false);
 
   useEffect(() => {
     fetchMethods();
@@ -148,55 +147,6 @@ const PaymentMethodsManagement = () => {
     }
   };
 
-  const fetchTokenInfo = async (tokenMint: string, network: string) => {
-    if (!tokenMint) {
-      toast.error('Wprowadź adres mint tokena');
-      return;
-    }
-
-    setFetchingTokenInfo(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('fetch-token-info', {
-        body: { token_mint: tokenMint, network }
-      });
-
-      if (error) throw error;
-
-      if (data?.success && data?.data) {
-        const tokenData = data.data;
-        
-        if (selectedMethod) {
-          setSelectedMethod({
-            ...selectedMethod,
-            config: {
-              ...selectedMethod.config,
-              token_symbol: tokenData.symbol,
-              token_decimals: tokenData.decimals,
-              price_per_token: tokenData.price_pln,
-              price_source: tokenData.source,
-              last_price_update: tokenData.timestamp,
-              manual_price: false,
-              auto_update_price: tokenData.price_pln > 0
-            }
-          });
-
-          if (tokenData.price_pln > 0) {
-            toast.success(`Dane tokena pobrane: ${tokenData.symbol} - ${tokenData.price_pln.toFixed(2)} PLN`);
-          } else {
-            toast.warning(`Symbol i decimals pobrane. Cena niedostępna - ustaw ręcznie.`);
-          }
-        }
-      } else {
-        toast.error('Nie udało się pobrać danych tokena');
-      }
-    } catch (error) {
-      console.error('Error fetching token info:', error);
-      toast.error('Błąd podczas pobierania danych tokena');
-    } finally {
-      setFetchingTokenInfo(false);
-    }
-  };
-
   const getMethodIcon = (methodKey: string) => {
     const iconMap: Record<string, string> = {
       traditional: '🏦',
@@ -210,7 +160,6 @@ const PaymentMethodsManagement = () => {
       payu_twisto: 'Twisto',
       payu_twisto_3: 'Twisto',
       payu_secure_form: 'PayU',
-      solana_pay: '◎',
     };
     return iconMap[methodKey] || 'PayU';
   };
@@ -389,171 +338,6 @@ const PaymentMethodsManagement = () => {
                               />
                               <p className="text-xs text-muted-foreground mt-1">
                                 Użyj {'{order_number}'} dla numeru zamówienia
-                              </p>
-                            </div>
-                          </>
-                        )}
-
-                        {method.method_key === 'solana_pay' && (
-                          <>
-                            <div>
-                              <Label htmlFor="recipient_wallet">Adres portfela odbiorcy</Label>
-                              <Input
-                                id="recipient_wallet"
-                                value={selectedMethod?.config?.recipient_wallet || ''}
-                                placeholder="5FHwkr..."
-                                onChange={(e) => {
-                                  if (selectedMethod) {
-                                    setSelectedMethod({
-                                      ...selectedMethod,
-                                      config: {
-                                        ...selectedMethod.config,
-                                        recipient_wallet: e.target.value
-                                      }
-                                    });
-                                  }
-                                }}
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="token_mint">Adres Mint tokena SPL</Label>
-                              <div className="flex gap-2">
-                                <Input
-                                  id="token_mint"
-                                  value={selectedMethod?.config?.token_mint || ''}
-                                  placeholder="EPjFWd..."
-                                  onChange={(e) => {
-                                    if (selectedMethod) {
-                                      setSelectedMethod({
-                                        ...selectedMethod,
-                                        config: {
-                                          ...selectedMethod.config,
-                                          token_mint: e.target.value
-                                        }
-                                      });
-                                    }
-                                  }}
-                                />
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={fetchingTokenInfo || !selectedMethod?.config?.token_mint}
-                                  onClick={() => fetchTokenInfo(
-                                    selectedMethod?.config?.token_mint || '',
-                                    selectedMethod?.config?.network || 'mainnet-beta'
-                                  )}
-                                >
-                                  {fetchingTokenInfo ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Search className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Kliknij przycisk z lupą aby automatycznie pobrać dane tokena
-                              </p>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <Label htmlFor="token_symbol">Symbol tokena</Label>
-                                <Input
-                                  id="token_symbol"
-                                  value={selectedMethod?.config?.token_symbol || ''}
-                                  placeholder="SOL"
-                                  readOnly={selectedMethod?.config?.price_source === 'jupiter'}
-                                  className={selectedMethod?.config?.price_source === 'jupiter' ? 'bg-muted' : ''}
-                                  onChange={(e) => {
-                                    if (selectedMethod) {
-                                      setSelectedMethod({
-                                        ...selectedMethod,
-                                        config: {
-                                          ...selectedMethod.config,
-                                          token_symbol: e.target.value
-                                        }
-                                      });
-                                    }
-                                  }}
-                                />
-                              </div>
-                              <div>
-                                <Label htmlFor="token_decimals">Miejsca po przecinku</Label>
-                                <Input
-                                  id="token_decimals"
-                                  type="number"
-                                  value={selectedMethod?.config?.token_decimals || 9}
-                                  readOnly={selectedMethod?.config?.price_source === 'jupiter'}
-                                  className={selectedMethod?.config?.price_source === 'jupiter' ? 'bg-muted' : ''}
-                                  onChange={(e) => {
-                                    if (selectedMethod) {
-                                      setSelectedMethod({
-                                        ...selectedMethod,
-                                        config: {
-                                          ...selectedMethod.config,
-                                          token_decimals: parseInt(e.target.value)
-                                        }
-                                      });
-                                    }
-                                  }}
-                                />
-                              </div>
-                            </div>
-
-                            <div>
-                              <Label htmlFor="price_per_token">Cena 1 tokena (PLN)</Label>
-                              <Input
-                                id="price_per_token"
-                                type="number"
-                                step="0.01"
-                                value={selectedMethod?.config?.price_per_token || 1.00}
-                                onChange={(e) => {
-                                  if (selectedMethod) {
-                                    setSelectedMethod({
-                                      ...selectedMethod,
-                                      config: {
-                                        ...selectedMethod.config,
-                                        price_per_token: parseFloat(e.target.value),
-                                        manual_price: true
-                                      }
-                                    });
-                                  }
-                                }}
-                              />
-                              {selectedMethod?.config?.last_price_update && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Ostatnia aktualizacja: {new Date(selectedMethod.config.last_price_update).toLocaleString('pl-PL')}
-                                  {selectedMethod?.config?.price_source && ` (źródło: ${selectedMethod.config.price_source})`}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <Label htmlFor="network">Sieć Solana</Label>
-                              <Select
-                                value={selectedMethod?.config?.network || 'mainnet-beta'}
-                                onValueChange={(value) => {
-                                  if (selectedMethod) {
-                                    setSelectedMethod({
-                                      ...selectedMethod,
-                                      config: {
-                                        ...selectedMethod.config,
-                                        network: value
-                                      }
-                                    });
-                                  }
-                                }}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="mainnet-beta">Mainnet (Produkcja)</SelectItem>
-                                  <SelectItem value="devnet">Devnet (Testy)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Zalecane: najpierw przetestuj na Devnet
                               </p>
                             </div>
                           </>
