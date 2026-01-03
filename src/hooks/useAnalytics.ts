@@ -114,7 +114,9 @@ export const useAnalytics = (timeRange: string) => {
   return useQuery({
     queryKey: ['analytics', timeRange],
     queryFn: () => fetchAnalyticsData(timeRange),
-    staleTime: 60 * 1000, // 60 seconds
-    refetchInterval: 60 * 1000, // Auto-refresh every 60 seconds
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchInterval: 2 * 60 * 1000, // Auto-refresh every 2 minutes
+    refetchOnWindowFocus: false, // Prevent refetch on tab focus
+    refetchIntervalInBackground: false, // Stop polling when tab is hidden
   });
 };

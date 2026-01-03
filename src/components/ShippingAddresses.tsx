@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SavedParcelLockers } from '@/components/SavedParcelLockers';
+import { useVisibilityChange } from '@/hooks/useVisibilityChange';
 
 interface ShippingAddress {
   id: string;
@@ -57,23 +58,7 @@ export const ShippingAddresses = ({ onAddressSelect }: ShippingAddressesProps = 
     is_default: false
   };
 
-  useEffect(() => {
-    fetchAddresses();
-  }, []);
-
-  // Refresh addresses when tab becomes visible
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchAddresses();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
-
-  const fetchAddresses = async () => {
+  const fetchAddresses = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -94,7 +79,15 @@ export const ShippingAddresses = ({ onAddressSelect }: ShippingAddressesProps = 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAddresses();
+  }, [fetchAddresses]);
+
+  // Use centralized visibility change hook
+  useVisibilityChange(fetchAddresses);
+
 
   const saveAddress = async (address: Omit<ShippingAddress, 'id'> & { id?: string }) => {
     setIsSaving(true);

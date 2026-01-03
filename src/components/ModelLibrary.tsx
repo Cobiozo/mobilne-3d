@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { useVisibilityChange } from '@/hooks/useVisibilityChange';
 
 interface Model {
   id: string;
@@ -65,7 +66,7 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
   const { toast } = useToast();
   const { language } = useApp();
 
-  const loadAvailableColors = async () => {
+  const loadAvailableColors = useCallback(async () => {
     const { data, error } = await supabase
       .from("available_colors")
       .select("color_hex, color_name")
@@ -75,9 +76,9 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
     if (!error && data) {
       setAvailableColors(data);
     }
-  };
+  }, []);
 
-  const fetchModels = async () => {
+  const fetchModels = useCallback(async () => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('models')
@@ -101,24 +102,15 @@ export const ModelLibrary = ({ userId }: ModelLibraryProps) => {
       setSelectedColors(defaultColors);
     }
     setIsLoading(false);
-  };
+  }, [userId, toast, language]);
 
   useEffect(() => {
     fetchModels();
     loadAvailableColors();
-  }, [userId, toast, language]);
+  }, [fetchModels, loadAvailableColors]);
 
-  // Refresh models when tab becomes visible
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchModels();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
+  // Use centralized visibility change hook
+  useVisibilityChange(fetchModels);
 
   const handleUploadComplete = () => {
     setShowUpload(false);

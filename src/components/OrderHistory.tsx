@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { getText } from '@/lib/i18n';
 import { Calendar, Package, CreditCard } from 'lucide-react';
+import { useVisibilityChange } from '@/hooks/useVisibilityChange';
 
 interface Order {
   id: string;
@@ -123,23 +124,7 @@ export const OrderHistory = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { language } = useApp();
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  // Refresh orders when tab becomes visible
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchOrders();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -182,7 +167,15 @@ export const OrderHistory = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
+  // Use centralized visibility change hook
+  useVisibilityChange(fetchOrders);
+
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
