@@ -16,9 +16,12 @@ export default {
     name: 'mobilne-3d',
     script: './server.js',
     
-    // Instance configuration
-    instances: 2,  // Reduced for shared hosting
-    exec_mode: 'cluster',  // Cluster mode for load balancing
+    // Instance configuration - fork mode for reduced NPROC usage
+    instances: 1,
+    exec_mode: 'fork',
+    
+    // Node.js memory optimization
+    node_args: '--max-old-space-size=256',
     
     // Environment variables
     env: {
