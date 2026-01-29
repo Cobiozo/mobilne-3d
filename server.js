@@ -1,17 +1,10 @@
 /**
  * Production Node.js server for Mobilne-3D Platform
  * Deployed on Cyberfolks.pl (s108.cyber-folks.pl - 195.78.66.103)
+ * Optimized for Passenger hosting environment
  * 
  * This server serves the built static files from the 'dist' directory
  * and handles client-side routing for the Single Page Application (SPA).
- * 
- * Usage:
- * 1. Build the application: npm run build
- * 2. Install dependencies: npm install express compression
- * 3. Start the server: node server.js
- * 
- * For production use with PM2:
- * pm2 start ecosystem.config.js
  */
 
 import express from 'express';
@@ -36,6 +29,16 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+// Connection cleanup middleware dla Passenger
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    if (req.headers.connection === 'close') {
+      req.socket.destroy();
+    }
+  });
   next();
 });
 
@@ -69,28 +72,45 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Server instance variable for graceful shutdown
+let server;
+
 // Start the server
-app.listen(PORT, HOST, () => {
+server = app.listen(PORT, HOST, () => {
   console.log('='.repeat(60));
-  console.log('🚀 Mobilne-3D Platform Server');
+  console.log('🚀 Mobilne-3D Platform Server (Passenger)');
   console.log('='.repeat(60));
   console.log(`📍 Server running at: http://${HOST}:${PORT}`);
-  console.log(`🌐 Host: s108.cyber-folks.pl (${process.env.SERVER_IP || '195.78.66.103'})`);
+  console.log(`🌐 Host: s108.cyber-folks.pl`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'production'}`);
   console.log(`📅 Started at: ${new Date().toLocaleString('pl-PL')}`);
   console.log('='.repeat(60));
-  console.log('');
-  console.log('Press Ctrl+C to stop the server');
-  console.log('');
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  process.exit(0);
-});
+// Limity dla shared hosting (Passenger)
+server.maxConnections = 50;
+server.keepAliveTimeout = 5000;  // 5 sekund
+server.headersTimeout = 6000;    // 6 sekund
 
-process.on('SIGINT', () => {
-  console.log('SIGINT signal received: closing HTTP server');
-  process.exit(0);
-});
+// Graceful shutdown dla Passenger
+const gracefulShutdown = (signal) => {
+  console.log(`${signal} received: closing HTTP server`);
+  
+  server.close((err) => {
+    if (err) {
+      console.error('Error during server close:', err);
+      process.exit(1);
+    }
+    console.log('HTTP server closed successfully');
+    process.exit(0);
+  });
+  
+  // Force close po 10 sekundach
+  setTimeout(() => {
+    console.error('Forcing shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
