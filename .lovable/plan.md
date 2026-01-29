@@ -1,81 +1,55 @@
 
-# Plan naprawy wycieków NPROC dla Passenger (Cyber-Folks)
 
-## Zidentyfikowane problemy
+# Plan dodatkowych optymalizacji server.js dla Passenger
 
-### 1. KRYTYCZNE: Pakiety Solana wciąż w package.json (linie 44-48)
-Pomimo wcześniejszych prób usunięcia, pakiety Solana nadal są obecne:
-- `@solana/wallet-adapter-base`
-- `@solana/wallet-adapter-react`
-- `@solana/wallet-adapter-react-ui`
-- `@solana/wallet-adapter-wallets`
-- `@solana/web3.js`
+## Zidentyfikowane problemy do naprawy
 
-Te pakiety tworzą procesy worker i połączenia WebSocket nawet gdy nie są używane w kodzie.
+### Problem 1: Brak obsługi SIGHUP
+Passenger czasami wysyła SIGHUP przy restarcie aplikacji - obecny kod nie obsługuje tego sygnału.
 
-### 2. Nieprawidłowy graceful shutdown w server.js (linie 87-96)
-Obecna implementacja:
-```javascript
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  process.exit(0);  // NIE ZAMYKA SERWERA EXPRESS!
-});
-```
-Problem: `process.exit(0)` jest wywoływany BEZ zamknięcia serwera Express, co pozostawia połączenia HTTP otwarte.
+### Problem 2: Timer blokuje zamknięcie procesu
+Obecny `setTimeout()` w gracefulShutdown utrzymuje proces przy życiu nawet gdy server.close() nie może się wykonać. Potrzebne jest użycie `timer.unref()`.
 
-### 3. Brak keep-alive timeout
-Express domyślnie trzyma połączenia keep-alive zbyt długo, co na shared hostingu powoduje akumulację procesów.
+### Problem 3: Zbyt długi timeout (10s)
+Na shared hostingu 10 sekund to za długo - Passenger może wysłać SIGKILL wcześniej.
 
-### 4. Brak limitu maksymalnych połączeń
-Brak `server.maxConnections` pozwala na nieograniczoną liczbę równoległych połączeń.
+### Problem 4: Połączenia keep-alive blokują zamknięcie
+Middleware sprawdza tylko `req.headers.connection === 'close'`, ale większość połączeń HTTP/1.1 używa keep-alive.
 
 ---
 
-## Plan naprawczy
+## Plan zmian w server.js
 
-### Faza 1: Usunięcie pakietów Solana z package.json
+### 1. Wymuszenie Connection: close na wszystkich odpowiedziach
 
-Usunięcie linii 44-48:
-- `@solana/wallet-adapter-base`
-- `@solana/wallet-adapter-react`
-- `@solana/wallet-adapter-react-ui`
-- `@solana/wallet-adapter-wallets`
-- `@solana/web3.js`
-
-### Faza 2: Modyfikacja server.js dla Passenger
-
-#### 2.1 Dodanie zmiennej server i limitów połączeń
-
-Zmiana w sekcji uruchamiania serwera (linie 72-85):
-
+Zmiana middleware (linie 35-43):
 ```javascript
-let server;
-
-// Start the server
-server = app.listen(PORT, HOST, () => {
-  console.log('='.repeat(60));
-  console.log('🚀 Mobilne-3D Platform Server (Passenger)');
-  console.log('='.repeat(60));
-  console.log(`📍 Server running at: http://${HOST}:${PORT}`);
-  console.log(`🌐 Host: s108.cyber-folks.pl`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'production'}`);
-  console.log(`📅 Started at: ${new Date().toLocaleString('pl-PL')}`);
-  console.log('='.repeat(60));
+// Force Connection: close dla Passenger - szybsze zwalnianie zasobów
+app.use((req, res, next) => {
+  // Wymusz zamknięcie połączenia po każdej odpowiedzi
+  res.setHeader('Connection', 'close');
+  
+  res.on('finish', () => {
+    // Zniszcz socket natychmiast po zakończeniu
+    if (req.socket && !req.socket.destroyed) {
+      req.socket.destroy();
+    }
+  });
+  next();
 });
-
-// Limity dla shared hosting (Passenger)
-server.maxConnections = 50;
-server.keepAliveTimeout = 5000;  // 5 sekund
-server.headersTimeout = 6000;    // 6 sekund
 ```
 
-#### 2.2 Prawidłowy graceful shutdown (linie 87-96)
+**Dlaczego:** Na shared hostingu z Passenger, utrzymywanie połączeń keep-alive nie ma sensu - Passenger i tak zarządza poolem procesów. Wymuszenie `Connection: close` pozwala szybciej zwalniać zasoby.
 
+### 2. Dodanie SIGHUP i użycie timer.unref()
+
+Zmiana gracefulShutdown (linie 95-116):
 ```javascript
 // Graceful shutdown dla Passenger
 const gracefulShutdown = (signal) => {
   console.log(`${signal} received: closing HTTP server`);
   
+  // Zatrzymaj przyjmowanie nowych połączeń
   server.close((err) => {
     if (err) {
       console.error('Error during server close:', err);
@@ -85,67 +59,62 @@ const gracefulShutdown = (signal) => {
     process.exit(0);
   });
   
-  // Force close po 10 sekundach
-  setTimeout(() => {
+  // Force close po 5 sekundach (krótszy timeout dla shared hosting)
+  // .unref() pozwala procesowi zakończyć się nawet jeśli timer jest aktywny
+  const forceExitTimer = setTimeout(() => {
     console.error('Forcing shutdown after timeout');
     process.exit(1);
-  }, 10000);
+  }, 5000);
+  forceExitTimer.unref();
 };
 
+// Obsługa wszystkich sygnałów używanych przez Passenger
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGHUP', () => gracefulShutdown('SIGHUP'));
 ```
 
-#### 2.3 Middleware do czyszczenia połączeń
+**Dlaczego:**
+- `timer.unref()` - timer nie będzie blokował zamknięcia procesu
+- SIGHUP - Passenger może używać tego sygnału przy restarcie
+- 5s zamiast 10s - szybsze zwolnienie zasobów
 
-Dodać przed sekcją routingu (po linii 46):
+### 3. Dodanie aktywnego zamykania połączeń przy shutdown
 
+Dodatkowa logika w gracefulShutdown:
 ```javascript
-// Connection cleanup middleware dla Passenger
-app.use((req, res, next) => {
-  res.on('finish', () => {
-    if (req.headers.connection === 'close') {
-      req.socket.destroy();
-    }
+const gracefulShutdown = (signal) => {
+  console.log(`${signal} received: closing HTTP server`);
+  
+  // Zamknij wszystkie aktywne połączenia
+  server.closeAllConnections();
+  
+  server.close((err) => {
+    // ...
   });
-  next();
-});
+  
+  // ...
+};
 ```
 
----
-
-## Dlaczego procesy się akumulują na Passenger
-
-```text
-Passenger wysyła        Obecny kod:           Wynik:
-SIGTERM do procesu  →  process.exit(0)   →  Połączenia HTTP
-                       BEZ server.close()    pozostają jako "zombie"
-                                              ↓
-                       Nowy proces         Stare + nowe procesy
-                       startuje        →   = 100% NPROC
-```
+**Uwaga:** `server.closeAllConnections()` jest dostępne od Node.js 18.2.0. Jeśli hosting używa starszej wersji, ta metoda nie zadziała (ale nie spowoduje błędu).
 
 ---
 
 ## Podsumowanie zmian
 
-| Plik | Zmiana | Wpływ na NPROC |
-|------|--------|----------------|
-| package.json | Usunięcie 5 pakietów Solana (linie 44-48) | -30-40% |
-| server.js | Zmienna `server` + limity połączeń | -10-15% |
-| server.js | Prawidłowy graceful shutdown | -20-30% |
-| server.js | Connection cleanup middleware | -5-10% |
+| Zmiana | Lokalizacja | Wpływ |
+|--------|-------------|-------|
+| `Connection: close` na wszystkich odpowiedziach | linie 35-43 | Szybsze zwalnianie połączeń |
+| `timer.unref()` | linia 109 | Proces może się zamknąć mimo aktywnego timera |
+| Timeout 5s zamiast 10s | linia 108 | Szybsze zwolnienie przy SIGTERM |
+| Obsługa SIGHUP | nowa linia | Passenger restart handling |
+| `server.closeAllConnections()` | gracefulShutdown | Natychmiastowe zamknięcie połączeń |
 
-## Szacowany wynik
-- **Przed:** 90-100% wykorzystania NPROC
-- **Po:** 40-50% wykorzystania NPROC
+## Szacowany wpływ
+- Szybsze zwalnianie procesów przy restart
+- Mniejsza akumulacja "zombie" połączeń
+- Lepsze współdziałanie z Passenger pool management
 
-## Czas implementacji: ~15 minut
+## Czas implementacji: ~10 minut
 
-## Instrukcje po wdrożeniu na Cyber-Folks
-1. Usuń stare pliki aplikacji lub wykonaj `rm -rf node_modules`
-2. Wykonaj `npm install` aby zaktualizować zależności
-3. Wykonaj `npm run build`
-4. Wgraj nowe pliki na serwer
-5. Zrestartuj aplikację w panelu Cyber-Folks (Passenger automatycznie zarządza procesami)
-6. Monitoruj zużycie NPROC w panelu hostingu
