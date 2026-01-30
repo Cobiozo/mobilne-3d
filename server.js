@@ -32,10 +32,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Connection cleanup middleware dla Passenger
+// Force Connection: close dla Passenger - szybsze zwalnianie zasobów
 app.use((req, res, next) => {
+  // Wymusz zamknięcie połączenia po każdej odpowiedzi
+  res.setHeader('Connection', 'close');
+  
   res.on('finish', () => {
-    if (req.headers.connection === 'close') {
+    // Zniszcz socket natychmiast po zakończeniu
+    if (req.socket && !req.socket.destroyed) {
       req.socket.destroy();
     }
   });
@@ -96,6 +100,12 @@ server.headersTimeout = 6000;    // 6 sekund
 const gracefulShutdown = (signal) => {
   console.log(`${signal} received: closing HTTP server`);
   
+  // Zamknij wszystkie aktywne połączenia (Node.js 18.2+)
+  if (typeof server.closeAllConnections === 'function') {
+    server.closeAllConnections();
+  }
+  
+  // Zatrzymaj przyjmowanie nowych połączeń
   server.close((err) => {
     if (err) {
       console.error('Error during server close:', err);
@@ -105,12 +115,16 @@ const gracefulShutdown = (signal) => {
     process.exit(0);
   });
   
-  // Force close po 10 sekundach
-  setTimeout(() => {
+  // Force close po 5 sekundach (krótszy timeout dla shared hosting)
+  // .unref() pozwala procesowi zakończyć się nawet jeśli timer jest aktywny
+  const forceExitTimer = setTimeout(() => {
     console.error('Forcing shutdown after timeout');
     process.exit(1);
-  }, 10000);
+  }, 5000);
+  forceExitTimer.unref();
 };
 
+// Obsługa wszystkich sygnałów używanych przez Passenger
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGHUP', () => gracefulShutdown('SIGHUP'));
