@@ -1,120 +1,129 @@
 
 
-# Plan dodatkowych optymalizacji server.js dla Passenger
+# Plan: Usunięcie Solana + dodanie Multer do uploadu plików powyzej 2MB
 
-## Zidentyfikowane problemy do naprawy
+## Problem 1: Błąd buildu - pakiet `usb` (Solana)
 
-### Problem 1: Brak obsługi SIGHUP
-Passenger czasami wysyła SIGHUP przy restarcie aplikacji - obecny kod nie obsługuje tego sygnału.
+Pakiety `@solana/*` nie są nigdzie używane w kodzie (`src/`), ale ich zależność `usb` wymaga kompilacji natywnej (C++), co nie działa w środowisku sandbox. Rozwiązanie: **usunięcie wszystkich 5 pakietów Solana z `package.json`**.
 
-### Problem 2: Timer blokuje zamknięcie procesu
-Obecny `setTimeout()` w gracefulShutdown utrzymuje proces przy życiu nawet gdy server.close() nie może się wykonać. Potrzebne jest użycie `timer.unref()`.
+Pakiety do usunięcia:
+- `@solana/wallet-adapter-base`
+- `@solana/wallet-adapter-react`
+- `@solana/wallet-adapter-react-ui`
+- `@solana/wallet-adapter-wallets`
+- `@solana/web3.js`
 
-### Problem 3: Zbyt długi timeout (10s)
-Na shared hostingu 10 sekund to za długo - Passenger może wysłać SIGKILL wcześniej.
+## Problem 2: Dodanie Multer do server.js
 
-### Problem 4: Połączenia keep-alive blokują zamknięcie
-Middleware sprawdza tylko `req.headers.connection === 'close'`, ale większość połączeń HTTP/1.1 używa keep-alive.
+Multer to middleware Express do obsługi `multipart/form-data` (uploadu plików). Pliki powyzej 2MB będą zapisywane na dysku hostingu w folderze `uploads/`.
 
----
+### Zmiany w `package.json`:
+- Dodanie `multer` jako zależność
 
-## Plan zmian w server.js
+### Zmiany w `server.js`:
 
-### 1. Wymuszenie Connection: close na wszystkich odpowiedziach
+1. Import multer i konfiguracja storage:
 
-Zmiana middleware (linie 35-43):
 ```javascript
-// Force Connection: close dla Passenger - szybsze zwalnianie zasobów
-app.use((req, res, next) => {
-  // Wymusz zamknięcie połączenia po każdej odpowiedzi
-  res.setHeader('Connection', 'close');
-  
-  res.on('finish', () => {
-    // Zniszcz socket natychmiast po zakończeniu
-    if (req.socket && !req.socket.destroyed) {
-      req.socket.destroy();
-    }
-  });
-  next();
+import multer from 'multer';
+import fs from 'fs';
+
+// Upewnij się że folder uploads istnieje
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Konfiguracja Multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadsDir),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 }, // max 100MB
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.stl', '.3mf'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, allowed.includes(ext));
+  }
 });
 ```
 
-**Dlaczego:** Na shared hostingu z Passenger, utrzymywanie połączeń keep-alive nie ma sensu - Passenger i tak zarządza poolem procesów. Wymuszenie `Connection: close` pozwala szybciej zwalniać zasoby.
+2. Endpoint POST `/api/upload`:
 
-### 2. Dodanie SIGHUP i użycie timer.unref()
-
-Zmiana gracefulShutdown (linie 95-116):
 ```javascript
-// Graceful shutdown dla Passenger
-const gracefulShutdown = (signal) => {
-  console.log(`${signal} received: closing HTTP server`);
-  
-  // Zatrzymaj przyjmowanie nowych połączeń
-  server.close((err) => {
-    if (err) {
-      console.error('Error during server close:', err);
-      process.exit(1);
-    }
-    console.log('HTTP server closed successfully');
-    process.exit(0);
+app.post('/api/upload', upload.single('model'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+  const fileUrl = `/uploads/${req.file.filename}`;
+  res.json({
+    success: true,
+    fileName: req.file.originalname,
+    filePath: fileUrl,
+    fileSize: req.file.size
   });
-  
-  // Force close po 5 sekundach (krótszy timeout dla shared hosting)
-  // .unref() pozwala procesowi zakończyć się nawet jeśli timer jest aktywny
-  const forceExitTimer = setTimeout(() => {
-    console.error('Forcing shutdown after timeout');
-    process.exit(1);
-  }, 5000);
-  forceExitTimer.unref();
-};
-
-// Obsługa wszystkich sygnałów używanych przez Passenger
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-process.on('SIGHUP', () => gracefulShutdown('SIGHUP'));
+});
 ```
 
-**Dlaczego:**
-- `timer.unref()` - timer nie będzie blokował zamknięcia procesu
-- SIGHUP - Passenger może używać tego sygnału przy restarcie
-- 5s zamiast 10s - szybsze zwolnienie zasobów
+3. Serwowanie folderu `uploads/` jako statyczny:
 
-### 3. Dodanie aktywnego zamykania połączeń przy shutdown
-
-Dodatkowa logika w gracefulShutdown:
 ```javascript
-const gracefulShutdown = (signal) => {
-  console.log(`${signal} received: closing HTTP server`);
-  
-  // Zamknij wszystkie aktywne połączenia
-  server.closeAllConnections();
-  
-  server.close((err) => {
-    // ...
-  });
-  
+app.use('/uploads', express.static(uploadsDir));
+```
+
+### Zmiany w `src/components/ModelUpload.tsx`:
+
+Dodanie logiki warunkowej w `handleUpload`:
+- Pliki **powyzej 2MB** -- upload przez Multer (`POST /api/upload`), URL z odpowiedzi zapisywany do bazy
+- Pliki **ponizej 2MB** -- upload bezpośrednio do Supabase Storage (jak dotychczas)
+
+```typescript
+const MULTER_THRESHOLD = 2 * 1024 * 1024; // 2MB
+
+// W handleUpload:
+let fileUrl: string;
+
+if (selectedFile.size > MULTER_THRESHOLD) {
+  // Upload przez Multer na hosting
+  const formData = new FormData();
+  formData.append('model', selectedFile);
+  const response = await fetch('/api/upload', { method: 'POST', body: formData });
+  const result = await response.json();
+  fileUrl = result.filePath; // np. /uploads/1234567890-model.3mf
+} else {
+  // Upload do Supabase Storage (istniejąca logika)
   // ...
-};
+  fileUrl = publicUrl;
+}
 ```
 
-**Uwaga:** `server.closeAllConnections()` jest dostępne od Node.js 18.2.0. Jeśli hosting używa starszej wersji, ta metoda nie zadziała (ale nie spowoduje błędu).
+### Zmiany w `src/components/FileUpload.tsx`:
 
----
+Brak zmian - komponent obsługuje tylko wybór pliku, logika uploadu jest w `ModelUpload.tsx`.
 
-## Podsumowanie zmian
+## Kolejność implementacji
 
-| Zmiana | Lokalizacja | Wpływ |
-|--------|-------------|-------|
-| `Connection: close` na wszystkich odpowiedziach | linie 35-43 | Szybsze zwalnianie połączeń |
-| `timer.unref()` | linia 109 | Proces może się zamknąć mimo aktywnego timera |
-| Timeout 5s zamiast 10s | linia 108 | Szybsze zwolnienie przy SIGTERM |
-| Obsługa SIGHUP | nowa linia | Passenger restart handling |
-| `server.closeAllConnections()` | gracefulShutdown | Natychmiastowe zamknięcie połączeń |
+1. Usunięcie pakietów `@solana/*` z `package.json`
+2. Dodanie `multer` do `package.json`
+3. Rozbudowa `server.js` o konfigurację Multer i endpoint `/api/upload`
+4. Modyfikacja `ModelUpload.tsx` - warunkowy upload przez Multer vs Supabase
+5. Dodanie `/uploads` do `.gitignore`
 
-## Szacowany wpływ
-- Szybsze zwalnianie procesów przy restart
-- Mniejsza akumulacja "zombie" połączeń
-- Lepsze współdziałanie z Passenger pool management
+## Szczegóły techniczne
 
-## Czas implementacji: ~10 minut
+| Element | Wartość |
+|---------|---------|
+| Próg Multer | 2MB |
+| Max rozmiar pliku | 100MB |
+| Dozwolone rozszerzenia | .stl, .3mf |
+| Folder na hostingu | `./uploads/` |
+| Endpoint API | `POST /api/upload` |
+| Serwowanie plików | `GET /uploads/:filename` |
 
