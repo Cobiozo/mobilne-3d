@@ -12,6 +12,8 @@ import compression from 'compression';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import fs from 'fs';
+import multer from 'multer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -46,9 +48,51 @@ app.use((req, res, next) => {
   next();
 });
 
+// === Multer: upload plików powyżej 2MB na dysk ===
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadsDir),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, uniqueSuffix + ext);
+  }
+});
+
+const uploadMiddleware = multer({
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 }, // max 100MB
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.stl', '.3mf'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, allowed.includes(ext));
+  }
+});
+
+// Serwowanie uploadowanych plików
+app.use('/uploads', express.static(uploadsDir));
+
+// Endpoint uploadu plików
+app.post('/api/upload', uploadMiddleware.single('model'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded or invalid file type' });
+  }
+  const fileUrl = `/uploads/${req.file.filename}`;
+  res.json({
+    success: true,
+    fileName: req.file.originalname,
+    filePath: fileUrl,
+    fileSize: req.file.size
+  });
+});
+
 // Serve static files from the 'dist' directory
 app.use(express.static(path.join(__dirname, 'dist'), {
-  maxAge: '1y', // Cache static assets for 1 year
+  maxAge: '1y',
   etag: true,
 }));
 

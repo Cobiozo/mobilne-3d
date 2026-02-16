@@ -110,53 +110,59 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
     setIsUploading(true);
 
     try {
-      // Fetch storage folder setting
-      console.log('[ModelUpload] Fetching storage folder setting...');
-      const { data: settingsData, error: settingsError } = await supabase
-        .from('site_settings')
-        .select('setting_value')
-        .eq('setting_key', 'models_storage_folder')
-        .maybeSingle();
+      const MULTER_THRESHOLD = 2 * 1024 * 1024; // 2MB
+      let fileUrl: string;
 
-      console.log('[ModelUpload] Settings data:', settingsData, 'Error:', settingsError);
-
-      // Extract string value from jsonb field
-      let storageFolder = '';
-      if (settingsData?.setting_value) {
-        // setting_value is JSONB, so it's already parsed by Supabase
-        if (typeof settingsData.setting_value === 'string') {
-          storageFolder = settingsData.setting_value.trim();
-        } else if (typeof settingsData.setting_value === 'object') {
-          // Handle nested object if exists
-          const valueObj = settingsData.setting_value as any;
-          storageFolder = (valueObj.value || valueObj.folder || '').toString().trim();
+      if (selectedFile.size > MULTER_THRESHOLD) {
+        // Upload dużych plików przez Multer na hosting
+        console.log('[ModelUpload] File > 2MB, uploading via Multer...');
+        const formData = new FormData();
+        formData.append('model', selectedFile);
+        const response = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || 'Upload failed');
         }
+        const result = await response.json();
+        fileUrl = result.filePath;
+        console.log('[ModelUpload] Multer upload success:', fileUrl);
+      } else {
+        // Upload małych plików do Supabase Storage
+        console.log('[ModelUpload] File <= 2MB, uploading to Supabase Storage...');
+        
+        // Fetch storage folder setting
+        const { data: settingsData } = await supabase
+          .from('site_settings')
+          .select('setting_value')
+          .eq('setting_key', 'models_storage_folder')
+          .maybeSingle();
+
+        let storageFolder = '';
+        if (settingsData?.setting_value) {
+          if (typeof settingsData.setting_value === 'string') {
+            storageFolder = settingsData.setting_value.trim();
+          } else if (typeof settingsData.setting_value === 'object') {
+            const valueObj = settingsData.setting_value as any;
+            storageFolder = (valueObj.value || valueObj.folder || '').toString().trim();
+          }
+        }
+
+        const basePath = storageFolder ? `${storageFolder}/${user.id}` : user.id;
+        const filePath = `${basePath}/${Date.now()}_${selectedFile.name}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('models')
+          .upload(filePath, selectedFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('models')
+          .getPublicUrl(uploadData.path);
+
+        fileUrl = publicUrl;
+        console.log('[ModelUpload] Supabase upload success:', fileUrl);
       }
-      
-      console.log('[ModelUpload] Parsed storage folder:', storageFolder);
-      
-      // Upload file to Supabase Storage
-      const fileExt = selectedFile.name.split('.').pop();
-      const basePath = storageFolder ? `${storageFolder}/${user.id}` : user.id;
-      const filePath = `${basePath}/${Date.now()}_${selectedFile.name}`;
-      
-      console.log('[ModelUpload] Uploading to path:', filePath);
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('models')
-        .upload(filePath, selectedFile);
-
-      console.log('[ModelUpload] Upload result:', uploadData, 'Error:', uploadError);
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('models')
-        .getPublicUrl(uploadData.path);
-
-      console.log('[ModelUpload] Public URL:', publicUrl);
 
       // Handle multi-model 3MF uploads
       const modelsToUpload = uploadMode === 'all' && availableModels.length > 1 
@@ -168,13 +174,14 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
       
       for (const modelIndex of modelsToUpload) {
         const modelSuffix = availableModels.length > 1 ? ` - Model ${modelIndex + 1}` : '';
+        const fileExt = selectedFile.name.split('.').pop();
         const { error: dbError } = await supabase
           .from('models')
           .insert({
             user_id: user.id,
             name: modelName.trim() + modelSuffix,
             description: description.trim() || null,
-            file_url: publicUrl,
+            file_url: fileUrl,
             file_size: selectedFile.size,
             file_type: fileExt,
             is_public: isPublic,
