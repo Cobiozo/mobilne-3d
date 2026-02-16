@@ -1,0 +1,3 @@
+[install]
+# Don't run lifecycle scripts for native modules that can't compile in sandbox
+lifecycle-scripts-ignore = ["usb"]
