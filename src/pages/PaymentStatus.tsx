@@ -47,9 +47,10 @@ const PaymentStatus = () => {
           if (order) {
             // If payment is confirmed, send emails and clear cart
             if (order.status === 'processing' && attempts > 0) {
-              console.log('Payment confirmed, sending emails and clearing cart...');
+              console.log('Payment confirmed, clearing cart...');
               
               // Clear cart after successful payment
+              // Email is already sent by payu-payment edge function notification handler
               localStorage.removeItem('cartItems');
               const { data: { user } } = await supabase.auth.getUser();
               if (user) {
@@ -57,20 +58,6 @@ const PaymentStatus = () => {
                   .from('user_carts')
                   .delete()
                   .eq('user_id', user.id);
-              }
-              
-              // Send order confirmation email to customer
-              try {
-                await supabase.functions.invoke('send-order-confirmation', {
-                  body: {
-                    orderId: orderId,
-                    customerEmail: order.customer_email,
-                    customerName: order.customer_first_name,
-                    orderNumber: order.order_number
-                  }
-                });
-              } catch (emailError) {
-                console.error('Error sending confirmation email:', emailError);
               }
             }
 
