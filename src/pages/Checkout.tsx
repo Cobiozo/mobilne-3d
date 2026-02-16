@@ -225,36 +225,9 @@ const Checkout = () => {
   }, [user]);
 
 
-  // Load user profile data and model dimensions
+  // Load model dimensions (profile data is loaded in the useEffect above)
   useEffect(() => {
-    const loadProfileAndDimensions = async () => {
-      // Load user profile data
-      if (user) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('display_name, phone, address, city, postal_code, country')
-          .eq('user_id', user.id)
-          .single();
-
-        if (profileData) {
-          // Extract first and last name from display_name if available
-          const nameParts = profileData.display_name?.split(' ') || [];
-          const firstName = nameParts[0] || '';
-          const lastName = nameParts.slice(1).join(' ') || '';
-
-          setCustomerInfo({
-            firstName,
-            lastName,
-            email: user.email || '',
-            phone: profileData.phone || '',
-            address: profileData.address || '',
-            city: profileData.city || '',
-            postalCode: profileData.postal_code || '',
-            country: profileData.country || 'Polska'
-          });
-        }
-      }
-
+    const loadDimensions = async () => {
       // Load model dimensions
       const savedCart = localStorage.getItem('cartItems');
       if (savedCart) {
@@ -388,7 +361,7 @@ const Checkout = () => {
       }
     };
     
-    loadProfileAndDimensions();
+    loadDimensions();
   }, [navigate, user]);
 
   useEffect(() => {
@@ -489,19 +462,8 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
       // Create ONE order for all items
       const orderNumber = `ORD-${Date.now()}`;
       
-      // Look up first model's UUID from database
-      const { data: firstModels } = await supabase
-        .from('models')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('name', cartItems[0].name)
-        .limit(1);
-
-      if (!firstModels || firstModels.length === 0) {
-        throw new Error(`Model "${cartItems[0].name}" nie został znaleziony w bazie danych`);
-      }
-
-      const firstModelId = firstModels[0].id;
+      // Use cart item ID directly as model ID (already a UUID from the database)
+      const firstModelId = cartItems[0].id;
       
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -547,19 +509,8 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
 
       // Create order items for EACH product in the cart
       for (const item of cartItems) {
-        // Look up actual model UUID from database by name
-        const { data: models } = await supabase
-          .from('models')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('name', item.name)
-          .limit(1);
-
-        if (!models || models.length === 0) {
-          throw new Error(`Model "${item.name}" nie został znaleziony w bazie danych`);
-        }
-
-        const modelId = models[0].id;
+        // Use cart item ID directly as model ID (already a UUID from the database)
+        const modelId = item.id;
         const size = itemSizes[item.id];
         const material = itemMaterials[item.id];
         const itemPrice = calculatePrice(item);
