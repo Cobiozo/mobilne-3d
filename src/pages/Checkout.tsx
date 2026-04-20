@@ -461,10 +461,21 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
 
       // Create ONE order for all items
       const orderNumber = `ORD-${Date.now()}`;
-      
+
+      // Validate that cart items have proper UUIDs (from DB).
+      // Items uploaded via QuickModelUpload may have local timestamp IDs - reject those.
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const invalidItem = cartItems.find(it => !UUID_RE.test(String(it.id)));
+      if (invalidItem) {
+        console.error('[Checkout] Invalid model_id (not a UUID):', invalidItem);
+        toast.error(`Model "${invalidItem.name}" nie jest zapisany w bazie. Wgraj go ponownie z poziomu Dashboard przed złożeniem zamówienia.`);
+        setIsLoading(false);
+        return;
+      }
+
       // Use cart item ID directly as model ID (already a UUID from the database)
       const firstModelId = cartItems[0].id;
-      
+
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -534,46 +545,31 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
         }
       }
 
-      // Save shipping info to profile for future orders
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          user_id: user.id,
-          display_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
-          phone: customerInfo.phone,
-          address: customerInfo.address,
-          city: customerInfo.city,
-          postal_code: customerInfo.postalCode,
-          country: customerInfo.country
-        });
-
-      if (profileError) {
-        console.warn('Could not save profile data:', profileError);
-        // Don't throw error, just log it - order was successful
-      }
-
-      // Save shipping information to user profile if not already saved
+      // Save shipping info to profile only if it's missing/incomplete (no duplicate writes)
       const { data: existingProfile } = await supabase
         .from('profiles')
         .select('display_name, phone, address, city, postal_code, country')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      // Update profile if shipping info is missing or incomplete
-      if (existingProfile && (!existingProfile.address || !existingProfile.phone)) {
-        await supabase
+      if (!existingProfile || !existingProfile.address || !existingProfile.phone) {
+        const { error: profileError } = await supabase
           .from('profiles')
-          .update({
+          .upsert({
+            user_id: user.id,
+            display_name: existingProfile?.display_name || `${customerInfo.firstName} ${customerInfo.lastName}`.trim(),
             phone: customerInfo.phone,
             address: customerInfo.address,
             city: customerInfo.city,
             postal_code: customerInfo.postalCode,
-            country: customerInfo.country,
-            display_name: existingProfile.display_name || `${customerInfo.firstName} ${customerInfo.lastName}`.trim()
-          })
-          .eq('user_id', user.id);
-        
-        toast.success('Dane wysyłkowe zostały zapisane do Twojego profilu');
+            country: customerInfo.country
+          }, { onConflict: 'user_id' });
+
+        if (profileError) {
+          console.warn('Could not save profile data:', profileError);
+        } else if (!existingProfile) {
+          toast.success('Dane wysyłkowe zostały zapisane do Twojego profilu');
+        }
       }
 
       // Deduct virtual currency if used
@@ -687,12 +683,24 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
         try {
           const currentUrl = window.location.origin;
           const continueUrl = `${currentUrl}/payment-status?orderId=${order.id}`;
-          
+
+          // Pobierz prawdziwe IP klienta (publiczny endpoint, fallback do 127.0.0.1)
+          let customerIp = '127.0.0.1';
+          try {
+            const ipRes = await fetch('https://api.ipify.org?format=json');
+            if (ipRes.ok) {
+              const ipJson = await ipRes.json();
+              if (ipJson?.ip) customerIp = ipJson.ip;
+            }
+          } catch (e) {
+            console.warn('[Checkout] Could not fetch client IP, using fallback');
+          }
+
           // Create PayU order
           const payuResponse = await supabase.functions.invoke('payu-payment', {
             body: {
               action: 'create_order',
-              customerIp: '127.0.0.1', // In production, get real IP
+              customerIp,
               description: `Zamówienie ${orderNumber}`,
               totalAmount: finalPrice,
               buyer: {

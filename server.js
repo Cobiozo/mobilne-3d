@@ -76,8 +76,40 @@ const uploadMiddleware = multer({
 // Serwowanie uploadowanych plików
 app.use('/uploads', express.static(uploadsDir));
 
-// Endpoint uploadu plików
-app.post('/api/upload', uploadMiddleware.single('model'), (req, res) => {
+// Middleware: weryfikacja tokenu Supabase JWT przed uploadem
+const verifySupabaseAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (!token) {
+      return res.status(401).json({ error: 'Missing authorization token' });
+    }
+
+    const SUPABASE_URL = process.env.SUPABASE_URL || 'https://rzupsyhyoztaekcwmels.supabase.co';
+    const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: SUPABASE_ANON_KEY,
+      },
+    });
+
+    if (!userRes.ok) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    const user = await userRes.json();
+    req.user = user;
+    next();
+  } catch (err) {
+    console.error('Auth verification error:', err);
+    res.status(401).json({ error: 'Authentication failed' });
+  }
+};
+
+// Endpoint uploadu plików (wymaga zalogowanego usera)
+app.post('/api/upload', verifySupabaseAuth, uploadMiddleware.single('model'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded or invalid file type' });
   }
