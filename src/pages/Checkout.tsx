@@ -534,46 +534,31 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
         }
       }
 
-      // Save shipping info to profile for future orders
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          user_id: user.id,
-          display_name: `${customerInfo.firstName} ${customerInfo.lastName}`,
-          phone: customerInfo.phone,
-          address: customerInfo.address,
-          city: customerInfo.city,
-          postal_code: customerInfo.postalCode,
-          country: customerInfo.country
-        });
-
-      if (profileError) {
-        console.warn('Could not save profile data:', profileError);
-        // Don't throw error, just log it - order was successful
-      }
-
-      // Save shipping information to user profile if not already saved
+      // Save shipping info to profile only if it's missing/incomplete (no duplicate writes)
       const { data: existingProfile } = await supabase
         .from('profiles')
         .select('display_name, phone, address, city, postal_code, country')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      // Update profile if shipping info is missing or incomplete
-      if (existingProfile && (!existingProfile.address || !existingProfile.phone)) {
-        await supabase
+      if (!existingProfile || !existingProfile.address || !existingProfile.phone) {
+        const { error: profileError } = await supabase
           .from('profiles')
-          .update({
+          .upsert({
+            user_id: user.id,
+            display_name: existingProfile?.display_name || `${customerInfo.firstName} ${customerInfo.lastName}`.trim(),
             phone: customerInfo.phone,
             address: customerInfo.address,
             city: customerInfo.city,
             postal_code: customerInfo.postalCode,
-            country: customerInfo.country,
-            display_name: existingProfile.display_name || `${customerInfo.firstName} ${customerInfo.lastName}`.trim()
-          })
-          .eq('user_id', user.id);
-        
-        toast.success('Dane wysyłkowe zostały zapisane do Twojego profilu');
+            country: customerInfo.country
+          }, { onConflict: 'user_id' });
+
+        if (profileError) {
+          console.warn('Could not save profile data:', profileError);
+        } else if (!existingProfile) {
+          toast.success('Dane wysyłkowe zostały zapisane do Twojego profilu');
+        }
       }
 
       // Deduct virtual currency if used

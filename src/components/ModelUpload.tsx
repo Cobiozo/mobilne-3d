@@ -111,10 +111,13 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
 
     try {
       const MULTER_THRESHOLD = 2 * 1024 * 1024; // 2MB
+      // W trybie dev (Lovable preview / Vite) endpoint /api/upload nie istnieje,
+      // więc zawsze używamy Supabase Storage. Multer aktywny tylko na produkcji.
+      const isDev = import.meta.env.DEV;
       let fileUrl: string;
 
-      if (selectedFile.size > MULTER_THRESHOLD) {
-        // Upload dużych plików przez Multer na hosting
+      if (!isDev && selectedFile.size > MULTER_THRESHOLD) {
+        // Upload dużych plików przez Multer na hosting (tylko produkcja)
         console.log('[ModelUpload] File > 2MB, uploading via Multer...');
         const formData = new FormData();
         formData.append('model', selectedFile);
