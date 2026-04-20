@@ -683,12 +683,24 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
         try {
           const currentUrl = window.location.origin;
           const continueUrl = `${currentUrl}/payment-status?orderId=${order.id}`;
-          
+
+          // Pobierz prawdziwe IP klienta (publiczny endpoint, fallback do 127.0.0.1)
+          let customerIp = '127.0.0.1';
+          try {
+            const ipRes = await fetch('https://api.ipify.org?format=json');
+            if (ipRes.ok) {
+              const ipJson = await ipRes.json();
+              if (ipJson?.ip) customerIp = ipJson.ip;
+            }
+          } catch (e) {
+            console.warn('[Checkout] Could not fetch client IP, using fallback');
+          }
+
           // Create PayU order
           const payuResponse = await supabase.functions.invoke('payu-payment', {
             body: {
               action: 'create_order',
-              customerIp: '127.0.0.1', // In production, get real IP
+              customerIp,
               description: `Zamówienie ${orderNumber}`,
               totalAmount: finalPrice,
               buyer: {
