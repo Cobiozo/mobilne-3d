@@ -121,7 +121,13 @@ export const ModelUpload = ({ onUploadComplete }: ModelUploadProps) => {
         console.log('[ModelUpload] File > 2MB, uploading via Multer...');
         const formData = new FormData();
         formData.append('model', selectedFile);
-        const response = await fetch('/api/upload', { method: 'POST', body: formData });
+        // Pobierz aktualny token Supabase do autoryzacji uploadu
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: HeadersInit = {};
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+        const response = await fetch('/api/upload', { method: 'POST', body: formData, headers });
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}));
           throw new Error(errData.error || 'Upload failed');
