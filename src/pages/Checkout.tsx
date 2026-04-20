@@ -469,7 +469,7 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
       if (invalidItem) {
         console.error('[Checkout] Invalid model_id (not a UUID):', invalidItem);
         toast.error(`Model "${invalidItem.name}" nie jest zapisany w bazie. Wgraj go ponownie z poziomu Dashboard przed złożeniem zamówienia.`);
-        setIsProcessingOrder(false);
+        setIsProcessing(false);
         return;
       }
 
