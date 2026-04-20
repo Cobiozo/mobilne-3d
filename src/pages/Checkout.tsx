@@ -461,10 +461,21 @@ ${orderInfo.instructions ? `Uwagi: ${orderInfo.instructions}` : ''}`;
 
       // Create ONE order for all items
       const orderNumber = `ORD-${Date.now()}`;
-      
+
+      // Validate that cart items have proper UUIDs (from DB).
+      // Items uploaded via QuickModelUpload may have local timestamp IDs - reject those.
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const invalidItem = cartItems.find(it => !UUID_RE.test(String(it.id)));
+      if (invalidItem) {
+        console.error('[Checkout] Invalid model_id (not a UUID):', invalidItem);
+        toast.error(`Model "${invalidItem.name}" nie jest zapisany w bazie. Wgraj go ponownie z poziomu Dashboard przed złożeniem zamówienia.`);
+        setIsProcessingOrder(false);
+        return;
+      }
+
       // Use cart item ID directly as model ID (already a UUID from the database)
       const firstModelId = cartItems[0].id;
-      
+
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
